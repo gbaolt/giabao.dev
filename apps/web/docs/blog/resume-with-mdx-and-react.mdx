@@ -1,0 +1,99 @@
+---
+title: I wrote my resume with MDX and React
+description: I write my resume in MDX, use React and pdfcn for the layout, and publish the PDF on my portfolio.
+author: Gia Bảo
+avatar: https://assets.giabao.dev/gbaolt-avatar.webp
+createdAt: 2026-10-11
+updatedAt: 2026-10-11
+tags: ['React', 'MDX', 'Portfolio']
+new: true
+---
+
+My resume is an MDX file. When I add a project or rewrite a bullet, the site's build generates an updated PDF.
+
+Since I already write my blog posts in MDX, it only makes sense to write my resume the same way. I can edit the text in the same editor and track the changes in Git.
+
+My portfolio already uses Next.js, so [pdfcn](https://www.pdfcn.dev/docs) was a good fit for building the PDF layout with React. I can adjust the resume's font sizes and spacing through its theme. You can [read the resulting PDF on my portfolio](/resume) or [download the same document](/resume.pdf).
+
+> Huge shout out to [Aniket Pawar](https://www.aniketpawar.com/) for creating such an amazing piece of software!
+
+## Why I embedded a PDF in my portfolio
+
+When I submit my resume to a recruiter, I send a PDF. I wanted that document to be readable on my portfolio too.
+
+The resume page lets you read the document before you download it. You can zoom in, follow its links, and download the PDF when you want a copy. The page keeps the document within the site's navigation and design.
+
+That gives me one PDF layout to maintain. If I change the spacing or page breaks, the document on the page and the downloaded file change together.
+
+## The content lives in MDX
+
+The source is `apps/web/docs/resume/resume.mdx`, alongside my blog content in the same repository. Its frontmatter holds my name, location, and contact links. The body holds the resume sections and bullet points.
+
+Here is a shortened excerpt:
+
+```mdx title="apps/web/docs/resume/resume.mdx"
+## Education
+
+--
+title="University of Information Technology, VNUHCM"
+subtitle="Bachelor of Information Systems (Advanced Program)"
+location="Ho Chi Minh City, Vietnam"
+--
+
+- **Language proficiency:** IELTS 7.0 (British Council)
+- **Coursework:** Data Structures, Algorithms, Databases, Systems Design, Web Frameworks, Software Engineering
+```
+
+The `--` blocks are a small syntax I added for resume entries. My parser reads attributes such as the entry's title, date, and location before MDX compilation. Those blocks are specific to this project.
+
+I can rewrite a bullet or add a project in the same editor I use for blog posts. Git records the changes, so I can inspect a diff of the wording.
+
+And if I'm feeling too lazy to rewrite a bullet myself, I can ask my coding agent to edit the Markdown. I can review that change in the diff and inspect the generated PDF afterward.
+
+## React controls the PDF layout
+
+[pdfcn follows the shadcn model](https://www.pdfcn.dev/docs) of copying component code into your project. I use its component and theme code as a starting point, with resume components for headings, entries, and lists.
+
+The connection between Markdown and React is a component map. Here is a shortened version:
+
+```tsx title="apps/web/features/resume/components/pdf/mdx-components.tsx"
+export const resumePdfComponents = { h2: SectionHeading, p: Paragraph };
+```
+
+A `##` heading becomes `SectionHeading`, which controls the section's typography and divider. A paragraph becomes `Paragraph`, which applies the resume's body text styles.
+
+The full map also handles lists and resume entries. A bullet list uses `FlushList` and `FlushItem`. The entry parser produces headings, and a remark plugin passes their metadata to `ResumeHeading`.
+
+`compileMDX` uses that map to turn the content into a React tree. My PDF renderer then measures the header and sections to plan the page breaks.
+
+[Takumi](https://takumi.kane.tw/docs/pdf) renders the tree into PDF bytes. I configure an A4 page, resume fonts, and margins. pdfcn supplies the component code I build with, and Takumi produces the document.
+
+This lets me change the layout in React while keeping the resume's wording in MDX. For example, I can adjust how an entry's title and date align without rewriting its bullet points.
+
+## The viewer loads the generated PDF
+
+The page uses [`react-pdf`](https://github.com/wojtekmaj/react-pdf) and PDF.js to display `/resume.pdf`. Its `Document` component loads the file, and `Page` displays each page. Text and annotation layers let visitors select text and follow links.
+
+The download button points to `/resume.pdf` too. The viewer and the button share the generated document, so I can inspect the layout visitors receive.
+
+You can use this idea in a Vue or Svelte portfolio as well. Your renderer and viewer can differ. The useful part is that the page displays the PDF you offer for download.
+
+## Editing and publishing fit the site's workflow
+
+In development, requests to `/resume.pdf` go to a development-only route that runs the resume renderer. After I edit the MDX, I refresh the page to inspect the new PDF.
+
+I can also export the file with `bun run render:resume` from the repository root. The script writes `apps/web/public/resume.pdf`.
+
+The production build runs that same script before `next build`. When I build and deploy the site, the generated resume ships with it. Production serves the PDF as a static asset.
+
+## The PDF layout still needs attention
+
+A PDF has fixed page dimensions. A longer bullet can push an entry onto another page, so I still need to look at the exported document.
+
+My implementation includes custom pagination code that measures sections and chooses page breaks. MDX makes the content convenient to edit, while the page layout still needs rules and visual checks.
+
+Takumi also supports a [smaller set of CSS features than a browser](https://takumi.kane.tw/docs/pdf/comparison). I need to design the PDF within the renderer's supported styles.
+
+For my portfolio, that tradeoff fits how I work. I get to write the resume like a blog post and control its layout with React. The result is a PDF I can submit to recruiters and display on my site.
+
+The [resume page](/resume) shows the result. You can read the [component and renderer code](https://github.com/gbaolt/giabao.dev/tree/main/apps/web/features/resume) and the [MDX source](https://github.com/gbaolt/giabao.dev/blob/main/apps/web/docs/resume/resume.mdx) in the repository.
