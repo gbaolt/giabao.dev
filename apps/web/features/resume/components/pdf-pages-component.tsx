@@ -15,6 +15,7 @@ import {
   useResumeViewer,
   useResumeViewerDocument,
 } from '../context/resume-viewer-provider';
+import { useScheduledPageCanvas } from '../hooks/use-scheduled-page-canvas';
 import {
   useDevicePixelRatio,
   useIsMobileViewport,
@@ -130,7 +131,6 @@ function PdfPagesDocument({
     devicePixelRatio,
     isMobileViewport,
   });
-  const scale = getPageRasterScale(displayedWidthPx, raster.rasterWidthPx);
 
   return (
     <div
@@ -138,8 +138,6 @@ function PdfPagesDocument({
       style={
         {
           '--resume-page-width': `${displayedWidthPx}px`,
-          '--resume-page-raster-width': `${raster.rasterWidthPx}px`,
-          '--resume-page-scale': scale,
         } as React.CSSProperties
       }
     >
@@ -244,6 +242,10 @@ function PdfPage({
   onFirstPageSettled?: () => void;
   onRetry: () => void;
 }) {
+  const frameRef = React.useRef<HTMLDivElement>(null);
+  const hasCanvas = useScheduledPageCanvas(pageNumber, frameRef);
+  // Keep the Page and its interaction layers mounted while only raster density changes.
+  const [layerWidthPx] = React.useState(raster.rasterWidthPx);
   const pageRef = React.useRef<HTMLDivElement>(null);
   const overlayRef = React.useRef<HTMLCanvasElement>(null);
   const lastRasterKeyRef = React.useRef<string | null>(null);
@@ -292,6 +294,7 @@ function PdfPage({
 
   return (
     <div
+      ref={frameRef}
       data-slot="resume-viewer-page"
       data-page-number={pageNumber}
       data-displayed-width={displayedWidthPx}
@@ -308,14 +311,15 @@ function PdfPage({
       <div
         className="absolute top-0 left-0 origin-top-left"
         style={{
-          width: raster.rasterWidthPx,
-          transform: 'scale(var(--resume-page-scale))',
+          width: layerWidthPx,
+          transform: `scale(${getPageRasterScale(displayedWidthPx, layerWidthPx)})`,
         }}
       >
         <Page
+          renderMode={hasCanvas ? 'canvas' : 'none'}
           pageNumber={pageNumber}
-          width={raster.rasterWidthPx}
-          devicePixelRatio={raster.devicePixelRatio}
+          width={layerWidthPx}
+          devicePixelRatio={raster.backingWidthPx / layerWidthPx}
           suspense={false}
           inputRef={pageRef}
           loading={null}
@@ -329,8 +333,8 @@ function PdfPage({
       <canvas
         ref={overlayRef}
         aria-hidden
-        width={overlayActive ? undefined : 0}
-        height={overlayActive ? undefined : 0}
+        width={0}
+        height={0}
         className={cn(
           'pointer-events-none absolute inset-0 size-full',
           overlayActive ? null : 'invisible'
