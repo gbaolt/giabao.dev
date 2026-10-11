@@ -10,17 +10,27 @@ import { Document, Page } from 'react-pdf';
 
 import { Button } from '@/components/ui/button';
 import { RESUME_PDF_FILENAME, RESUME_PDF_PATH } from '@/config/resume';
+import { cn } from '@/lib/utils';
 
 import {
   useResumePreviewReady,
   useResumeViewer,
   useResumeViewerDocument,
 } from '../context/resume-viewer-provider';
+import {
+  useDevicePixelRatio,
+  useIsMobileViewport,
+  useSettledPageRaster,
+} from '../hooks/use-settled-page-raster';
+import {
+  getPageRasterScale,
+  type PageRasterTarget,
+  RESUME_PAGE_ASPECT_RATIO,
+  RESUME_PAGE_MAX_DISPLAY_WIDTH_PX,
+} from '../lib/page-raster-policy';
 
 const PAGE_GAP_PX = 16;
-const MAX_PAGE_WIDTH_PX = 900;
 const WIDTH_SNAP_PX = 4;
-const ASPECT_RATIO = '210 / 297'; // A4 paper size
 
 function getAnnotationLabel(href: string) {
   try {
@@ -63,48 +73,86 @@ function useStableWidth(elementRef: React.RefObject<HTMLElement | null>) {
 export function PdfPages() {
   const { src, setNumPages } = useResumeViewerDocument();
   const { setPreviewReady } = useResumePreviewReady();
-
-  return (
-    <PdfPagesLayout>
-      <PdfDocument
-        key={src}
-        src={src}
-        setNumPages={setNumPages}
-        setPreviewReady={setPreviewReady}
-      />
-    </PdfPagesLayout>
-  );
-}
-
-function PdfPagesLayout({ children }: { children: React.ReactNode }) {
   const { zoom } = useResumeViewer();
   const sizerRef = React.useRef<HTMLDivElement>(null);
   const sizerWidth = useStableWidth(sizerRef);
-  const fitWidth = Math.min(sizerWidth, MAX_PAGE_WIDTH_PX);
-  const pageWidth = Math.max(0, Math.floor(fitWidth * zoom));
+  const fitWidth = Math.min(sizerWidth, RESUME_PAGE_MAX_DISPLAY_WIDTH_PX);
+  const displayedWidthPx = Math.max(0, Math.floor(fitWidth * zoom));
+  const devicePixelRatio = useDevicePixelRatio();
+  const isMobileViewport = useIsMobileViewport();
+
+  return (
+    <div className="flex min-h-full w-full flex-col items-center">
+      <div ref={sizerRef} className="w-full max-w-225" />
+      {displayedWidthPx > 0 ? (
+        <PdfPagesDocument
+          src={src}
+          displayedWidthPx={displayedWidthPx}
+          devicePixelRatio={devicePixelRatio}
+          isMobileViewport={isMobileViewport}
+          setNumPages={setNumPages}
+          setPreviewReady={setPreviewReady}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function PdfPagesDocument({
+  src,
+  displayedWidthPx,
+  devicePixelRatio,
+  isMobileViewport,
+  setNumPages,
+  setPreviewReady,
+}: {
+  src: string;
+  displayedWidthPx: number;
+  devicePixelRatio: number;
+  isMobileViewport: boolean;
+  setNumPages: (numPages: number) => void;
+  setPreviewReady: (ready: boolean) => void;
+}) {
+  const raster = useSettledPageRaster({
+    displayedWidthPx,
+    devicePixelRatio,
+    isMobileViewport,
+  });
+  const scale = getPageRasterScale(displayedWidthPx, raster.rasterWidthPx);
 
   return (
     <div
-      className="flex min-h-full w-full flex-col items-center"
+      className="flex w-full flex-col items-center"
       style={
         {
-          '--resume-page-width': `${pageWidth}px`,
-          '--resume-page-scale': pageWidth / MAX_PAGE_WIDTH_PX,
+          '--resume-page-width': `${displayedWidthPx}px`,
+          '--resume-page-raster-width': `${raster.rasterWidthPx}px`,
+          '--resume-page-scale': scale,
         } as React.CSSProperties
       }
     >
-      <div ref={sizerRef} className="w-full max-w-225" />
-      {pageWidth > 0 ? children : null}
+      <PdfDocument
+        key={src}
+        src={src}
+        displayedWidthPx={displayedWidthPx}
+        raster={raster}
+        setNumPages={setNumPages}
+        setPreviewReady={setPreviewReady}
+      />
     </div>
   );
 }
 
 function PdfDocument({
   src,
+  displayedWidthPx,
+  raster,
   setNumPages,
   setPreviewReady,
 }: {
   src: string;
+  displayedWidthPx: number;
+  raster: PageRasterTarget;
   setNumPages: (numPages: number) => void;
   setPreviewReady: (ready: boolean) => void;
 }) {
@@ -153,32 +201,16 @@ function PdfDocument({
           const pageNumber = index + 1;
 
           return (
-            <div
+            <PdfPage
               key={pageNumber}
-              data-slot="resume-viewer-page"
-              data-page-number={pageNumber}
-              className="relative overflow-hidden bg-white shadow-sm"
-              style={{
-                width: 'var(--resume-page-width)',
-                aspectRatio: ASPECT_RATIO,
-              }}
-            >
-              <div
-                className="absolute top-0 left-0 origin-top-left"
-                style={{
-                  width: MAX_PAGE_WIDTH_PX,
-                  transform: 'scale(var(--resume-page-scale))',
-                }}
-              >
-                <PdfPage
-                  pageNumber={pageNumber}
-                  onFirstPageSettled={
-                    pageNumber === 1 ? settleFirstPage : undefined
-                  }
-                  onRetry={retry}
-                />
-              </div>
-            </div>
+              pageNumber={pageNumber}
+              displayedWidthPx={displayedWidthPx}
+              raster={raster}
+              onFirstPageSettled={
+                pageNumber === 1 ? settleFirstPage : undefined
+              }
+              onRetry={retry}
+            />
           );
         })}
       </div>
@@ -188,18 +220,38 @@ function PdfDocument({
 
 function PdfPage({
   pageNumber,
+  displayedWidthPx,
+  raster,
   onFirstPageSettled,
   onRetry,
 }: {
   pageNumber: number;
+  displayedWidthPx: number;
+  raster: PageRasterTarget;
   onFirstPageSettled?: () => void;
   onRetry: () => void;
 }) {
   const pageRef = React.useRef<HTMLDivElement>(null);
-  // Keep raster density stable during zoom while retaining detail when enlarged.
-  const [devicePixelRatio] = React.useState(() =>
-    Math.max(2, window.devicePixelRatio)
-  );
+  const overlayRef = React.useRef<HTMLCanvasElement>(null);
+  const lastRasterKeyRef = React.useRef<string | null>(null);
+  const rasterKey = `${raster.rasterWidthPx}:${raster.devicePixelRatio}`;
+  const [overlayActive, setOverlayActive] = React.useState(false);
+
+  React.useLayoutEffect(() => {
+    // react-pdf hides and resizes its canvas in useEffect, so copy first.
+    const previousKey = lastRasterKeyRef.current;
+    lastRasterKeyRef.current = rasterKey;
+    if (previousKey === null || previousKey === rasterKey) return;
+
+    const source = pageRef.current?.querySelector('canvas');
+    const overlay = overlayRef.current;
+    if (!source || !overlay || source.width === 0 || source.height === 0) {
+      return;
+    }
+
+    copyCanvasPixels(source, overlay);
+    setOverlayActive(true);
+  }, [rasterKey]);
 
   const nameAnnotationLinks = () => {
     pageRef.current
@@ -210,21 +262,84 @@ function PdfPage({
       });
   };
 
+  const dismissOverlay = () => {
+    releaseCanvasBacking(overlayRef.current);
+    setOverlayActive(false);
+  };
+
+  const handleRenderSuccess = () => {
+    dismissOverlay();
+    onFirstPageSettled?.();
+  };
+
+  const handleRenderFailure = () => {
+    dismissOverlay();
+    onFirstPageSettled?.();
+  };
+
   return (
-    <Page
-      pageNumber={pageNumber}
-      width={MAX_PAGE_WIDTH_PX}
-      devicePixelRatio={devicePixelRatio}
-      suspense={false}
-      inputRef={pageRef}
-      loading={null}
-      error={<ResumeViewerError onRetry={onRetry} compact />}
-      onRenderSuccess={onFirstPageSettled}
-      onRenderError={onFirstPageSettled}
-      onLoadError={onFirstPageSettled}
-      onRenderAnnotationLayerSuccess={nameAnnotationLinks}
-    />
+    <div
+      data-slot="resume-viewer-page"
+      data-page-number={pageNumber}
+      data-displayed-width={displayedWidthPx}
+      data-raster-width={raster.rasterWidthPx}
+      data-device-pixel-ratio={raster.devicePixelRatio}
+      data-backing-width={raster.backingWidthPx}
+      data-backing-height={raster.backingHeightPx}
+      className="relative overflow-hidden bg-white shadow-sm"
+      style={{
+        width: 'var(--resume-page-width)',
+        aspectRatio: RESUME_PAGE_ASPECT_RATIO,
+      }}
+    >
+      <div
+        className="absolute top-0 left-0 origin-top-left"
+        style={{
+          width: raster.rasterWidthPx,
+          transform: 'scale(var(--resume-page-scale))',
+        }}
+      >
+        <Page
+          pageNumber={pageNumber}
+          width={raster.rasterWidthPx}
+          devicePixelRatio={raster.devicePixelRatio}
+          suspense={false}
+          inputRef={pageRef}
+          loading={null}
+          error={<ResumeViewerError onRetry={onRetry} compact />}
+          onRenderSuccess={handleRenderSuccess}
+          onRenderError={handleRenderFailure}
+          onLoadError={handleRenderFailure}
+          onRenderAnnotationLayerSuccess={nameAnnotationLinks}
+        />
+      </div>
+      <canvas
+        ref={overlayRef}
+        aria-hidden
+        width={overlayActive ? undefined : 0}
+        height={overlayActive ? undefined : 0}
+        className={cn(
+          'pointer-events-none absolute inset-0 size-full',
+          overlayActive ? null : 'invisible'
+        )}
+      />
+    </div>
   );
+}
+
+function copyCanvasPixels(
+  source: HTMLCanvasElement,
+  destination: HTMLCanvasElement
+) {
+  destination.width = source.width;
+  destination.height = source.height;
+  destination.getContext('2d')?.drawImage(source, 0, 0);
+}
+
+function releaseCanvasBacking(canvas: HTMLCanvasElement | null) {
+  if (!canvas || (canvas.width === 0 && canvas.height === 0)) return;
+  canvas.width = 0;
+  canvas.height = 0;
 }
 
 function ResumeViewerError({
