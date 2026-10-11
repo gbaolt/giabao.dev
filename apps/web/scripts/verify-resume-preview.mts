@@ -323,19 +323,25 @@ try {
   });
   await page.close();
 
-  for (const failure of ['http', 'corrupt']) {
+  for (const failure of ['http', 'corrupt', 'worker']) {
     console.log(`Checking ${failure} recovery`);
     const recovery = await mobile();
     await recovery.setCacheEnabled(false);
     await recovery.setRequestInterception(true);
     let attempts = 0;
+    let workerUnavailable = failure === 'worker';
     const routes: string[] = [];
     recovery.on('request', (request) => {
+      if (/pdf\.worker/.test(request.url()) && workerUnavailable) {
+        void request.respond({ status: 503, body: 'temporarily unavailable' });
+        return;
+      }
       if (request.headers()['next-router-prefetch'] === '1')
         routes.push(new URL(request.url()).pathname);
       if (
         new URL(request.url()).pathname === '/resume.pdf' &&
-        ++attempts === 1
+        ++attempts === 1 &&
+        failure !== 'worker'
       ) {
         void request.respond({
           status: failure === 'http' ? 503 : 200,
@@ -361,6 +367,7 @@ try {
     );
     assert(routes.includes('/blog'));
     assert(await recovery.$('[role="alert"] a[download]'));
+    workerUnavailable = false;
     await recovery.click('[data-slot="resume-viewer"] [role="alert"] button');
     await ready(recovery);
     assert.equal(attempts, 2);

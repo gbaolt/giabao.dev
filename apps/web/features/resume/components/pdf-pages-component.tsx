@@ -170,18 +170,30 @@ function PdfDocument({
   setPreviewReady: (ready: boolean) => void;
 }) {
   const [loadedPages, setLoadedPages] = React.useState(0);
+  const [workerFailed, setWorkerFailed] = React.useState(false);
   const file = React.useMemo(() => createResumePdfDocumentFile(bytes), [bytes]);
 
-  const settleDocumentError = React.useCallback(() => {
-    setNumPages(0);
-    setPreviewReady(true);
-  }, [setNumPages, setPreviewReady]);
+  const settleDocumentError = React.useCallback(
+    (error: Error) => {
+      setWorkerFailed(
+        error.message.startsWith('Setting up fake worker failed:')
+      );
+      setNumPages(0);
+      setPreviewReady(true);
+    },
+    [setNumPages, setPreviewReady]
+  );
 
   const retry = React.useCallback(() => {
+    if (workerFailed) {
+      // PDF.js retains a rejected worker-module promise for this page session.
+      window.location.reload();
+      return;
+    }
     setLoadedPages(0);
     setNumPages(0);
     onRetry();
-  }, [onRetry, setNumPages]);
+  }, [onRetry, setNumPages, workerFailed]);
 
   const settleFirstPage = React.useCallback(() => {
     setPreviewReady(true);
