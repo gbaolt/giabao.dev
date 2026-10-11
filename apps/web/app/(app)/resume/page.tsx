@@ -20,11 +20,9 @@ import { DocPageRoot } from '@/features/blog/components/doc/doc-page-root';
 import { DownloadResumeButton } from '@/features/resume/components/download-resume-button';
 import {
   ResumeViewer,
-  ResumeViewerPages,
   ResumeViewerToolbar,
-  ResumeViewerViewport,
 } from '@/features/resume/components/viewer/resume-viewer';
-import { ResumeViewerZoomShortcuts } from '@/features/resume/components/viewer/resume-viewer-zoom-shortcuts';
+import { ResumeViewerPreview } from '@/features/resume/components/viewer/resume-viewer-preview';
 import { absoluteUrl } from '@/lib/utils';
 
 const title = 'Resume';
@@ -96,16 +94,14 @@ export default function ResumePage() {
       >
         <DocPageRoot className="flex h-full flex-1 flex-col border-x">
           <ResumeViewer src={RESUME_PDF_PATH}>
-            <ResumeViewerZoomShortcuts />
-
             <DocContainer>
               <div className="flex items-center justify-between p-2">
-                <ResumeViewerToolbar className="[@media(max-width:360px)]:hidden" />
+                <ResumeViewerToolbar className="md:hidden" />
 
                 <div className="ml-auto flex items-center gap-2">
                   <MDCopyButtonGroup markdownUrl={RESUME_MD_PATH} />
                   <ShareMenu title={title} url={RESUME_PATH} />
-                  <DownloadResumeButton />
+                  <DownloadResumeButton className="md:hidden" />
                 </div>
               </div>
             </DocContainer>
@@ -115,9 +111,7 @@ export default function ResumePage() {
 
               <DocContentCol className="border-t">
                 <div className="py-4">
-                  <ResumeViewerViewport className="border-y">
-                    <ResumeViewerPages />
-                  </ResumeViewerViewport>
+                  <ResumeViewerPreview className="border-y" />
                 </div>
               </DocContentCol>
 

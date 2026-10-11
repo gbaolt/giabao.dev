@@ -322,7 +322,7 @@ export default async function BlogPage({ params }: PageProps<'/blog/[slug]'>) {
                     )}
                   </span>
                 </div>
-                <Prose className="p-4 pt-0 *:data-[slot=toc-inline]:mt-4">
+                <Prose className="p-4">
                   <TOCInline className="md:hidden" items={toc} />
 
                   <div>

@@ -72,7 +72,7 @@ export async function renderResumePdf(doc: ResumeDoc): Promise<Uint8Array> {
     components: resumePdfComponents,
     options: {
       mdxOptions: {
-        remarkPlugins: [remarkGfm, remarkResumeEntry(entries, 'pdf')],
+        remarkPlugins: [remarkGfm, remarkResumeEntry(entries)],
       },
     },
   });

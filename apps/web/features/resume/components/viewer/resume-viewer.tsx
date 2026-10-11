@@ -11,7 +11,6 @@ import {
   ButtonGroupSeparator,
   ButtonGroupText,
 } from '@/components/ui/button-group';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 import {
@@ -150,27 +149,18 @@ export function ResumeViewerViewport({
   );
 }
 
-/** Lazily loads react-pdf on the client only. */
 export function ResumeViewerPages() {
-  return (
-    <div className="relative flex min-h-full w-full flex-col items-center-safe">
-      <ResumeViewerLoadingOverlay />
-      <PdfPages />
-    </div>
-  );
-}
-
-function ResumeViewerLoadingOverlay() {
   const { isPreviewReady } = useResumePreviewReady();
 
   return (
-    <div
-      className={cn(
-        'absolute inset-0 z-10 flex items-center',
-        isPreviewReady && 'pointer-events-none hidden'
-      )}
-    >
-      <Skeleton className="size-full rounded-none" />
+    <div className="relative flex min-h-full w-full flex-col items-center-safe">
+      {!isPreviewReady ? (
+        <div
+          className="absolute inset-0 z-10 size-full bg-white"
+          role="status"
+        />
+      ) : null}
+      <PdfPages />
     </div>
   );
 }

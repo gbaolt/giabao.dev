@@ -39,7 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <ScrollToTop />
-      <FadeOverlay align="top" />
+      <FadeOverlay align="top" className="max-md:hidden" />
       <FadeOverlay align="bottom" className="md:hidden" />
       <SiteFooterNav />
       <SiteFooter />
