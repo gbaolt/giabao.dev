@@ -8,8 +8,6 @@ import '../styles/pdf-text-layer.css';
 import React from 'react';
 import { Document, Page } from 'react-pdf';
 
-import { Button } from '@/components/ui/button';
-import { RESUME_PDF_FILENAME, RESUME_PDF_PATH } from '@/config/resume';
 import { cn } from '@/lib/utils';
 
 import {
@@ -28,6 +26,8 @@ import {
   RESUME_PAGE_ASPECT_RATIO,
   RESUME_PAGE_MAX_DISPLAY_WIDTH_PX,
 } from '../lib/page-raster-policy';
+import { createResumePdfDocumentFile } from '../lib/resume-pdf-source';
+import { ResumeViewerError } from './viewer/resume-viewer-error';
 
 const PAGE_GAP_PX = 16;
 const WIDTH_SNAP_PX = 4;
@@ -70,7 +70,13 @@ function useStableWidth(elementRef: React.RefObject<HTMLElement | null>) {
   return width;
 }
 
-export function PdfPages() {
+export function PdfPages({
+  bytes,
+  onRetry,
+}: {
+  bytes: Uint8Array | null;
+  onRetry: () => void;
+}) {
   const { src, setNumPages } = useResumeViewerDocument();
   const { setPreviewReady } = useResumePreviewReady();
   const { zoom } = useResumeViewer();
@@ -84,9 +90,11 @@ export function PdfPages() {
   return (
     <div className="flex min-h-full w-full flex-col items-center">
       <div ref={sizerRef} className="w-full max-w-225" />
-      {displayedWidthPx > 0 ? (
+      {displayedWidthPx > 0 && bytes ? (
         <PdfPagesDocument
           src={src}
+          bytes={bytes}
+          onRetry={onRetry}
           displayedWidthPx={displayedWidthPx}
           devicePixelRatio={devicePixelRatio}
           isMobileViewport={isMobileViewport}
@@ -100,6 +108,8 @@ export function PdfPages() {
 
 function PdfPagesDocument({
   src,
+  bytes,
+  onRetry,
   displayedWidthPx,
   devicePixelRatio,
   isMobileViewport,
@@ -107,6 +117,8 @@ function PdfPagesDocument({
   setPreviewReady,
 }: {
   src: string;
+  bytes: Uint8Array;
+  onRetry: () => void;
   displayedWidthPx: number;
   devicePixelRatio: number;
   isMobileViewport: boolean;
@@ -133,7 +145,8 @@ function PdfPagesDocument({
     >
       <PdfDocument
         key={src}
-        src={src}
+        bytes={bytes}
+        onRetry={onRetry}
         displayedWidthPx={displayedWidthPx}
         raster={raster}
         setNumPages={setNumPages}
@@ -144,20 +157,22 @@ function PdfPagesDocument({
 }
 
 function PdfDocument({
-  src,
+  bytes,
+  onRetry,
   displayedWidthPx,
   raster,
   setNumPages,
   setPreviewReady,
 }: {
-  src: string;
+  bytes: Uint8Array;
+  onRetry: () => void;
   displayedWidthPx: number;
   raster: PageRasterTarget;
   setNumPages: (numPages: number) => void;
   setPreviewReady: (ready: boolean) => void;
 }) {
   const [loadedPages, setLoadedPages] = React.useState(0);
-  const [retryKey, setRetryKey] = React.useState(0);
+  const file = React.useMemo(() => createResumePdfDocumentFile(bytes), [bytes]);
 
   const settleDocumentError = React.useCallback(() => {
     setNumPages(0);
@@ -165,11 +180,10 @@ function PdfDocument({
   }, [setNumPages, setPreviewReady]);
 
   const retry = React.useCallback(() => {
-    setPreviewReady(false);
     setLoadedPages(0);
     setNumPages(0);
-    setRetryKey((current) => current + 1);
-  }, [setNumPages, setPreviewReady]);
+    onRetry();
+  }, [onRetry, setNumPages]);
 
   const settleFirstPage = React.useCallback(() => {
     setPreviewReady(true);
@@ -177,8 +191,7 @@ function PdfDocument({
 
   return (
     <Document
-      key={`${src}:${retryKey}`}
-      file={src}
+      file={file}
       suspense={false}
       className="flex w-full flex-col items-center-safe"
       loading={null}
@@ -340,37 +353,4 @@ function releaseCanvasBacking(canvas: HTMLCanvasElement | null) {
   if (!canvas || (canvas.width === 0 && canvas.height === 0)) return;
   canvas.width = 0;
   canvas.height = 0;
-}
-
-function ResumeViewerError({
-  onRetry,
-  compact = false,
-}: {
-  onRetry: () => void;
-  compact?: boolean;
-}) {
-  return (
-    <div
-      className="flex flex-col items-center justify-center gap-3 px-4 py-8 text-center"
-      role="alert"
-    >
-      <p className="text-muted-foreground text-sm">
-        {compact
-          ? 'This PDF page could not be rendered.'
-          : 'The Resume PDF could not be loaded.'}
-      </p>
-      <div className="flex flex-wrap justify-center gap-2">
-        <Button variant="secondary" onClick={onRetry}>
-          Try again
-        </Button>
-        <Button
-          variant="outline"
-          nativeButton={false}
-          render={<a href={RESUME_PDF_PATH} download={RESUME_PDF_FILENAME} />}
-        >
-          Download PDF
-        </Button>
-      </div>
-    </div>
-  );
 }

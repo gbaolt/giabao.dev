@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 import { useResumeViewerDocument } from '../../context/resume-viewer-provider';
+import { ResumePdfSourceProvider } from '../../hooks/use-resume-pdf-source';
 import { ResumeViewerPages, ResumeViewerViewport } from './resume-viewer';
 import { ResumeViewerZoomShortcuts } from './resume-viewer-zoom-shortcuts';
 
@@ -60,13 +61,23 @@ export function ResumeViewerPreview({ className }: { className?: string }) {
     );
   }
 
+  return <ResumeViewerFallback className={className} src={src} />;
+}
+
+function ResumeViewerFallback({
+  className,
+  src,
+}: {
+  className?: string;
+  src: string;
+}) {
   return (
-    <>
+    <ResumePdfSourceProvider src={src}>
       <ResumeViewerZoomShortcuts />
       <ResumeViewerViewport className={className}>
         <ResumeViewerPages />
       </ResumeViewerViewport>
-    </>
+    </ResumePdfSourceProvider>
   );
 }
 
