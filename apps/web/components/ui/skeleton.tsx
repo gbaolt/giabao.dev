@@ -4,7 +4,10 @@ export function Skeleton({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       className={cn(
-        'animate-skeleton rounded-sm [--skeleton-highlight:--alpha(var(--color-white)/64%)] [background:linear-gradient(120deg,transparent_40%,var(--skeleton-highlight),transparent_60%)_var(--color-muted)_0_0/200%_100%_fixed] dark:[--skeleton-highlight:--alpha(var(--color-white)/4%)]',
+        'bg-muted relative overflow-hidden rounded-sm',
+        '[--skeleton-highlight:--alpha(var(--color-white)/64%)] dark:[--skeleton-highlight:--alpha(var(--color-white)/4%)]',
+        'before:animate-skeleton before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:w-[300%] before:[background:linear-gradient(120deg,transparent_40%,var(--skeleton-highlight),transparent_60%)_0_0/calc(200%/3)_100%]',
+        'motion-reduce:before:hidden',
         className
       )}
       data-slot="skeleton"
