@@ -5,6 +5,7 @@ import { BrandMark } from '@/components/app/brand';
 import { CommandMenu } from '@/components/app/command-menu';
 import { GitHubIcon } from '@/components/icons';
 import { Nav, NavDesktop } from '@/components/layout/navigation/nav-desktop';
+import { NavigationLink } from '@/components/layout/navigation/navigation-prefetch';
 import { SiteHeaderNav } from '@/components/layout/navigation/site-header-nav';
 import { Button } from '@/components/ui/button';
 import { DESKTOP_NAV, GITHUB_REPO_URL, UTM_PARAMS } from '@/config/site';
@@ -16,24 +17,42 @@ import ThemeToggle from './theme-toggle';
 export function SiteHeader() {
   return (
     <SiteHeaderNav>
-      <Link
-        className="has-data-[visible=false]:pointer-events-none [&_svg]:h-8"
-        href="/"
-        aria-label="Home"
-      >
-        <Suspense
-          fallback={
+      <Suspense
+        fallback={
+          <Link
+            className="[&_svg]:h-8"
+            href="/"
+            aria-label="Home"
+            prefetch={false}
+          >
             <BrandMark
               fillOpacity={0}
               stroke="currentColor"
               strokeWidth={1}
               aria-hidden
             />
-          }
+          </Link>
+        }
+      >
+        <NavigationLink
+          className="has-data-[visible=false]:pointer-events-none [&_svg]:h-8"
+          href="/"
+          aria-label="Home"
         >
-          <SiteHeaderMark />
-        </Suspense>
-      </Link>
+          <Suspense
+            fallback={
+              <BrandMark
+                fillOpacity={0}
+                stroke="currentColor"
+                strokeWidth={1}
+                aria-hidden
+              />
+            }
+          >
+            <SiteHeaderMark />
+          </Suspense>
+        </NavigationLink>
+      </Suspense>
       <div className="flex items-center gap-2 *:first:mr-2 max-md:*:data-[slot=command-menu-trigger]:hidden">
         <Suspense fallback={<Nav items={DESKTOP_NAV} className="mr-2" />}>
           <NavDesktop items={DESKTOP_NAV} />

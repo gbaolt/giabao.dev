@@ -1,12 +1,13 @@
 'use client';
 
 import type { Route } from 'next';
-import Link from 'next/link';
+import type Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { cn } from '@/lib/utils';
 import type { NavItem } from '@/types/nav';
 
+import { NavigationLink } from './navigation-prefetch';
 import { isNavItemActive } from './utils/nav-active';
 
 export function NavDesktop({ items }: { items: NavItem<Route>[] }) {
@@ -50,7 +51,7 @@ export function Nav({
 
 function NavItem({ className, ...props }: React.ComponentProps<typeof Link>) {
   return (
-    <Link
+    <NavigationLink
       className={cn(
         'text-muted-foreground hover:text-foreground aria-[current=page]:text-foreground font-medium tracking-wide transition-[color]',
         className

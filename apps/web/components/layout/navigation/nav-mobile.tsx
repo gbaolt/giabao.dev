@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useId, useState } from 'react';
 
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { NavItem } from '@/types/nav';
 
+import { NavigationLink } from './navigation-prefetch';
 import { buildNavPath, splitItems } from './utils/mobile-nav-notch';
 import { isNavItemActive } from './utils/nav-active';
 
@@ -147,7 +147,7 @@ function NavMobileItem({ item }: { item: NavItem }) {
       size="icon"
       className="extend-touch-target rounded-lg active:scale-100"
       render={
-        <Link
+        <NavigationLink
           href={item.href}
           aria-label={item.title}
           aria-current={active ? 'page' : undefined}
