@@ -4,7 +4,7 @@ description: I write my resume in MDX, use React and pdfcn for the layout, and p
 author: Gia Bảo
 avatar: https://assets.giabao.dev/gbaolt-avatar.webp
 createdAt: 2026-10-11
-updatedAt: 2026-10-11
+updatedAt: 2026-10-12
 tags: ['React', 'MDX', 'Portfolio']
 new: true
 ---
@@ -50,50 +50,47 @@ I can rewrite a bullet or add a project in the same editor I use for blog posts.
 
 And if I'm feeling too lazy to rewrite a bullet myself, I can ask my coding agent to edit the Markdown. I can review that change in the diff and inspect the generated PDF afterward.
 
-## React controls the PDF layout
+## Making Markdown look like a resume
 
-[pdfcn follows the shadcn model](https://www.pdfcn.dev/docs) of copying component code into your project. I use its component and theme code as a starting point, with resume components for headings, entries, and lists.
+<FramedImage
+  src="https://assets.giabao.dev/blog/resume-with-mdx-and-react/resume-demo.webp"
+  alt="Resume PDF showcase"
+/>
 
-The connection between Markdown and React is a component map. Here is a shortened version:
+The Education block above puts the university name on one line, with the degree and location below. The full resume also includes a date, which sits to the right of the university name.
 
-```tsx title="apps/web/features/resume/components/pdf/mdx-components.tsx"
-export const resumePdfComponents = { h2: SectionHeading, p: Paragraph };
+A React component defines the layout of one part of the document. I have one for section headings and another for the title, date, and details of an entry. Every education or project entry uses that layout, so a change to it applies throughout the resume.
+
+I started with pdfcn's components and customized them for this document. The PDF uses a serif font, uppercase section headings, and a divider under each section. The entry's bullet points sit below its title and details.
+
+The theme sets font sizes, page margins, and the gaps between sections. The entry component controls alignment. If I want dates on the left or more space below a project title, I can change the layout in React. The wording stays in MDX, so I don't need to edit each project to apply a style change.
+
+## Editing and publishing the resume
+
+If I rewrite a project bullet, I save the MDX file and refresh the resume page in development. The local `/resume.pdf` route checks for source changes and generates a fresh document when needed. I can read the revised wording in its final layout before publishing it.
+
+To export a copy directly, I run this from the repository root:
+
+```bash
+bun run render:resume
 ```
 
-A `##` heading becomes `SectionHeading`, which controls the section's typography and divider. A paragraph becomes `Paragraph`, which applies the resume's body text styles.
+That writes `apps/web/public/resume.pdf`. The production build runs the same export before building the site, so the deployment includes the updated document. In production, `/resume.pdf` serves that file.
 
-The full map also handles lists and resume entries. A bullet list uses `FlushList` and `FlushItem`. The entry parser produces headings, and a remark plugin passes their metadata to `ResumeHeading`.
+A resume update goes through the same Git commit and deployment as other content changes on my site. I don't have a separate manual export step to remember.
 
-`compileMDX` uses that map to turn the content into a React tree. My PDF renderer then measures the header and sections to plan the page breaks.
+## Getting the page breaks right
 
-[Takumi](https://takumi.kane.tw/docs/pdf) renders the tree into PDF bytes. I configure an A4 page, resume fonts, and margins. pdfcn supplies the component code I build with, and Takumi produces the document.
+A project bullet that grows from one line to two can change where the next section starts. The A4 page stays the same size, so extra content has to fit in the remaining space or continue onto another page.
 
-This lets me change the layout in React while keeping the resume's wording in MDX. For example, I can adjust how an entry's title and date align without rewriting its bullet points.
+My renderer measures the header and each section before producing the PDF. The pagination code tries to keep a section together when it fits on a page. If there isn't room for a section heading and its opening content at the bottom, it moves the section to a new page.
 
-## The viewer loads the generated PDF
+For small overflows, it can tighten the line spacing within a limit. Sections longer than a page can split across pages. These rules help with page breaks, but I still inspect the result after editing a long bullet.
 
-The page uses [`react-pdf`](https://github.com/wojtekmaj/react-pdf) and PDF.js to display `/resume.pdf`. Its `Document` component loads the file, and `Page` displays each page. Text and annotation layers let visitors select text and follow links.
+I check for crowded lines and large gaps between sections. A document that fits can still look cramped. Sometimes shortening a sentence is a better fix than reducing the spacing again.
 
-The download button points to `/resume.pdf` too. The viewer and the button share the generated document, so I can inspect the layout visitors receive.
+## Reading the finished document
 
-You can use this idea in a Vue or Svelte portfolio as well. Your renderer and viewer can differ. The useful part is that the page displays the PDF you offer for download.
+The [resume page](/resume) displays the PDF with zoom controls and clickable links. Opening [`/resume.pdf`](/resume.pdf) directly lets the browser display the file in its own PDF viewer. The download button uses that URL too.
 
-## Editing and publishing fit the site's workflow
-
-In development, requests to `/resume.pdf` go to a development-only route that runs the resume renderer. After I edit the MDX, I refresh the page to inspect the new PDF.
-
-I can also export the file with `bun run render:resume` from the repository root. The script writes `apps/web/public/resume.pdf`.
-
-The production build runs that same script before `next build`. When I build and deploy the site, the generated resume ships with it. Production serves the PDF as a static asset.
-
-## The PDF layout still needs attention
-
-A PDF has fixed page dimensions. A longer bullet can push an entry onto another page, so I still need to look at the exported document.
-
-My implementation includes custom pagination code that measures sections and chooses page breaks. MDX makes the content convenient to edit, while the page layout still needs rules and visual checks.
-
-Takumi also supports a [smaller set of CSS features than a browser](https://takumi.kane.tw/docs/pdf/comparison). I need to design the PDF within the renderer's supported styles.
-
-For my portfolio, that tradeoff fits how I work. I get to write the resume like a blog post and control its layout with React. The result is a PDF I can submit to recruiters and display on my site.
-
-The [resume page](/resume) shows the result. You can read the [component and renderer code](https://github.com/gbaolt/giabao.dev/tree/main/apps/web/features/resume) and the [MDX source](https://github.com/gbaolt/giabao.dev/blob/main/apps/web/docs/resume/resume.mdx) in the repository.
+To explore the implementation, start with the [MDX source](https://github.com/gbaolt/giabao.dev/blob/main/apps/web/docs/resume/resume.mdx) for the content format, then the [resume components and renderer](https://github.com/gbaolt/giabao.dev/tree/main/apps/web/features/resume) for the layout and PDF generation.
