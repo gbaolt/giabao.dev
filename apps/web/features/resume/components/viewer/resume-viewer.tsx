@@ -1,7 +1,12 @@
 'use client';
 
 import type { VariantProps } from 'class-variance-authority';
-import { MaximizeIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
+import {
+  ChevronDownIcon,
+  MaximizeIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+} from 'lucide-react';
 import React from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -11,7 +16,12 @@ import {
   ButtonGroupSeparator,
   ButtonGroupText,
 } from '@/components/ui/button-group';
-import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 import {
@@ -50,50 +60,88 @@ export function ResumeViewerToolbar({
   const isLoaded = numPages > 0;
   const isFitWidth = zoom === 1;
 
-  const separator = 'mt-px h-7.5!';
-
   return (
-    <ButtonGroup
-      data-slot="resume-viewer-toolbar"
-      className={cn('overflow-y-hidden', className)}
-      {...props}
-    >
-      <Button
-        variant="secondary"
-        size="icon-sm"
-        aria-label="Zoom out"
-        disabled={!isLoaded}
-        onClick={zoomOut}
-        className="-mr-px"
+    <div data-slot="resume-viewer-toolbar">
+      <ButtonGroup
+        className={cn('[@media(min-width:400px)]:hidden', className)}
+        {...props}
       >
-        <ZoomOutIcon />
-      </Button>
-      <ButtonGroupSeparator className={separator} />
-      <ButtonGroupText className="bg-secondary mt-px h-7.5 min-w-12 justify-center overflow-y-hidden border-transparent text-xs tabular-nums">
-        {Math.round(zoom * 100)}%
-      </ButtonGroupText>
-      <ButtonGroupSeparator className={separator} />
-      <Button
-        variant="secondary"
-        size="icon-sm"
-        aria-label="Zoom in"
-        disabled={!isLoaded}
-        onClick={zoomIn}
-        className="-mr-px"
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="secondary"
+                size="icon-sm"
+                aria-label="zoom-options-trigger"
+                className="-mr-px"
+                disabled={!isLoaded}
+              >
+                <ChevronDownIcon />
+              </Button>
+            }
+          />
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={zoomIn}>
+              <ZoomInIcon />
+              Zoom In
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={zoomOut}>
+              <ZoomOutIcon />
+              Zoom out
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={fitWidth} disabled={isFitWidth}>
+              <MaximizeIcon />
+              Fit width
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <ButtonGroupSeparator />
+        <ButtonGroupText className="w-14 justify-center text-xs tabular-nums">
+          {Math.round(zoom * 100)}%
+        </ButtonGroupText>
+      </ButtonGroup>
+
+      <ButtonGroup
+        className={cn('[@media(max-width:400px)]:hidden', className)}
+        {...props}
       >
-        <ZoomInIcon />
-      </Button>
-      <ButtonGroupSeparator className={separator} />
-      <Button
-        variant="secondary"
-        size="icon-sm"
-        aria-label="Fit width"
-        disabled={!isLoaded || isFitWidth}
-        onClick={fitWidth}
-      >
-        <MaximizeIcon />
-      </Button>
-    </ButtonGroup>
+        <Button
+          variant="secondary"
+          size="icon-sm"
+          aria-label="Zoom out"
+          disabled={!isLoaded}
+          onClick={zoomOut}
+          className="-mr-px"
+        >
+          <ZoomOutIcon />
+        </Button>
+        <ButtonGroupSeparator />
+        <ButtonGroupText className="w-12 justify-center text-xs tabular-nums">
+          {Math.round(zoom * 100)}%
+        </ButtonGroupText>
+        <ButtonGroupSeparator />
+        <Button
+          variant="secondary"
+          size="icon-sm"
+          aria-label="Zoom in"
+          disabled={!isLoaded}
+          onClick={zoomIn}
+          className="-mr-px"
+        >
+          <ZoomInIcon />
+        </Button>
+        <ButtonGroupSeparator />
+        <Button
+          variant="secondary"
+          size="icon-sm"
+          aria-label="Fit width"
+          disabled={!isLoaded || isFitWidth}
+          onClick={fitWidth}
+        >
+          <MaximizeIcon />
+        </Button>
+      </ButtonGroup>
+    </div>
   );
 }
 
@@ -150,27 +198,18 @@ export function ResumeViewerViewport({
   );
 }
 
-/** Lazily loads react-pdf on the client only. */
 export function ResumeViewerPages() {
-  return (
-    <div className="relative flex min-h-full w-full flex-col items-center-safe">
-      <ResumeViewerLoadingOverlay />
-      <PdfPages />
-    </div>
-  );
-}
-
-function ResumeViewerLoadingOverlay() {
   const { isPreviewReady } = useResumePreviewReady();
 
   return (
-    <div
-      className={cn(
-        'absolute inset-0 z-10 flex items-center',
-        isPreviewReady && 'pointer-events-none hidden'
-      )}
-    >
-      <Skeleton className="size-full rounded-none" />
+    <div className="relative flex min-h-full w-full flex-col items-center-safe">
+      {!isPreviewReady ? (
+        <div
+          className="absolute inset-0 z-10 size-full bg-white"
+          role="status"
+        />
+      ) : null}
+      <PdfPages />
     </div>
   );
 }

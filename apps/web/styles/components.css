@@ -40,7 +40,7 @@
     }
 
     [data-line] {
-      @apply pr-(--code-padding-right,0) pl-4;
+      @apply pr-(--code-padding-right,1rem) pl-4;
     }
   }
 

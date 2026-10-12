@@ -23,6 +23,7 @@ export * from './next';
 export * from './openai';
 export * from './orpc';
 export * from './oxlint';
+export * from './pdf';
 export * from './polar';
 export * from './postgres';
 export * from './prisma';

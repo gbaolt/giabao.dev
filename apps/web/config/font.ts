@@ -1,5 +1,4 @@
 import { GeistMono } from 'geist/font/mono';
-import { GeistPixelSquare } from 'geist/font/pixel';
 import { GeistSans } from 'geist/font/sans';
 import localFont from 'next/font/local';
 
@@ -7,13 +6,32 @@ import { cn } from '@/lib/utils';
 
 const fontSans = GeistSans;
 const fontMono = GeistMono;
-const fontPixelSquare = GeistPixelSquare;
 
 export const fontPixel = localFont({
   src: '../assets/fonts/DepartureMono-Regular.woff2',
   weight: '400',
   fallback: ['monospace'],
   variable: '--font-pixel',
+});
+
+// geist/font/pixel evaluates every pixel variant; Square is the only used face.
+const fontPixelSquare = localFont({
+  src: '../node_modules/geist/dist/fonts/geist-pixel/GeistPixel-Square.woff2',
+  weight: '500',
+  variable: '--font-geist-pixel-square',
+  fallback: [
+    'Geist Mono',
+    'ui-monospace',
+    'SFMono-Regular',
+    'Roboto Mono',
+    'Menlo',
+    'Monaco',
+    'Liberation Mono',
+    'DejaVu Sans Mono',
+    'Courier New',
+    'monospace',
+  ],
+  adjustFontFallback: false,
 });
 
 export const fontVariables = cn(

@@ -176,8 +176,11 @@
   }
 
   @keyframes skeleton {
+    from {
+      transform: translateX(calc(-200% / 3));
+    }
     to {
-      background-position: -200% 0;
+      transform: translateX(0);
     }
   }
 }

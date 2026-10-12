@@ -1,3 +1,5 @@
+import { format } from 'date-fns';
+import { FileTextIcon } from 'lucide-react';
 import type { Metadata } from 'next';
 import type { WebPage, WithContext } from 'schema-dts';
 
@@ -20,11 +22,10 @@ import { DocPageRoot } from '@/features/blog/components/doc/doc-page-root';
 import { DownloadResumeButton } from '@/features/resume/components/download-resume-button';
 import {
   ResumeViewer,
-  ResumeViewerPages,
   ResumeViewerToolbar,
-  ResumeViewerViewport,
 } from '@/features/resume/components/viewer/resume-viewer';
-import { ResumeViewerZoomShortcuts } from '@/features/resume/components/viewer/resume-viewer-zoom-shortcuts';
+import { ResumeViewerPreview } from '@/features/resume/components/viewer/resume-viewer-preview';
+import { getResumeDoc } from '@/lib/document';
 import { absoluteUrl } from '@/lib/utils';
 
 const title = 'Resume';
@@ -79,6 +80,9 @@ export function generateMetadata(): Metadata {
 }
 
 export default function ResumePage() {
+  const resume = getResumeDoc();
+  const updatedAt = resume ? new Date(resume.metadata.updatedAt) : null;
+
   return (
     <>
       <JsonLdScript data={getResumeJsonLd()} />
@@ -96,16 +100,32 @@ export default function ResumePage() {
       >
         <DocPageRoot className="flex h-full flex-1 flex-col border-x">
           <ResumeViewer src={RESUME_PDF_PATH}>
-            <ResumeViewerZoomShortcuts />
-
             <DocContainer>
-              <div className="flex items-center justify-between p-2">
-                <ResumeViewerToolbar className="[@media(max-width:360px)]:hidden" />
+              <div className="flex items-center justify-between gap-2 p-2">
+                <ResumeViewerToolbar className="md:hidden" />
+
+                <div
+                  data-slot="resume-update-timestamp"
+                  className="hidden items-center gap-2 text-sm whitespace-nowrap md:flex"
+                >
+                  <FileTextIcon
+                    className="text-muted-foreground size-4"
+                    aria-hidden
+                  />
+                  {updatedAt && (
+                    <span className="text-muted-foreground">
+                      Updated{' '}
+                      <time dateTime={updatedAt.toISOString()}>
+                        {format(updatedAt, 'MMM d, yyyy')}
+                      </time>
+                    </span>
+                  )}
+                </div>
 
                 <div className="ml-auto flex items-center gap-2">
                   <MDCopyButtonGroup markdownUrl={RESUME_MD_PATH} />
                   <ShareMenu title={title} url={RESUME_PATH} />
-                  <DownloadResumeButton />
+                  <DownloadResumeButton className="md:hidden" />
                 </div>
               </div>
             </DocContainer>
@@ -115,9 +135,7 @@ export default function ResumePage() {
 
               <DocContentCol className="border-t">
                 <div className="py-4">
-                  <ResumeViewerViewport className="border-y">
-                    <ResumeViewerPages />
-                  </ResumeViewerViewport>
+                  <ResumeViewerPreview className="border-y" />
                 </div>
               </DocContentCol>
 

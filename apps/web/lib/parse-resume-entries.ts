@@ -14,8 +14,12 @@ const ENTRY_ATTRIBUTES = new Set<keyof ResumeEntryMetadata>([
   'location',
 ]);
 
-/** Replaces each resume metadata block with a Markdown heading. */
-export function parseResumeEntries(source: string): {
+/** Replaces metadata blocks without reserializing the authored Markdown. */
+export function parseResumeEntries(
+  source: string,
+  formatHeading: (entry: ResumeEntryMetadata) => string = (entry) =>
+    `### ${entry.title}`
+): {
   content: string;
   entries: ResumeEntryMetadata[];
 } {
@@ -49,14 +53,15 @@ export function parseResumeEntries(source: string): {
       throw new Error(`Invalid resume entry starting on line ${startLine}`);
     }
 
-    entries.push({
+    const entry: ResumeEntryMetadata = {
       title,
       subtitle: values.get('subtitle'),
       date: values.get('date'),
       href: values.get('href'),
       location: values.get('location'),
-    });
-    output.push(`### ${title}`);
+    };
+    entries.push(entry);
+    output.push(formatHeading(entry));
   }
 
   return { content: output.join('\n'), entries };

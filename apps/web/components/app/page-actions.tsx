@@ -8,6 +8,7 @@ import {
   GitHubIcon,
   MarkdownIcon,
   OpenAIIcon,
+  PdfIcon,
 } from '@/components/icons';
 import { CopyStateIcon } from '@/components/ncdai/copy-button';
 import { Button } from '@/components/ui/button';
@@ -113,9 +114,11 @@ function getGitHubSourceUrl(markdownUrl: string) {
 
 export function ViewOptions({
   markdownUrl,
+  pdfUrl,
   variant = 'secondary',
 }: {
   markdownUrl: string;
+  pdfUrl?: string;
   variant?: 'secondary' | 'outline';
 }) {
   const items = React.useMemo(() => {
@@ -127,6 +130,15 @@ export function ViewOptions({
     const query = getPrompt(fullMarkdownUrl);
 
     const options = [
+      ...(pdfUrl
+        ? [
+            {
+              title: 'View as PDF',
+              href: pdfUrl,
+              icon: PdfIcon,
+            },
+          ]
+        : []),
       {
         title: 'View as Markdown',
         href: fullMarkdownUrl,
@@ -155,7 +167,7 @@ export function ViewOptions({
     ];
 
     return options;
-  }, [markdownUrl]);
+  }, [markdownUrl, pdfUrl]);
 
   return (
     <DropdownMenu>
@@ -195,16 +207,22 @@ export function ViewOptions({
 
 export function MDCopyButtonGroup({
   markdownUrl,
+  pdfUrl,
   variant = 'secondary',
 }: {
   markdownUrl: string;
+  pdfUrl?: string;
   variant?: 'secondary' | 'outline';
 }) {
   return (
     <ButtonGroup>
       <MDCopyButton markdownUrl={markdownUrl} variant={variant} />
       <ButtonGroupSeparator orientation="vertical" />
-      <ViewOptions markdownUrl={markdownUrl} variant={variant} />
+      <ViewOptions
+        markdownUrl={markdownUrl}
+        pdfUrl={pdfUrl}
+        variant={variant}
+      />
     </ButtonGroup>
   );
 }
