@@ -352,7 +352,7 @@
   --top-height: --spacing(24);
   --bottom-height: --spacing(24);
   --separator-height: --spacing(8);
-  --top-heading: --spacing(40);
+  --top-heading: calc(var(--top-height) + var(--separator-height));
   --nf-background: #ffffff;
   --nf-foreground: #09090b;
   --nf-muted-foreground: #a1a1aa;

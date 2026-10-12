@@ -40,6 +40,8 @@ import {
   DocRightCol,
 } from '@/features/blog/components/doc/doc-layout';
 import { DocPageRoot } from '@/features/blog/components/doc/doc-page-root';
+import { NextPosts } from '@/features/blog/components/next-posts';
+import { getNextPosts } from '@/features/blog/lib/next-posts';
 import {
   BLOG_CATEGORY,
   findNeighbour,
@@ -137,7 +139,9 @@ export default async function BlogPage({ params }: PageProps<'/blog/[slug]'>) {
 
   const toc = getTableOfContents(blog.content);
 
-  const { previous, next } = findNeighbour(getBlogPosts(), slug);
+  const posts = getBlogPosts();
+  const { previous, next } = findNeighbour(posts, slug);
+  const nextPosts = getNextPosts({ post: blog, posts });
 
   return (
     <>
@@ -337,6 +341,15 @@ export default async function BlogPage({ params }: PageProps<'/blog/[slug]'>) {
 
           <DocRightCol />
         </DocGrid>
+
+        {nextPosts.length > 0 ? (
+          <>
+            <StripeSeparator />
+            <DocContainer>
+              <NextPosts posts={nextPosts} />
+            </DocContainer>
+          </>
+        ) : null}
       </DocPageRoot>
 
       <StripeSeparator />

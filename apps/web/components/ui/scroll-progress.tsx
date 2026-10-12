@@ -61,7 +61,7 @@ export function ScrollProgress({
   style,
   sections,
   containerRef,
-  offset = 160.5,
+  offset = 256,
   ...props
 }: ScrollProgressProps) {
   const controller = useScrollProgress({ sections, containerRef, offset });
