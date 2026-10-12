@@ -35,7 +35,22 @@ function getMDXFiles(dir: string) {
 
 function readMDXFile(filePath: string) {
   const rawContent = fs.readFileSync(filePath, 'utf-8');
-  return parseFrontmatter(rawContent);
+  const doc = parseFrontmatter(rawContent);
+  const createdAt: unknown = doc.metadata.createdAt;
+  const timestamp =
+    createdAt instanceof Date
+      ? createdAt.getTime()
+      : typeof createdAt === 'string'
+        ? Date.parse(createdAt)
+        : NaN;
+
+  if (!Number.isFinite(timestamp)) {
+    throw new Error(
+      `${filePath} has an invalid createdAt; expected a valid date string in frontmatter`
+    );
+  }
+
+  return doc;
 }
 
 /**
