@@ -1,21 +1,21 @@
 import { expect, test } from 'bun:test';
 
 import {
-  bucketPageRasterWidth,
-  estimatePageRasterPeakBackingPixels,
-  getPageDisplayHeightPx,
-  getPageRasterScale,
+  bucketRasterWidth,
+  clampDpr,
+  estimatePeakPixels,
+  getPageHeight,
+  getRasterScale,
+  getRasterTarget,
   PAGE_RASTER_COMMIT_RATIO,
   PAGE_RASTER_MAX_BACKING_PIXELS,
   PAGE_RASTER_UPGRADE_CANVASES_PER_PAGE,
   PAGE_RASTER_WIDTH_BUCKET_PX,
   type PageRasterTarget,
-  resolveEffectiveDevicePixelRatio,
-  resolvePageRasterTarget,
   RESUME_MOBILE_MAX_EFFECTIVE_DPR,
   RESUME_PAGE_HEIGHT_OVER_WIDTH,
   RESUME_PAGE_MAX_DISPLAY_WIDTH_PX,
-  shouldUpdatePageRaster,
+  shouldUpdateRaster,
 } from '../page-raster-policy';
 
 const MOBILE_VIEWPORTS = [320, 390, 440] as const;
@@ -41,14 +41,14 @@ function legacyFixedWidthTarget(devicePixelRatio: number): PageRasterTarget {
 }
 
 test('mobile fit-width follows displayed width and caps effective DPR at 2', () => {
-  const target = resolvePageRasterTarget({
+  const target = getRasterTarget({
     displayedWidthPx: OBSERVED_390_DISPLAY_WIDTH_PX,
     devicePixelRatio: 3,
     isMobileViewport: true,
   });
 
   expect(target.rasterWidthPx).toBe(
-    bucketPageRasterWidth(OBSERVED_390_DISPLAY_WIDTH_PX)
+    bucketRasterWidth(OBSERVED_390_DISPLAY_WIDTH_PX)
   );
   expect(target.rasterWidthPx).toBeLessThan(RESUME_PAGE_MAX_DISPLAY_WIDTH_PX);
   expect(target.devicePixelRatio).toBe(RESUME_MOBILE_MAX_EFFECTIVE_DPR);
@@ -62,7 +62,7 @@ test('mobile fit-width follows displayed width and caps effective DPR at 2', () 
 test('mobile fit-width budgets stay far below the fixed 900 CSS-pixel baseline', () => {
   for (const viewportWidth of MOBILE_VIEWPORTS) {
     for (const devicePixelRatio of DEVICE_PIXEL_RATIOS) {
-      const target = resolvePageRasterTarget({
+      const target = getRasterTarget({
         displayedWidthPx: viewportWidth,
         devicePixelRatio,
         isMobileViewport: true,
@@ -72,7 +72,7 @@ test('mobile fit-width budgets stay far below the fixed 900 CSS-pixel baseline',
       expect(target.devicePixelRatio).toBeLessThanOrEqual(
         RESUME_MOBILE_MAX_EFFECTIVE_DPR
       );
-      expect(target.rasterWidthPx).toBe(bucketPageRasterWidth(viewportWidth));
+      expect(target.rasterWidthPx).toBe(bucketRasterWidth(viewportWidth));
       expect(target.backingPixelCount).toBeLessThan(legacy.backingPixelCount);
       expect(target.backingPixelCount / legacy.backingPixelCount).toBeLessThan(
         0.25
@@ -80,7 +80,7 @@ test('mobile fit-width budgets stay far below the fixed 900 CSS-pixel baseline',
     }
   }
 
-  const observed = resolvePageRasterTarget({
+  const observed = getRasterTarget({
     displayedWidthPx: OBSERVED_390_DISPLAY_WIDTH_PX,
     devicePixelRatio: 3,
     isMobileViewport: true,
@@ -95,7 +95,7 @@ test('mobile fit-width budgets stay far below the fixed 900 CSS-pixel baseline',
 });
 
 test('desktop fallback may use device DPR 3 until the pixel cap applies', () => {
-  const target = resolvePageRasterTarget({
+  const target = getRasterTarget({
     displayedWidthPx: 720,
     devicePixelRatio: 3,
     isMobileViewport: false,
@@ -107,12 +107,12 @@ test('desktop fallback may use device DPR 3 until the pixel cap applies', () => 
 });
 
 test('DPR 1 does not force a minimum backing density of 2', () => {
-  const mobile = resolvePageRasterTarget({
+  const mobile = getRasterTarget({
     displayedWidthPx: 320,
     devicePixelRatio: 1,
     isMobileViewport: true,
   });
-  const desktop = resolvePageRasterTarget({
+  const desktop = getRasterTarget({
     displayedWidthPx: 720,
     devicePixelRatio: 1,
     isMobileViewport: false,
@@ -125,28 +125,28 @@ test('DPR 1 does not force a minimum backing density of 2', () => {
 });
 
 test('width buckets round up and document at most 15 CSS pixels of overhead', () => {
-  expect(bucketPageRasterWidth(332)).toBe(336);
-  expect(bucketPageRasterWidth(320)).toBe(320);
-  expect(bucketPageRasterWidth(440)).toBe(448);
+  expect(bucketRasterWidth(332)).toBe(336);
+  expect(bucketRasterWidth(320)).toBe(320);
+  expect(bucketRasterWidth(440)).toBe(448);
 
-  const target = resolvePageRasterTarget({
+  const target = getRasterTarget({
     displayedWidthPx: 332,
     devicePixelRatio: 2,
     isMobileViewport: true,
   });
 
   expect(target.rasterWidthPx - 332).toBeLessThan(PAGE_RASTER_WIDTH_BUCKET_PX);
-  expect(getPageRasterScale(332, target.rasterWidthPx)).toBeCloseTo(332 / 336);
+  expect(getRasterScale(332, target.rasterWidthPx)).toBeCloseTo(332 / 336);
 });
 
 test('pixel cap reduces 300 percent zoom on a 440 CSS-pixel mobile page', () => {
-  const target = resolvePageRasterTarget({
+  const target = getRasterTarget({
     displayedWidthPx: 440 * 3,
     devicePixelRatio: 3,
     isMobileViewport: true,
   });
 
-  expect(target.rasterWidthPx).toBe(bucketPageRasterWidth(1320));
+  expect(target.rasterWidthPx).toBe(bucketRasterWidth(1320));
   expect(target.backingPixelCount).toBeLessThanOrEqual(
     PAGE_RASTER_MAX_BACKING_PIXELS
   );
@@ -158,52 +158,50 @@ test('pixel cap reduces 300 percent zoom on a 440 CSS-pixel mobile page', () => 
 
 test('page geometry is independent of raster backing', () => {
   const displayedWidthPx = 332;
-  const mobile = resolvePageRasterTarget({
+  const mobile = getRasterTarget({
     displayedWidthPx,
     devicePixelRatio: 3,
     isMobileViewport: true,
   });
-  const desktop = resolvePageRasterTarget({
+  const desktop = getRasterTarget({
     displayedWidthPx: 900,
     devicePixelRatio: 3,
     isMobileViewport: false,
   });
 
-  expect(getPageDisplayHeightPx(displayedWidthPx)).toBe(
+  expect(getPageHeight(displayedWidthPx)).toBe(
     displayedWidthPx * RESUME_PAGE_HEIGHT_OVER_WIDTH
   );
-  expect(getPageDisplayHeightPx(displayedWidthPx)).not.toBe(
-    mobile.backingHeightPx
-  );
-  expect(getPageDisplayHeightPx(900)).not.toBe(desktop.backingHeightPx);
-  expect(getPageRasterScale(displayedWidthPx, mobile.rasterWidthPx)).not.toBe(
+  expect(getPageHeight(displayedWidthPx)).not.toBe(mobile.backingHeightPx);
+  expect(getPageHeight(900)).not.toBe(desktop.backingHeightPx);
+  expect(getRasterScale(displayedWidthPx, mobile.rasterWidthPx)).not.toBe(
     mobile.devicePixelRatio
   );
 });
 
 test('small width snaps stay on the committed raster', () => {
-  const committed = resolvePageRasterTarget({
+  const committed = getRasterTarget({
     displayedWidthPx: 332,
     devicePixelRatio: 2,
     isMobileViewport: true,
   });
-  const snapped = resolvePageRasterTarget({
+  const snapped = getRasterTarget({
     displayedWidthPx: 336,
     devicePixelRatio: 2,
     isMobileViewport: true,
   });
 
   expect(committed.rasterWidthPx).toBe(snapped.rasterWidthPx);
-  expect(shouldUpdatePageRaster(committed, snapped)).toBe(false);
+  expect(shouldUpdateRaster(committed, snapped)).toBe(false);
 });
 
 test('a 25 percent zoom step crosses the settled upgrade threshold', () => {
-  const fit = resolvePageRasterTarget({
+  const fit = getRasterTarget({
     displayedWidthPx: 332,
     devicePixelRatio: 2,
     isMobileViewport: true,
   });
-  const zoomed = resolvePageRasterTarget({
+  const zoomed = getRasterTarget({
     displayedWidthPx: Math.floor(332 * 1.25),
     devicePixelRatio: 2,
     isMobileViewport: true,
@@ -212,31 +210,29 @@ test('a 25 percent zoom step crosses the settled upgrade threshold', () => {
   expect(zoomed.backingWidthPx / fit.backingWidthPx).toBeGreaterThanOrEqual(
     PAGE_RASTER_COMMIT_RATIO
   );
-  expect(shouldUpdatePageRaster(fit, zoomed)).toBe(true);
-  expect(shouldUpdatePageRaster(zoomed, fit)).toBe(true);
+  expect(shouldUpdateRaster(fit, zoomed)).toBe(true);
+  expect(shouldUpdateRaster(zoomed, fit)).toBe(true);
 });
 
 test('peak backing is one canvas at rest and two per page during an upgrade', () => {
-  expect(estimatePageRasterPeakBackingPixels(2, false)).toBe(
-    2 * PAGE_RASTER_MAX_BACKING_PIXELS
-  );
-  expect(estimatePageRasterPeakBackingPixels(2, true)).toBe(
+  expect(estimatePeakPixels(2, false)).toBe(2 * PAGE_RASTER_MAX_BACKING_PIXELS);
+  expect(estimatePeakPixels(2, true)).toBe(
     2 * PAGE_RASTER_UPGRADE_CANVASES_PER_PAGE * PAGE_RASTER_MAX_BACKING_PIXELS
   );
-  expect(estimatePageRasterPeakBackingPixels(2, true)).toBe(32_000_000);
+  expect(estimatePeakPixels(2, true)).toBe(32_000_000);
 });
 
 test('invalid or empty inputs do not allocate a canvas', () => {
   expect(
-    resolvePageRasterTarget({
+    getRasterTarget({
       displayedWidthPx: 0,
       devicePixelRatio: 3,
       isMobileViewport: true,
     }).backingPixelCount
   ).toBe(0);
-  expect(resolveEffectiveDevicePixelRatio(Number.NaN, true)).toBe(1);
+  expect(clampDpr(Number.NaN, true)).toBe(1);
   expect(
-    shouldUpdatePageRaster(legacyFixedWidthTarget(2), {
+    shouldUpdateRaster(legacyFixedWidthTarget(2), {
       rasterWidthPx: 0,
       devicePixelRatio: 1,
       backingWidthPx: 0,
@@ -245,7 +241,7 @@ test('invalid or empty inputs do not allocate a canvas', () => {
     })
   ).toBe(false);
   expect(
-    shouldUpdatePageRaster(
+    shouldUpdateRaster(
       {
         rasterWidthPx: 0,
         devicePixelRatio: 1,
@@ -253,7 +249,7 @@ test('invalid or empty inputs do not allocate a canvas', () => {
         backingHeightPx: 0,
         backingPixelCount: 0,
       },
-      resolvePageRasterTarget({
+      getRasterTarget({
         displayedWidthPx: 332,
         devicePixelRatio: 2,
         isMobileViewport: true,

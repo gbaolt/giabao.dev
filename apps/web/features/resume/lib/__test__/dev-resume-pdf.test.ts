@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { createResumePdfCache } from '../development-resume-pdf';
+import { createResumePdfCache } from '../dev-resume-pdf';
 
 test('shares rendering across concurrent requests and reuses unchanged output', async () => {
   let renders = 0;

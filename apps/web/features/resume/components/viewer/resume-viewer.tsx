@@ -49,8 +49,6 @@ export function ResumeViewerToolbar({
   const isLoaded = numPages > 0;
   const isFitWidth = zoom === 1;
 
-  const separator = 'mt-px h-7.5!';
-
   return (
     <ButtonGroup
       data-slot="resume-viewer-toolbar"
@@ -67,11 +65,11 @@ export function ResumeViewerToolbar({
       >
         <ZoomOutIcon />
       </Button>
-      <ButtonGroupSeparator className={separator} />
-      <ButtonGroupText className="bg-secondary mt-px h-7.5 min-w-12 justify-center overflow-y-hidden border-transparent text-xs tabular-nums">
+      <ButtonGroupSeparator />
+      <ButtonGroupText className="bg-secondary min-w-12 justify-center overflow-y-hidden border-transparent text-xs tabular-nums">
         {Math.round(zoom * 100)}%
       </ButtonGroupText>
-      <ButtonGroupSeparator className={separator} />
+      <ButtonGroupSeparator />
       <Button
         variant="secondary"
         size="icon-sm"
@@ -82,7 +80,7 @@ export function ResumeViewerToolbar({
       >
         <ZoomInIcon />
       </Button>
-      <ButtonGroupSeparator className={separator} />
+      <ButtonGroupSeparator />
       <Button
         variant="secondary"
         size="icon-sm"

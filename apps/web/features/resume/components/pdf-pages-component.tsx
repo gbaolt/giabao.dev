@@ -22,7 +22,7 @@ import {
   useSettledPageRaster,
 } from '../hooks/use-settled-page-raster';
 import {
-  getPageRasterScale,
+  getRasterScale,
   type PageRasterTarget,
   RESUME_PAGE_ASPECT_RATIO,
   RESUME_PAGE_MAX_DISPLAY_WIDTH_PX,
@@ -324,7 +324,7 @@ function PdfPage({
         className="absolute top-0 left-0 origin-top-left"
         style={{
           width: layerWidthPx,
-          transform: `scale(${getPageRasterScale(displayedWidthPx, layerWidthPx)})`,
+          transform: `scale(${getRasterScale(displayedWidthPx, layerWidthPx)})`,
         }}
       >
         <Page

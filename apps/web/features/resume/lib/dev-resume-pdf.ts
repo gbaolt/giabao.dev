@@ -84,6 +84,6 @@ const getCachedPdf = createResumePdfCache(async () => {
   return new Uint8Array(stdout);
 });
 
-export async function getDevelopmentResumePdf() {
+export async function getDevResumePdf() {
   return getCachedPdf(await getInputVersion());
 }

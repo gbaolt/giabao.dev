@@ -55,7 +55,7 @@ export type PageRasterTarget = {
   backingPixelCount: number;
 };
 
-export function estimatePageRasterPeakBackingPixels(
+export function estimatePeakPixels(
   mountedPages: number,
   upgrading: boolean
 ): number {
@@ -66,11 +66,11 @@ export function estimatePageRasterPeakBackingPixels(
   return pages * canvasesPerPage * PAGE_RASTER_MAX_BACKING_PIXELS;
 }
 
-export function getPageDisplayHeightPx(displayedWidthPx: number): number {
+export function getPageHeight(displayedWidthPx: number): number {
   return Math.max(0, displayedWidthPx) * RESUME_PAGE_HEIGHT_OVER_WIDTH;
 }
 
-export function getPageRasterScale(
+export function getRasterScale(
   displayedWidthPx: number,
   rasterWidthPx: number
 ): number {
@@ -78,11 +78,11 @@ export function getPageRasterScale(
   return displayedWidthPx / rasterWidthPx;
 }
 
-export function pageRasterTargetKey(target: PageRasterTarget): string {
+export function getRasterKey(target: PageRasterTarget): string {
   return `${target.rasterWidthPx}:${target.backingWidthPx}:${target.backingHeightPx}`;
 }
 
-export function resolveEffectiveDevicePixelRatio(
+export function clampDpr(
   devicePixelRatio: number,
   isMobileViewport: boolean
 ): number {
@@ -96,7 +96,7 @@ export function resolveEffectiveDevicePixelRatio(
   return Math.min(Math.max(1, raw), cap);
 }
 
-export function bucketPageRasterWidth(displayedWidthPx: number): number {
+export function bucketRasterWidth(displayedWidthPx: number): number {
   if (displayedWidthPx <= 0) return 0;
   return (
     Math.ceil(displayedWidthPx / PAGE_RASTER_WIDTH_BUCKET_PX) *
@@ -104,9 +104,7 @@ export function bucketPageRasterWidth(displayedWidthPx: number): number {
   );
 }
 
-export function resolvePageRasterTarget(
-  input: PageRasterInput
-): PageRasterTarget {
+export function getRasterTarget(input: PageRasterInput): PageRasterTarget {
   const displayedWidthPx = Math.max(0, input.displayedWidthPx);
   if (displayedWidthPx === 0) {
     return {
@@ -118,21 +116,18 @@ export function resolvePageRasterTarget(
     };
   }
 
-  const rasterWidthPx = bucketPageRasterWidth(displayedWidthPx);
-  const uncappedDpr = resolveEffectiveDevicePixelRatio(
-    input.devicePixelRatio,
-    input.isMobileViewport
-  );
-  return capPageRasterTarget(rasterWidthPx, uncappedDpr);
+  const rasterWidthPx = bucketRasterWidth(displayedWidthPx);
+  const uncappedDpr = clampDpr(input.devicePixelRatio, input.isMobileViewport);
+  return capRasterTarget(rasterWidthPx, uncappedDpr);
 }
 
-export function shouldUpdatePageRaster(
+export function shouldUpdateRaster(
   committed: PageRasterTarget,
   candidate: PageRasterTarget
 ): boolean {
   if (candidate.rasterWidthPx <= 0) return false;
   if (committed.rasterWidthPx <= 0) return true;
-  if (pageRasterTargetKey(committed) === pageRasterTargetKey(candidate)) {
+  if (getRasterKey(committed) === getRasterKey(candidate)) {
     return false;
   }
 
@@ -141,7 +136,7 @@ export function shouldUpdatePageRaster(
   return larger / Math.max(1, smaller) >= PAGE_RASTER_COMMIT_RATIO;
 }
 
-function capPageRasterTarget(
+function capRasterTarget(
   rasterWidthPx: number,
   devicePixelRatio: number
 ): PageRasterTarget {

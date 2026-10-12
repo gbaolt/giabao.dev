@@ -6,12 +6,12 @@ import {
 } from 'react';
 
 import {
+  getRasterTarget,
   PAGE_RASTER_SETTLE_MS,
   type PageRasterInput,
   type PageRasterTarget,
-  resolvePageRasterTarget,
   RESUME_MOBILE_VIEWPORT_QUERY,
-  shouldUpdatePageRaster,
+  shouldUpdateRaster,
 } from '../lib/page-raster-policy';
 import { subscribeDevicePixelRatioChanges } from '../lib/subscribe-device-pixel-ratio';
 
@@ -54,9 +54,9 @@ export function useIsMobileViewport() {
 }
 
 export function useSettledPageRaster(input: PageRasterInput): PageRasterTarget {
-  const candidate = resolvePageRasterTarget(input);
+  const candidate = getRasterTarget(input);
   const [committed, setCommitted] = useState(candidate);
-  const needsSettle = shouldUpdatePageRaster(committed, candidate);
+  const needsSettle = shouldUpdateRaster(committed, candidate);
 
   useEffect(() => {
     if (!needsSettle) return;

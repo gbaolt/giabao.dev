@@ -1,7 +1,7 @@
 import { connection } from 'next/server';
 
 import { RESUME_PDF_FILENAME } from '@/config/resume';
-import { getDevelopmentResumePdf } from '@/features/resume/lib/development-resume-pdf';
+import { getDevResumePdf } from '@/features/resume/lib/dev-resume-pdf';
 
 export async function GET() {
   if (process.env.NODE_ENV !== 'development') {
@@ -10,7 +10,7 @@ export async function GET() {
 
   await connection();
 
-  const pdf = await getDevelopmentResumePdf();
+  const pdf = await getDevResumePdf();
 
   return new Response(new Uint8Array(pdf), {
     headers: {
