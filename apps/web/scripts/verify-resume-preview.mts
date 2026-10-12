@@ -330,14 +330,11 @@ try {
     await recovery.setRequestInterception(true);
     let attempts = 0;
     let workerUnavailable = failure === 'worker';
-    const routes: string[] = [];
     recovery.on('request', (request) => {
       if (/pdf\.worker/.test(request.url()) && workerUnavailable) {
         void request.respond({ status: 503, body: 'temporarily unavailable' });
         return;
       }
-      if (request.headers()['next-router-prefetch'] === '1')
-        routes.push(new URL(request.url()).pathname);
       if (
         new URL(request.url()).pathname === '/resume.pdf' &&
         ++attempts === 1 &&
@@ -358,20 +355,12 @@ try {
       () =>
         !document.querySelector('[data-slot="resume-viewer"] [role="status"]')
     );
-    await recovery.waitForFunction(
-      () =>
-        performance
-          .getEntriesByType('resource')
-          .some((entry) => entry.name.includes('/blog?_rsc=')),
-      { timeout: 10000 }
-    );
-    assert(routes.includes('/blog'));
     assert(await recovery.$('[role="alert"] a[download]'));
     workerUnavailable = false;
     await recovery.click('[data-slot="resume-viewer"] [role="alert"] button');
     await ready(recovery);
     assert.equal(attempts, 2);
-    results.push({ failure, recovered: true, attempts, prefetchResumed: true });
+    results.push({ failure, recovered: true, attempts });
     await recovery.close();
   }
 
@@ -407,16 +396,17 @@ try {
   });
   await overlap.close();
 
-  for (const destination of ['/', '/blog', '/create']) {
+  for (const { destination, heading } of [
+    { destination: '/', heading: 'Gia Bảo' },
+    { destination: '/blog', heading: 'Dev Blog' },
+    { destination: '/create', heading: 'Create' },
+  ]) {
     console.log(`Checking pending navigation to ${destination}`);
     const navigation = await mobile();
     await navigation.setRequestInterception(true);
     const pendingPdf = Promise.withResolvers<void>();
-    const unrelated: string[] = [];
     let downloading = false;
     navigation.on('request', (request) => {
-      if (request.headers()['next-router-prefetch'] === '1')
-        unrelated.push(new URL(request.url()).pathname);
       if (new URL(request.url()).pathname === '/resume.pdf') {
         downloading = true;
         void pendingPdf.promise.then(() => request.continue()).catch(() => {});
@@ -428,8 +418,7 @@ try {
     await navigation.waitForSelector('[data-slot="mobile-nav-link"]');
     for (let wait = 0; wait < 100 && !downloading; wait++) await pause(50);
     assert(downloading, 'The fallback must start the PDF request');
-    await pause(300);
-    assert.equal(unrelated.length, 0);
+    assert(await navigation.$('[data-slot="resume-viewer"] [role="status"]'));
     const selector = `[data-slot="mobile-nav-link"][href="${destination}"]`;
     await navigation.focus(selector);
     const start = Date.now();
@@ -438,6 +427,16 @@ try {
       (destination) => location.pathname === destination,
       {},
       destination
+    );
+    await navigation.waitForFunction(
+      (heading) =>
+        Array.from(document.querySelectorAll('h1')).some(
+          (element) =>
+            element.getClientRects().length &&
+            element.textContent?.trim() === heading
+        ),
+      {},
+      heading
     );
     const navigationMs = Date.now() - start;
     pendingPdf.resolve();
@@ -450,7 +449,7 @@ try {
       destination,
       navigationMs,
       startupNavigation: true,
-      automaticPrefetchDeferred: true,
+      destinationVisible: true,
     });
     await navigation.close();
   }

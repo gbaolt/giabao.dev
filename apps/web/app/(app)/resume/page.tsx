@@ -95,7 +95,7 @@ export default function ResumePage() {
         <DocPageRoot className="flex h-full flex-1 flex-col border-x">
           <ResumeViewer src={RESUME_PDF_PATH}>
             <DocContainer>
-              <div className="flex items-center justify-between p-2">
+              <div className="flex items-center justify-between gap-2 p-2">
                 <ResumeViewerToolbar className="md:hidden" />
 
                 <div className="ml-auto flex items-center gap-2">

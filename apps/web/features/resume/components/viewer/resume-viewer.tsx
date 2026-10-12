@@ -4,7 +4,6 @@ import type { VariantProps } from 'class-variance-authority';
 import { MaximizeIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
 import React from 'react';
 
-import { NavigationPrefetchBoundary } from '@/components/layout/navigation/navigation-prefetch';
 import { Button } from '@/components/ui/button';
 import type { buttonGroupVariants } from '@/components/ui/button-group';
 import {
@@ -155,7 +154,6 @@ export function ResumeViewerPages() {
 
   return (
     <div className="relative flex min-h-full w-full flex-col items-center-safe">
-      <NavigationPrefetchBoundary ready={isPreviewReady} />
       {!isPreviewReady ? (
         <div
           className="absolute inset-0 z-10 size-full bg-white"
