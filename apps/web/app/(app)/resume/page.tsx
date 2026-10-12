@@ -102,11 +102,11 @@ export default function ResumePage() {
           <ResumeViewer src={RESUME_PDF_PATH}>
             <DocContainer>
               <div className="flex items-center justify-between gap-2 p-2">
-                <ResumeViewerToolbar className="md:hidden [@media(max-width:347px)]:hidden" />
+                <ResumeViewerToolbar className="md:hidden" />
 
                 <div
                   data-slot="resume-update-timestamp"
-                  className="hidden items-center gap-2 pl-2 text-sm whitespace-nowrap md:flex"
+                  className="hidden items-center gap-2 text-sm whitespace-nowrap md:flex"
                 >
                   <FileTextIcon
                     className="text-muted-foreground size-4"
