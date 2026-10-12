@@ -1,11 +1,11 @@
 import { format } from 'date-fns';
-import { FileTextIcon } from 'lucide-react';
 import type { Metadata } from 'next';
 import type { WebPage, WithContext } from 'schema-dts';
 
 import { simpleOgImageUrl } from '@/app/og/params';
 import { MDCopyButtonGroup } from '@/components/app/page-actions';
 import { ShareMenu } from '@/components/app/share-menu';
+import { PdfIcon } from '@/components/icons';
 import { jsonLdBreadcrumbList, JsonLdScript } from '@/components/json-ld';
 import { AppShell } from '@/components/layout/app-shell';
 import { JSON_LD_ID } from '@/config/json-ld';
@@ -106,14 +106,11 @@ export default function ResumePage() {
 
                 <div
                   data-slot="resume-update-timestamp"
-                  className="hidden items-center gap-2 text-sm whitespace-nowrap md:flex"
+                  className="text-muted-foreground hidden items-center gap-2 text-sm whitespace-nowrap md:flex"
                 >
-                  <FileTextIcon
-                    className="text-muted-foreground size-4"
-                    aria-hidden
-                  />
+                  <PdfIcon className="size-4" aria-hidden />
                   {updatedAt && (
-                    <span className="text-muted-foreground">
+                    <span>
                       Updated{' '}
                       <time dateTime={updatedAt.toISOString()}>
                         {format(updatedAt, 'MMM d, yyyy')}
@@ -123,7 +120,10 @@ export default function ResumePage() {
                 </div>
 
                 <div className="ml-auto flex items-center gap-2">
-                  <MDCopyButtonGroup markdownUrl={RESUME_MD_PATH} />
+                  <MDCopyButtonGroup
+                    markdownUrl={RESUME_MD_PATH}
+                    pdfUrl={RESUME_PDF_PATH}
+                  />
                   <ShareMenu title={title} url={RESUME_PATH} />
                   <DownloadResumeButton className="md:hidden" />
                 </div>
