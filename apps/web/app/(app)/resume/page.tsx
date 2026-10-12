@@ -1,3 +1,5 @@
+import { format } from 'date-fns';
+import { FileTextIcon } from 'lucide-react';
 import type { Metadata } from 'next';
 import type { WebPage, WithContext } from 'schema-dts';
 
@@ -23,6 +25,7 @@ import {
   ResumeViewerToolbar,
 } from '@/features/resume/components/viewer/resume-viewer';
 import { ResumeViewerPreview } from '@/features/resume/components/viewer/resume-viewer-preview';
+import { getResumeDoc } from '@/lib/document';
 import { absoluteUrl } from '@/lib/utils';
 
 const title = 'Resume';
@@ -77,6 +80,9 @@ export function generateMetadata(): Metadata {
 }
 
 export default function ResumePage() {
+  const resume = getResumeDoc();
+  const updatedAt = resume ? new Date(resume.metadata.updatedAt) : null;
+
   return (
     <>
       <JsonLdScript data={getResumeJsonLd()} />
@@ -96,7 +102,25 @@ export default function ResumePage() {
           <ResumeViewer src={RESUME_PDF_PATH}>
             <DocContainer>
               <div className="flex items-center justify-between gap-2 p-2">
-                <ResumeViewerToolbar className="md:hidden" />
+                <ResumeViewerToolbar className="md:hidden [@media(max-width:347px)]:hidden" />
+
+                <div
+                  data-slot="resume-update-timestamp"
+                  className="hidden items-center gap-2 pl-2 text-sm whitespace-nowrap md:flex"
+                >
+                  <FileTextIcon
+                    className="text-muted-foreground size-4"
+                    aria-hidden
+                  />
+                  {updatedAt && (
+                    <span className="text-muted-foreground">
+                      Updated{' '}
+                      <time dateTime={updatedAt.toISOString()}>
+                        {format(updatedAt, 'MMM d, yyyy')}
+                      </time>
+                    </span>
+                  )}
+                </div>
 
                 <div className="ml-auto flex items-center gap-2">
                   <MDCopyButtonGroup markdownUrl={RESUME_MD_PATH} />
