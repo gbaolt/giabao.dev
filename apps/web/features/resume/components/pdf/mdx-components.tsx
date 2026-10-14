@@ -1,12 +1,19 @@
 import type { MDXRemoteProps } from 'next-mdx-remote/rsc';
-import type { ComponentProps, CSSProperties, ReactNode } from 'react';
+import {
+  Children,
+  type ComponentProps,
+  type CSSProperties,
+  Fragment,
+  isValidElement,
+  type ReactNode,
+} from 'react';
 
+import { PdfList } from '@/components/pdf/list/list';
 import { usePdfcnTheme } from '@/components/pdf/theme-provider';
 import { flatten, Text, View } from '@/lib/pdfcn/pdf-primitives';
 
 import { useBodyTextStyle } from '../../hooks/use-body-text-style';
 import { ExternalLinkPdfIcon } from './icons';
-import { FlushItem, FlushList } from './resume-list';
 
 type WithChildren = { children?: ReactNode };
 
@@ -119,6 +126,24 @@ function Paragraph({ children }: WithChildren) {
   return <Text style={bodyStyle}>{children}</Text>;
 }
 
+export function ResumeList({ children }: WithChildren) {
+  const items = Children.toArray(children)
+    .filter(isValidElement<{ children?: ReactNode }>)
+    .map((item) => ({ text: item.props.children }));
+
+  return <PdfList items={items} gap="xs" />;
+}
+
+export function ListItem({ children }: WithChildren) {
+  const bodyStyle = useBodyTextStyle();
+
+  return (
+    <View>
+      <Text style={bodyStyle}>{children}</Text>
+    </View>
+  );
+}
+
 function Anchor({ href, children }: ComponentProps<'a'>) {
   const theme = usePdfcnTheme();
 
@@ -144,8 +169,8 @@ export const resumePdfComponents: MDXRemoteProps['components'] = {
   h2: SectionHeading,
   h3: ResumeHeading,
   p: Paragraph,
-  ul: FlushList,
-  li: FlushItem,
+  ul: ResumeList,
+  li: ListItem,
   a: Anchor,
   strong: Strong,
   em: Emphasis,

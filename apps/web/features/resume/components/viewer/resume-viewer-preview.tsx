@@ -39,7 +39,10 @@ export function ResumeViewerPreview({ className }: { className?: string }) {
   if (useNativeViewer === null) {
     return (
       <div
-        className={cn('aspect-4/5 min-h-120 w-full bg-[#282828]', className)}
+        className={cn(
+          'h-[calc(100svh-var(--header-height)-var(--bottom-height))] w-full select-none!',
+          className
+        )}
         role="status"
       >
         <ResumeViewerPlaceholder />
@@ -54,7 +57,7 @@ export function ResumeViewerPreview({ className }: { className?: string }) {
         title="Resume PDF"
         src={`${src}#toolbar=1&navpanes=0`}
         className={cn(
-          'block aspect-4/5 min-h-120 w-full bg-[#282828]',
+          'block h-[calc(100svh-var(--top-height))] w-full bg-[#282828] select-none!',
           className
         )}
       />

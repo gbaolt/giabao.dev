@@ -35,6 +35,7 @@ export const createListStyles = (t: PdfcnTheme) => {
       display: 'flex',
       flexDirection: 'column',
       marginBottom: t.spacing.componentGap,
+      paddingLeft: spacing[1],
       width: '100%',
     },
     descriptiveAccent: {
@@ -84,9 +85,9 @@ export const createListStyles = (t: PdfcnTheme) => {
       alignItems: 'center',
       flexDirection: 'row',
     },
-    itemRowGapMd: { marginBottom: spacing[3] },
-    itemRowGapSm: { marginBottom: spacing[2] },
-    itemRowGapXs: { marginBottom: spacing[1] },
+    itemRowGapMd: { marginBottom: spacing[2] },
+    itemRowGapSm: { marginBottom: spacing[1] },
+    itemRowGapXs: { marginBottom: spacing[0.5] },
     itemText: {
       // No flex here — Text nodes with flex shorthand get flexBasis:0, which causes
       // Yoga to under-measure multi-line text height → overlapping rows.
@@ -114,17 +115,19 @@ export const createListStyles = (t: PdfcnTheme) => {
     markerBulletDot: {
       backgroundColor: t.colors.primary,
       borderRadius: 3,
-      height: 5,
-      width: 5,
+      height: 3,
+      width: 3,
+      marginTop: 0.5,
     },
     markerBulletSubDot: {
       backgroundColor: 'transparent',
       borderColor: t.colors.mutedForeground,
-      borderRadius: 2,
+      borderRadius: 3,
       borderStyle: 'solid',
       borderWidth: 1,
-      height: 4,
-      width: 4,
+      height: 3,
+      width: 3,
+      marginTop: 0.5,
     },
     markerBulletSubWrap: {
       alignItems: 'center',
