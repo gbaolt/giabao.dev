@@ -9,11 +9,11 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary bg-clip-border bg-[linear-gradient(to_bottom,var(--color-zinc-700),var(--primary-accent))] dark:bg-[linear-gradient(to_bottom,var(--primary),var(--primary-accent))] border-primary border dark:border-ring text-primary-foreground shadow-none before:absolute before:inset-0 before:-z-1 before:content-[''] before:[clip-path:inset(1.5px_round_calc(var(--btn-radius)-1.5px))] before:bg-linear-to-b before:from-primary before:to-primary-accent  before:transition-all dark:before:bg-none dark:before:bg-primary-accent",
+          "bg-primary bg-clip-border bg-[linear-gradient(to_bottom,var(--color-zinc-700),var(--primary-accent))] dark:bg-[linear-gradient(to_bottom,var(--primary),var(--primary-accent))] border-primary border dark:border-ring text-primary-foreground shadow-none before:absolute before:inset-0 before:-z-1 before:content-[''] before:[clip-path:inset(1.5px_round_calc(var(--btn-radius)-1.5px))] before:bg-linear-to-b before:from-primary before:to-primary-accent before:transition-all dark:before:bg-none dark:before:bg-primary-accent",
         outline:
           'border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50',
         secondary:
-          'bg-secondary text-secondary-foreground hover:bg-secondary/80  aria-expanded:text-secondary-foreground',
+          'bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:text-secondary-foreground',
         ghost:
           'hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50',
         destructive:
