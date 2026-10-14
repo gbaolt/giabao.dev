@@ -11,11 +11,11 @@ export function NextPosts({ posts }: { posts: Doc[] }) {
   if (posts.length === 0) return null;
 
   return (
-    <section data-slot="read-next" aria-labelledby="read-next-title">
+    <section data-slot="next-posts" aria-labelledby="next-posts-title">
       <Panel className="screen-line-bottom-none screen-line-top-none">
         <PanelHeader className="decor-b flex items-center justify-between gap-4 p-2 ps-4">
           <h2
-            id="read-next-title"
+            id="next-posts-title"
             className="text-2xl/none font-medium tracking-tight"
           >
             Continue reading

@@ -14,6 +14,10 @@
     ["cva\\(((?:[^()]|\\([^()]*\\))*)\\)", "[\"'`]?([^\"'`]+)[\"'`]?"],
     ["cn\\(((?:[^()]|\\([^()]*\\))*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
   ],
+  "tailwindCSS.experimental.configFile": {
+  "apps/web/styles/globals.css": "apps/web/**"
+}
+,
   "files.associations": {
     "*.css": "tailwindcss"
   },

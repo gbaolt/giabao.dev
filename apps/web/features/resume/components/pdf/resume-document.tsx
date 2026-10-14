@@ -10,9 +10,8 @@ import type { ResumeMetadata } from '@/types/document';
 
 import type { SectionPlan } from '../../lib/paginate-resume';
 import { resumeTheme, withBodyLineHeight } from '../../lib/pdf-theme';
-import { ResumeHeading, SectionHeading } from './mdx-components';
+import { ResumeHeading, ResumeList, SectionHeading } from './mdx-components';
 import { ResumeHeader } from './resume-header';
-import { BulletList, FlushItem, FlushList } from './resume-list';
 
 type ResumeDocumentProps = {
   metadata: ResumeMetadata;
@@ -23,8 +22,7 @@ type ResumeDocumentProps = {
 const PDF_LEAVES = new Set<unknown>([
   SectionHeading,
   ResumeHeading,
-  FlushList,
-  FlushItem,
+  ResumeList,
 ]);
 function isSectionHeading(node: ReactNode) {
   return isValidElement(node) && node.type === SectionHeading;
@@ -54,12 +52,12 @@ function groupHeadingLists(nodes: ReactNode[]): ReactNode[] {
     }
 
     const next = nodes[listIndex];
-    const list = isValidElement(next) && next.type === FlushList ? next : null;
+    const list = isValidElement(next) && next.type === ResumeList ? next : null;
 
     grouped.push(
       <KeepTogether key={`heading-${index}`}>
         {node}
-        {list ? <BulletList>{list}</BulletList> : null}
+        {list}
       </KeepTogether>
     );
 

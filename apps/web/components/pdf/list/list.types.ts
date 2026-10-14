@@ -10,7 +10,7 @@ export type ListVariant =
  * @see {@link ListItem}
  */
 export interface ListItem {
-  text: string;
+  text: React.ReactNode;
   description?: string;
   checked?: boolean;
   children?: ListItem[];
