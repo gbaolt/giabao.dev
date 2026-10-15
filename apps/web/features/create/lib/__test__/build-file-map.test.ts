@@ -14,6 +14,103 @@ test('isCreateFlags rejects incomplete payloads', () => {
   expect(isCreateFlags(null)).toBe(false);
 });
 
+test('public Start oRPC preview agrees with its native generated application', () => {
+  const result = buildCreateFileMap(
+    {
+      ...YES_DEFAULTS,
+      frontend: 'tanstack-start',
+      auth: 'none',
+      linter: 'oxlint',
+    },
+    'start-orpc'
+  );
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(result.files['src/routes/api/rpc.$.ts']).toBeDefined();
+  expect(result.files['src/routes/notes.tsx']).toContain('Delete');
+  expect(result.files['app/notes/page.tsx']).toBeUndefined();
+});
+
+test('unverified Start oRPC combinations return the generation gap in preview', () => {
+  const result = buildCreateFileMap(
+    { ...YES_DEFAULTS, frontend: 'tanstack-start', database: 'mysql' },
+    'unsupported'
+  );
+  expect(result.ok).toBe(false);
+  if (result.ok) return;
+  expect(result.code).toBe('start-orpc');
+  expect(result.message).toContain('PostgreSQL');
+});
+
+test('private Start oRPC preview includes its auth and login routes', () => {
+  const result = buildCreateFileMap(
+    { ...YES_DEFAULTS, frontend: 'tanstack-start' },
+    'private-start'
+  );
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(result.files['src/routes/api/auth.$.ts']).toBeDefined();
+  expect(result.files['src/routes/login.tsx']).toContain('resetSession');
+  expect(result.files['src/server/router.ts']).toContain(
+    'userId: context.user.id'
+  );
+});
+
+for (const form of ['react-hook-form', 'tanstack-form'] as const) {
+  for (const auth of ['none', 'better-auth'] as const) {
+    test(`Start oRPC preview composes ${form} and ${auth}`, () => {
+      const result = buildCreateFileMap(
+        { ...YES_DEFAULTS, frontend: 'tanstack-start', auth, form },
+        'start-form'
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.files['src/routes/notes.tsx']).toContain(
+        'onSubmit={saveNote}'
+      );
+      expect(result.files['src/components/notes-form.tsx']).toContain(
+        'submitLabel'
+      );
+    });
+  }
+}
+
+for (const auth of ['none', 'better-auth'] as const) {
+  test(`Start oRPC ${auth} workspace preview retains a fullstack web application`, () => {
+    const result = buildCreateFileMap(
+      {
+        ...YES_DEFAULTS,
+        frontend: 'tanstack-start',
+        auth,
+        structure: 'turborepo',
+      },
+      'start-workspace'
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.files['apps/web/src/routes/api/rpc.$.ts']).toBeDefined();
+    expect(result.files['apps/server/package.json']).toBeUndefined();
+  });
+}
+
+test('Start oRPC workspace preview explains the remaining form-library gap', () => {
+  const result = buildCreateFileMap(
+    {
+      ...YES_DEFAULTS,
+      frontend: 'tanstack-start',
+      structure: 'turborepo',
+      form: 'tanstack-form',
+    },
+    'unsupported-workspace-form'
+  );
+  expect(result.ok).toBe(false);
+  if (result.ok) return;
+  expect(result.code).toBe('start-orpc');
+  expect(result.message).toContain(
+    'Workspaces currently require the plain form'
+  );
+});
+
 test('convex preview keeps relational none and is not convex-database-off', () => {
   const flags = normalizeFlags({ ...YES_DEFAULTS, backend: 'convex' });
   expect(flagsToRaw(flags)).toEqual({

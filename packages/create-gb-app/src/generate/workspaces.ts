@@ -135,6 +135,9 @@ export function finalizeWorkspaces(
   if (packageManager === 'yarn')
     files['.yarnrc.yml'] =
       `nodeLinker: node-modules\n\ncatalog:\n${yamlCatalog}\n`;
+  // Start's dev middleware needs Vite to have one module identity across plugins.
+  if (packageManager === 'bun' && requirements.has('@tanstack/react-start'))
+    files['bunfig.toml'] = '[install]\nlinker = "hoisted"\n';
   const turbo = JSON.parse(files['turbo.json']) as {
     tasks: Record<string, Record<string, unknown>>;
   };

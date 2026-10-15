@@ -1,7 +1,16 @@
 import type { EmitCtx } from '../../types/generate';
 import { setFile } from '../files';
+import { emitStartOrpcNotes } from './start-orpc-notes';
 
 export function emitNotes(ctx: EmitCtx): void {
+  if (
+    ctx.stack.backend === 'self' &&
+    ctx.stack.frontend === 'tanstack-start' &&
+    ctx.stack.api === 'orpc'
+  ) {
+    emitStartOrpcNotes(ctx);
+    return;
+  }
   if (ctx.stack.backend === 'convex') {
     emitConvexNotes(ctx);
     return;

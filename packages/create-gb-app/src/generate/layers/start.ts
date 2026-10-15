@@ -52,7 +52,14 @@ export function emitStart(ctx: EmitCtx): void {
   setFile(ctx.files, 'vite.config.ts', startViteConfig());
   setFile(ctx.files, 'src/styles.css', startStyles());
   setFile(ctx.files, 'src/router.tsx', startRouter());
-  setFile(ctx.files, 'src/routes/__root.tsx', startRootRoute(ctx.projectName));
+  setFile(
+    ctx.files,
+    'src/routes/__root.tsx',
+    startRootRoute(
+      ctx.projectName,
+      ctx.stack.backend === 'self' && ctx.stack.api === 'orpc'
+    )
+  );
   setFile(
     ctx.files,
     'src/routes/index.tsx',
@@ -104,7 +111,7 @@ export function emitStartWebApp(
         extends: '@repo/typescript-config/base.json',
         compilerOptions: {
           lib: ['ES2022', 'DOM', 'DOM.Iterable'],
-          types: ['vite/client'],
+          types: ['vite/client', '@tanstack/react-start'],
           jsx: 'react-jsx',
           noEmit: true,
           paths: { '@/*': ['./src/*'] },
@@ -159,7 +166,7 @@ function startRootTsconfig(): string {
         module: 'ESNext',
         moduleResolution: 'bundler',
         jsx: 'react-jsx',
-        types: ['vite/client'],
+        types: ['vite/client', '@tanstack/react-start'],
         strict: true,
         noEmit: true,
         skipLibCheck: true,
@@ -225,13 +232,14 @@ body {
 `;
 }
 
-function startRootRoute(projectName: string): string {
-  return `import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+function startRootRoute(projectName: string, withQueryClient = false): string {
+  return `import { HeadContent, Outlet, Scripts, ${withQueryClient ? 'createRootRouteWithContext' : 'createRootRoute'} } from "@tanstack/react-router";
+${withQueryClient ? 'import type { QueryClient } from "@tanstack/react-query";\n' : ''}
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import appCss from "../styles.css?url";
 import { Providers } from "../components/providers";
 
-export const Route = createRootRoute({
+export const Route = ${withQueryClient ? 'createRootRouteWithContext<{ queryClient: QueryClient }>()' : 'createRootRoute'}({
   head: () => ({
     meta: [
       { charSet: "utf-8" },

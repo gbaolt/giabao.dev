@@ -186,7 +186,10 @@ function emitContract(ctx: EmitCtx, dep: string): void {
         version: '0.0.0',
         private: true,
         type: 'module',
-        exports: { '.': './src/index.ts' },
+        exports: {
+          '.': { types: './dist/index.d.ts', default: './dist/index.js' },
+        },
+        scripts: { build: 'tsc -p tsconfig.json' },
         dependencies: {
           '@orpc/contract': DEPENDENCY_VERSIONS['@orpc/contract'],
           '@orpc/openapi': DEPENDENCY_VERSIONS['@orpc/openapi'],
@@ -194,6 +197,7 @@ function emitContract(ctx: EmitCtx, dep: string): void {
         },
         devDependencies: {
           '@repo/typescript-config': dep,
+          typescript: DEPENDENCY_VERSIONS['typescript'],
         },
       },
       null,
@@ -204,8 +208,28 @@ function emitContract(ctx: EmitCtx, dep: string): void {
   setFile(
     ctx.files,
     'packages/contract/src/index.ts',
-    `export { contract } from "./contract";
+    `export { contract } from "./contract.js";
 `
+  );
+
+  setFile(
+    ctx.files,
+    'packages/contract/tsconfig.json',
+    JSON.stringify(
+      {
+        extends: '@repo/typescript-config/base.json',
+        compilerOptions: {
+          module: 'NodeNext',
+          moduleResolution: 'NodeNext',
+          declaration: true,
+          outDir: 'dist',
+          rootDir: 'src',
+        },
+        include: ['src/**/*.ts'],
+      },
+      null,
+      2
+    )
   );
 
   setFile(
@@ -704,6 +728,12 @@ import type { Request } from "express";
 import { auth } from "./auth.js";
 import { NotesController } from "./notes.controller.js";
 
+declare module "@orpc/server" {
+  interface DefaultInitialContext {
+    request: Request;
+  }
+}
+
 @Module({
   imports: [
     AuthModule.forRoot({
@@ -714,8 +744,8 @@ import { NotesController } from "./notes.controller.js";
       },
     }),
     ORPCModule.forRoot({
-      context: (ctx: object) => ({
-        request: (ctx as ExecutionContext).switchToHttp().getRequest<Request>(),
+      context: (ctx: ExecutionContext) => ({
+        request: ctx.switchToHttp().getRequest<Request>(),
       }),
     }),
   ],

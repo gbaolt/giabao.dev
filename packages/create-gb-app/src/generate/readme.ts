@@ -160,6 +160,20 @@ export function generateReadme(
     );
   }
 
+  if (stack.auth === 'better-auth') {
+    const authEnvPath = envPaths.find((path) =>
+      files[path].includes('BETTER_AUTH_URL=')
+    );
+    if (authEnvPath) {
+      const defaultOrigin = files[authEnvPath].match(
+        /BETTER_AUTH_URL="([^"]+)"/
+      )?.[1];
+      sections.push(
+        `## Authentication setup\n\nIn \`${authEnvPath}\`, set \`BETTER_AUTH_URL\` to the actual served origin of the authentication server (scheme, hostname, and port). The generated development default is \`${defaultOrigin}\`. Update it when using another hostname or port, and use the HTTPS origin of each preview or production deployment. The built-in backend serves authentication from the same origin as the web app. Restart the server after changing these values.\n\nReplace \`BETTER_AUTH_SECRET\` with a randomly generated secret of at least 32 characters. Keep it private and stable across server restarts; configure it and the database connection variables from that file in the deployment environment before starting the application.`
+      );
+    }
+  }
+
   sections.push(`## Available scripts\n\n${scripts.join('\n')}`);
   return `${sections.join('\n\n')}\n`;
 }

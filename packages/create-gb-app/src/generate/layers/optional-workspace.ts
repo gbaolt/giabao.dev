@@ -59,23 +59,31 @@ export function emitOptionalWorkspace(
       continue;
     ctx.pkg.scripts[name] = `turbo run ${name} --filter web`;
   }
+  const environment = [
+    'DATABASE_URL',
+    'DIRECT_URL',
+    'BETTER_AUTH_SECRET',
+    'BETTER_AUTH_URL',
+    'TURSO_DATABASE_URL',
+    'TURSO_AUTH_TOKEN',
+    'CLERK_SECRET_KEY',
+    'CLERK_JWT_ISSUER_DOMAIN',
+    'NEXT_PUBLIC_*',
+    'VITE_*',
+  ];
   const tasks: Record<string, unknown> = {
     build: {
       dependsOn: ['^build'],
       inputs: ['$TURBO_DEFAULT$', '.env*'],
-      env: [
-        'DATABASE_URL',
-        'DIRECT_URL',
-        'TURSO_DATABASE_URL',
-        'TURSO_AUTH_TOKEN',
-        'CLERK_SECRET_KEY',
-        'CLERK_JWT_ISSUER_DOMAIN',
-        'NEXT_PUBLIC_*',
-        'VITE_*',
-      ],
+      env: environment,
       outputs: ['dist/**', '.output/**', '.next/**', '!.next/cache/**'],
     },
-    dev: { dependsOn: ['^build'], cache: false, persistent: true },
+    dev: {
+      dependsOn: ['^build'],
+      cache: false,
+      persistent: true,
+      env: environment,
+    },
     lint: { dependsOn: ['^lint'] },
   };
   for (const name of Object.keys(web.scripts)) {
@@ -83,7 +91,7 @@ export function emitOptionalWorkspace(
     tasks[name] =
       name === 'convex:dev'
         ? { dependsOn: ['^build'], cache: false, persistent: true }
-        : { cache: false };
+        : { cache: false, env: environment };
   }
   setFile(
     ctx.files,

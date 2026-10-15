@@ -1,6 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { emitStartOrpcAuth } from './start-orpc-auth';
 
 export function emitBetterAuth(ctx: EmitCtx): void {
   ctx.pkg.dependencies['better-auth'] = DEPENDENCY_VERSIONS['better-auth'];
@@ -70,6 +71,8 @@ export const auth = betterAuth({
 export const authClient = createAuthClient();
 `
     );
+    if (ctx.stack.backend === 'self' && ctx.stack.api === 'orpc')
+      emitStartOrpcAuth(ctx);
     return;
   }
 

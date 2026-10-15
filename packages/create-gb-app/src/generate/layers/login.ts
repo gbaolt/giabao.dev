@@ -2,6 +2,7 @@ import type { EmitCtx } from '../../types/generate';
 import loginSource from '../assets/login/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { startOrpcLoginRoute } from './start-orpc-auth';
 
 export function emitLogin(ctx: EmitCtx): void {
   if (ctx.stack.auth !== 'better-auth') return;
@@ -44,6 +45,10 @@ export function emitLogin(ctx: EmitCtx): void {
   setFile(
     ctx.files,
     pagePath,
-    page.replaceAll('__PROJECT_NAME__', projectNameLiteral)
+    ctx.stack.backend === 'self' &&
+      ctx.stack.frontend === 'tanstack-start' &&
+      ctx.stack.api === 'orpc'
+      ? startOrpcLoginRoute(projectNameLiteral)
+      : page.replaceAll('__PROJECT_NAME__', projectNameLiteral)
   );
 }
