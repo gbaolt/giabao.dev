@@ -34,6 +34,7 @@ import { emitTrpc } from './layers/trpc';
 import { emitValidation } from './layers/validation';
 import { projectLayout } from './layout';
 import { generateReadme } from './readme';
+import { emitPlainWorkspace } from './workspace-tasks';
 import { finalizeWorkspaces } from './workspaces';
 
 function emitDatabase(
@@ -261,6 +262,8 @@ export function Providers({ children }: { children: ReactNode }) {
     finalizeDatabaseSetup(emitCtx);
   }
 
+  if (stack.structure === 'monorepo' && stack.addons.taskRunner === 'none') emitPlainWorkspace(emitCtx);
+
   pkg.dependencies = sortRecord(pkg.dependencies);
   pkg.devDependencies = sortRecord(pkg.devDependencies);
   pkg.scripts = sortRecord(pkg.scripts);
@@ -273,12 +276,6 @@ export function Providers({ children }: { children: ReactNode }) {
 }
 
 export function buildTree(stack: Stack, ctx: GenerateContext): FileMap {
-  if (stack.structure === 'monorepo' && stack.addons.taskRunner === 'none') {
-    throw new GenerateError(
-      'plain-monorepo',
-      'Plain monorepo generation is not available yet; select Turborepo'
-    );
-  }
   validateStartOrpc(stack);
   return buildProject(stack, ctx, true);
 }

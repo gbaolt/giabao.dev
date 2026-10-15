@@ -224,14 +224,13 @@ export function configurationFromQuery(
     next = candidate;
   }
   if (
-    legacy &&
     !query.structure &&
     (next.backend === 'nest' || next.backend === 'hono')
   ) {
     next = {
       ...next,
       structure: 'monorepo',
-      addons: { ...next.addons, taskRunner: 'turborepo' },
+      addons: { ...next.addons, ...(legacy && !query['task-runner'] ? { taskRunner: 'turborepo' as const } : {}) },
     };
   }
   return next;

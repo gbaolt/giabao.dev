@@ -86,3 +86,10 @@ test('old Create links retain Turbo while v2 links preserve auto selections', ()
   );
   expect(configurationQuery(YES_DEFAULTS).schema).toBe('2');
 });
+
+test('partial modern monorepo links use fresh backend defaults', () => {
+  const fields = configurationFromQuery({ schema: '2', backend: 'nest' });
+  expect(fields.structure).toBe('monorepo');
+  expect(fields.addons.taskRunner).toBe('auto');
+  expect(configurationFromQuery({ backend: 'hono', 'task-runner': 'none' }).addons.taskRunner).toBe('none');
+});

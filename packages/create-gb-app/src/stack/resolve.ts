@@ -105,7 +105,6 @@ export function resolveStack(input: RawFlags): Stack {
   const payments = raw.payments ?? YES_DEFAULTS.payments;
   const requested = {
     ...YES_DEFAULTS.addons,
-    ...(structure === 'monorepo' ? { taskRunner: 'turborepo' as const } : {}),
     ...raw.addons,
   };
   const addons = {

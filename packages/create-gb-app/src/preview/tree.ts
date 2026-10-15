@@ -16,7 +16,7 @@ export function previewTree(stack: Stack): string {
       'packages/typescript-config',
       'packages/ui',
       'packages/validation',
-      'turbo.json'
+      stack.addons.taskRunner === 'turborepo' ? 'turbo.json' : 'scripts/workspace.mjs'
     );
     return rows.join('\n');
   }

@@ -40,11 +40,12 @@ const eslintConfig = [
   ...compat.extends(${isNext ? "'next/core-web-vitals', 'next/typescript'" : "'plugin:react/recommended', 'plugin:react/jsx-runtime', 'plugin:react-hooks/recommended', 'plugin:@typescript-eslint/recommended'"}),
   {
     ignores: [
-      '.next/**',
-      'next-env.d.ts',
-      'dist/**',
-      '.output/**',
-      'node_modules/**',
+      '**/.next/**',
+      '**/next-env.d.ts',
+      '**/dist/**',
+      '**/.output/**',
+      '**/.vinxi/**',
+      '**/node_modules/**',
     ],
   },
 ${isNext ? '' : "  { settings: { react: { version: 'detect' } } },\n"}];

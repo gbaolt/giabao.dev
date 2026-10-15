@@ -148,12 +148,6 @@ function disabledRule(
     flags.structure === 'single'
   )
     return RULE_IDS.turboRequiresMonorepo;
-  if (
-    group === 'taskRunner' &&
-    flags.structure === 'monorepo' &&
-    value !== 'turborepo'
-  )
-    return RULE_IDS.optionalTurborepoUnavailable;
   if (group === 'structure') {
     if (
       (flags.backend === 'nest' || flags.backend === 'hono') &&
@@ -242,15 +236,15 @@ export function applyFlagChange<K extends FlagGroup>(
 
   switch (key) {
     case 'backend':
-      return applyBackendSideEffects(next, value as Backend);
+      return applyBackendSideEffects(next, next.backend);
     case 'database':
-      return applyDatabaseSideEffects(next, value as Database);
+      return applyDatabaseSideEffects(next, next.database);
     case 'auth':
-      return applyAuthSideEffects(next, value as Auth);
+      return applyAuthSideEffects(next, next.auth);
     case 'payments':
-      return applyPaymentsSideEffects(next, value as Payments);
+      return applyPaymentsSideEffects(next, next.payments);
     case 'dbSetup':
-      return applyDbSetupSideEffects(next, value as DbSetup);
+      return applyDbSetupSideEffects(next, next.dbSetup);
     case 'frontend':
     case 'api':
     case 'orm':
@@ -264,7 +258,8 @@ export function applyFlagChange<K extends FlagGroup>(
         ...next,
         addons: {
           ...next.addons,
-          taskRunner: next.structure === 'monorepo' ? 'turborepo' : 'auto',
+          taskRunner:
+            next.structure === 'single' ? 'auto' : next.addons.taskRunner,
         },
       };
     default: {
@@ -284,14 +279,14 @@ function enabledFallback(
   }
   const vocab = VOCAB_BY_GROUP[group];
   if (
-    (vocab as readonly string[]).includes('none') &&
+    vocab.some((value) => value === 'none') &&
     isOptionEnabled(flags, group, 'none')
   ) {
-    return 'none' as SelectionValues[FlagGroup];
+    return 'none';
   }
   for (const value of vocab) {
     if (isOptionEnabled(flags, group, value)) {
-      return value as SelectionValues[FlagGroup];
+      return value;
     }
   }
   return preferred;
@@ -324,7 +319,7 @@ function applyBackendSideEffects(
       return {
         ...flags,
         structure: 'monorepo',
-        addons: { ...flags.addons, taskRunner: 'turborepo' },
+        addons: { ...flags.addons },
       };
     case 'self':
       return {

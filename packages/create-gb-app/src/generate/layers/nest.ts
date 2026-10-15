@@ -29,10 +29,12 @@ export function emitNest(ctx: EmitCtx): void {
 
   const dep = proto(ctx);
   ctx.pkg.private = true;
+  if (ctx.stack.addons.taskRunner === 'turborepo') {
   ctx.pkg.scripts.dev = 'turbo dev';
   ctx.pkg.scripts.build = 'turbo build';
   ctx.pkg.scripts.lint = 'turbo lint';
   ctx.pkg.devDependencies.turbo = DEPENDENCY_VERSIONS['turbo'];
+  }
   ctx.pkg.devDependencies.typescript = DEPENDENCY_VERSIONS['typescript'];
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
 
@@ -55,6 +57,7 @@ export function emitNest(ctx: EmitCtx): void {
     emitDbSetup(ctx);
   }
 
+  if (ctx.stack.addons.taskRunner === 'turborepo') {
   setFile(
     ctx.files,
     'turbo.json',
@@ -74,13 +77,14 @@ export function emitNest(ctx: EmitCtx): void {
       2
     )
   );
+  }
 
   if (ctx.stack.frontend === 'tanstack-start') {
     setFile(
       ctx.files,
       '.gitignore',
       `node_modules
-.turbo
+${ctx.stack.addons.taskRunner === 'turborepo' ? '.turbo' : ''}
 .next
 .output
 .vinxi
@@ -433,7 +437,7 @@ import { AppModule } from "./app.module.js";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(3333);
+  await app.listen(Number(process.env.SERVER_PORT ?? process.env.PORT ?? 3333));
 }
 
 void bootstrap();
@@ -514,7 +518,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(3333);
+  await app.listen(Number(process.env.SERVER_PORT ?? process.env.PORT ?? 3333));
 }
 
 void bootstrap();
@@ -711,7 +715,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(3333);
+  await app.listen(Number(process.env.SERVER_PORT ?? process.env.PORT ?? 3333));
 }
 
 void bootstrap();

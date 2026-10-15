@@ -77,7 +77,7 @@ function features(stack: Stack): string[] {
   if (stack.auth !== 'none') selected.push(stack.auth);
   if (stack.payments !== 'none') selected.push(stack.payments);
   if (stack.addons.form !== 'none') selected.push(stack.addons.form);
-  if (stack.structure === 'monorepo') selected.push('turborepo');
+  if (stack.addons.taskRunner === 'turborepo') selected.push('turborepo');
   selected.push(stack.addons.linting);
   return selected.map(
     (item) =>

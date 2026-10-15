@@ -20,7 +20,7 @@ test('buildTree Nest golden emits contract-first monorepo', () => {
   const ms = performance.now() - started;
   console.log(`buildTree nest ${ms.toFixed(2)}ms`);
   expect(ms).toBeLessThan(4000);
-  expect(files['turbo.json']).toBeDefined();
+  expect(files['turbo.json']).toBeUndefined();
   expect(files['biome.json']).toContain('unsafeParameterDecoratorsEnabled');
   expect(files['apps/web/package.json']).toContain('@repo/contract');
   expect(files['apps/web/package.json']).toContain('workspace:*');
@@ -63,7 +63,7 @@ test('npm workspaces use star protocol', () => {
   expect(files['apps/web/package.json']).not.toContain('workspace:');
 });
 test('nest plus start returns a FileMap with a Nest server and Start web', () => {
-  const stack = resolveStack({ ...NEST_FLAGS, frontend: 'tanstack-start' });
+  const stack = resolveStack({ ...NEST_FLAGS, frontend: 'tanstack-start', addons: { ...NEST_FLAGS.addons, taskRunner: 'turborepo' } });
   const files = buildTree(stack, {
     projectName: 'nest-start',
     packageManager: 'pnpm',
@@ -86,7 +86,7 @@ test('nest plus start returns a FileMap with a Nest server and Start web', () =>
   expect(files['turbo.json']).toContain('.output/**');
   expect(files['turbo.json']).toContain('.vinxi/**');
   expect(files['.gitignore']).toContain('.output');
-  expect(files['.env']).toContain('VITE_SERVER_URL="http://localhost:3333"');
+  expect(files['apps/web/.env']).toContain('VITE_SERVER_URL="http://localhost:3333"');
   expect(previewTree(stack)).toContain('apps/web');
   expect(previewTree(stack)).toContain('apps/server');
   expect(previewTree(stack).split('\n')[0]).toBe('apps/web');

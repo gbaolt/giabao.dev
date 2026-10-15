@@ -26,7 +26,7 @@ export function emitOptionalWorkspace(
   for (const [path, contents] of Object.entries(single)) {
     if (path === 'package.json' || path === 'README.md') continue;
     if (path === '.gitignore') {
-      setFile(ctx.files, path, `${contents}\n.turbo\n`);
+      setFile(ctx.files, path, ctx.stack.addons.taskRunner === 'turborepo' ? `${contents}\n.turbo\n` : contents);
       continue;
     }
     const source = contents.replace(
@@ -45,6 +45,7 @@ export function emitOptionalWorkspace(
   );
 
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
+  if (ctx.stack.addons.taskRunner === 'turborepo') {
   ctx.pkg.devDependencies.turbo = DEPENDENCY_VERSIONS.turbo;
   ctx.pkg.scripts.dev = 'turbo run dev';
   ctx.pkg.scripts.build = 'turbo run build';
@@ -102,6 +103,7 @@ export function emitOptionalWorkspace(
       2
     )
   );
+  }
   setFile(
     ctx.files,
     'packages/typescript-config/package.json',

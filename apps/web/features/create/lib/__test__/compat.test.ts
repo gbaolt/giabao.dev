@@ -28,7 +28,7 @@ test('nest keeps the selected linter', () => {
     structure: 'monorepo',
     addons: {
       ...YES_DEFAULTS.addons,
-      taskRunner: 'turborepo',
+      taskRunner: 'auto',
     },
   });
   expect(next.addons.linting).toBe('auto');
@@ -45,7 +45,7 @@ test('hono keeps eslint and leaves tRPC enabled', () => {
     structure: 'monorepo',
     addons: {
       ...YES_DEFAULTS.addons,
-      taskRunner: 'turborepo',
+      taskRunner: 'auto',
     },
   });
   expect(disabledRuleId(next, 'api', 'trpc')).toBeNull();
@@ -54,7 +54,7 @@ test('hono keeps eslint and leaves tRPC enabled', () => {
     disabledRuleId({ ...YES_DEFAULTS, backend: 'nest' }, 'api', 'trpc')
   ).toBe('nest-trpc');
 });
-test('required Turborepo stays selected and explains its constraint', () => {
+test('required monorepo stays selected and explains its constraint', () => {
   const nest = applyFlagChange(YES_DEFAULTS, 'backend', 'nest');
   expect(nest.structure).toBe('monorepo');
   expect(disabledRuleId(nest, 'structure', 'single')).toBe(

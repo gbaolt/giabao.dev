@@ -5,8 +5,10 @@ import {
   CORE_GROUPS,
   type CreateFlags,
   type FlagGroup,
+  parseChoice,
   selectionValue,
   type SelectionValues,
+  VOCAB_BY_GROUP,
 } from 'create-gb-app/preset';
 import { BlocksIcon, TerminalIcon } from 'lucide-react';
 import { useId } from 'react';
@@ -144,5 +146,5 @@ function assignFlag(
   if (!isSelectable(flags, group, value)) {
     return;
   }
-  setFlag(group, value as SelectionValues[typeof group]);
+  setFlag(group, parseChoice(group, value, VOCAB_BY_GROUP[group]));
 }

@@ -61,9 +61,9 @@ test('nest copies a packed --preset', () => {
   const flags = applyFlagChange(YES_DEFAULTS, 'backend', 'nest');
   expect(flags.addons.linting).toBe('auto');
   expect(buildCommand(flags)).toBe(
-    'npx create-gb-app my-gb-app --preset gb-v2-c5qtEbdOj19uSc'
+    'npx create-gb-app my-gb-app --preset gb-v2-h7a'
   );
-  expect(decodePreset('gb-v2-c5qtEbdOj19uSc')).toEqual(flags);
+  expect(decodePreset('gb-v2-h7a')).toEqual(flags);
 });
 test('hono copies a packed --preset and leaves defaults alone', () => {
   const flags = applyFlagChange(YES_DEFAULTS, 'backend', 'hono');
@@ -74,7 +74,7 @@ test('hono copies a packed --preset and leaves defaults alone', () => {
   );
   expect(decodePreset('gb6')).toEqual({
     ...flags,
-    addons: { ...flags.addons, linting: 'eslint' },
+    addons: { ...flags.addons, taskRunner: 'turborepo', linting: 'eslint' },
   });
   expect(buildCommand(YES_DEFAULTS)).toBe(
     'npx create-gb-app my-gb-app --preset gb-v2-0'

@@ -8,16 +8,15 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { formatCommand } from '#/preview/command';
 import { previewTree } from '#/preview/tree';
-import { canonicalRaw } from '#/stack/configuration';
+import { canonicalRaw, parseChoice } from '#/stack/configuration';
 import { CompatError } from '#/stack/errors';
 import {
   databaseSetupRule,
   defaultStructureForBackend,
   resolveStack,
 } from '#/stack/resolve';
-import { DATABASES, DB_SETUPS, ORMS } from '#/stack/vocab';
+import { DATABASES, DB_SETUPS, LINTING,ORMS, TASK_RUNNERS } from '#/stack/vocab';
 import type {
-  Addons,
   Api,
   Auth,
   Backend,
@@ -192,10 +191,7 @@ function wizardFlags(input: RawFlags): RawFlags {
       linting: 'auto',
       form: 'none',
       taskRunner:
-        (initialFlags.structure ?? defaultStructureForBackend(backend)) ===
-        'monorepo'
-          ? 'turborepo'
-          : 'auto',
+        'auto',
       ...initialFlags.addons,
     },
     projectName: initialFlags.projectName ?? 'my-gb-app',
@@ -271,11 +267,11 @@ export function App({ initialFlags = {}, onExit, onGenerate }: AppProps) {
       if (next.backend !== undefined) {
         merged.structure = defaultStructureForBackend(next.backend);
         merged.addons.taskRunner =
-          merged.structure === 'monorepo' ? 'turborepo' : 'auto';
+          merged.structure === 'single' ? 'auto' : (current.addons?.taskRunner ?? 'auto');
       }
       if (next.structure !== undefined)
         merged.addons.taskRunner =
-          next.structure === 'monorepo' ? 'turborepo' : 'auto';
+          next.structure === 'single' ? 'auto' : (current.addons?.taskRunner ?? 'auto');
       if (merged.backend === 'convex') {
         merged.api = undefined;
         merged.database = undefined;
@@ -523,8 +519,8 @@ export function App({ initialFlags = {}, onExit, onGenerate }: AppProps) {
           {(['taskRunner', 'linting'] as const).map((group) => {
             const values =
               group === 'taskRunner'
-                ? ['auto', 'none', 'turborepo']
-                : ['auto', 'eslint', 'biome', 'oxlint'];
+                ? TASK_RUNNERS
+                : LINTING;
             const options = values.map((value) => ({
               name:
                 value === 'auto'
@@ -548,10 +544,10 @@ export function App({ initialFlags = {}, onExit, onGenerate }: AppProps) {
                   focused={focus === group}
                   selectedIndex={indexOfValue(options, flags.addons?.[group])}
                   onChange={(_index, option) => {
-                    if (option?.value)
-                      patch({
-                        addons: { [group]: option.value } as Partial<Addons>,
-                      });
+                    if (option?.value) {
+                      if (group === 'taskRunner') patch({ addons: { taskRunner: parseChoice(group, option.value, TASK_RUNNERS) } });
+                      else patch({ addons: { linting: parseChoice(group, option.value, LINTING) } });
+                    }
                   }}
                 />
               </box>

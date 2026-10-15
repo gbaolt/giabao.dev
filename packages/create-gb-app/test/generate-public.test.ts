@@ -76,7 +76,7 @@ test('resolved structure owns the generated app and server paths', () => {
       projectName: `workspace-${backend}`,
       packageManager: 'pnpm',
     });
-    expect(workspace['turbo.json']).toBeDefined();
+    expect(workspace['turbo.json']).toBeUndefined();
     expect(workspace['apps/web/package.json']).toBeDefined();
     expect(workspace['apps/server/package.json']).toBeDefined();
     expect(workspace['packages/ui/package.json']).toBeDefined();

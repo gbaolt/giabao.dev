@@ -282,7 +282,9 @@ test('nest plus start returns a FileMap', () => {
   expect(result.files['apps/web/vite.config.ts']).toContain('tanstackStart');
   expect(result.files['apps/web/src/routes/__root.tsx']).toBeDefined();
   expect(result.files['apps/web/src/components/providers.tsx']).toBeDefined();
-  expect(result.files['package.json']).toContain('"dev": "turbo run dev"');
+  expect(result.files['package.json']).toContain(
+    '"dev": "node scripts/workspace.mjs dev"'
+  );
   expect(result.files['vite.config.ts']).toBeUndefined();
   expect(result.files['src/routes/__root.tsx']).toBeUndefined();
   expect(result.files['packages/contract/package.json']).toBeDefined();

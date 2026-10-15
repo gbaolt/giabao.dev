@@ -138,6 +138,7 @@ export function finalizeWorkspaces(
   // Start's dev middleware needs Vite to have one module identity across plugins.
   if (packageManager === 'bun' && requirements.has('@tanstack/react-start'))
     files['bunfig.toml'] = '[install]\nlinker = "hoisted"\n';
+  if (!files['turbo.json']) return;
   const turbo = JSON.parse(files['turbo.json']) as {
     tasks: Record<string, Record<string, unknown>>;
   };

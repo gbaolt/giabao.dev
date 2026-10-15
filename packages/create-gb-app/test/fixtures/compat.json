@@ -34,7 +34,7 @@
         "payments": "none",
         "addons": {
           "toolchain": "standard",
-          "taskRunner": "turborepo",
+          "taskRunner": "none",
           "linting": "eslint",
           "form": "none"
         }

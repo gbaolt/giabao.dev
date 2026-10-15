@@ -29,13 +29,16 @@ export function emitHono(ctx: EmitCtx): void {
   const stack = ctx.stack;
   const dep = proto(ctx);
   ctx.pkg.private = true;
+  if (ctx.stack.addons.taskRunner === 'turborepo') {
   ctx.pkg.scripts.dev = 'turbo dev';
   ctx.pkg.scripts.build = 'turbo build';
   ctx.pkg.scripts.lint = 'turbo lint';
   ctx.pkg.devDependencies.turbo = DEPENDENCY_VERSIONS['turbo'];
+  }
   ctx.pkg.devDependencies.typescript = DEPENDENCY_VERSIONS['typescript'];
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
 
+  if (ctx.stack.addons.taskRunner === 'turborepo') {
   setFile(
     ctx.files,
     'turbo.json',
@@ -61,12 +64,13 @@ export function emitHono(ctx: EmitCtx): void {
       2
     )
   );
+  }
 
   setFile(
     ctx.files,
     '.gitignore',
     `node_modules
-.turbo
+${ctx.stack.addons.taskRunner === 'turborepo' ? '.turbo' : ''}
 .next
 .output
 .vinxi
@@ -862,7 +866,7 @@ function serverEntry(stack: HonoStack): string {
   }
 
   lines.push('');
-  lines.push(`serve({ fetch: app.fetch, port: 3333 });`);
+  lines.push(`serve({ fetch: app.fetch, port: Number(process.env.SERVER_PORT ?? process.env.PORT ?? 3333) });`);
   lines.push('');
   return lines.join('\n');
 }
