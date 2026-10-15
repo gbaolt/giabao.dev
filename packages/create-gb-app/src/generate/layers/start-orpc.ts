@@ -17,12 +17,11 @@ export function validateStartOrpc(stack: Stack): void {
     stack.dbSetup !== 'none' ||
     stack.payments !== 'none' ||
     (stack.auth !== 'none' && stack.auth !== 'better-auth') ||
-    stack.structure !== 'single' ||
-    stack.form !== 'none'
+    stack.structure !== 'single'
   ) {
     throw new GenerateError(
       'start-orpc',
-      'Start with the built-in oRPC backend currently supports a single application with PostgreSQL, Prisma, auth disabled or Better Auth, no payments, no database setup, and the plain form. Choose that configuration or another API/backend.'
+      'Start with the built-in oRPC backend currently supports a single application with PostgreSQL, Prisma, auth disabled or Better Auth, and no payments or database setup. Choose that configuration or another API/backend.'
     );
   }
 }

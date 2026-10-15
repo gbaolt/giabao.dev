@@ -56,6 +56,25 @@ test('private Start oRPC preview includes its auth and login routes', () => {
   );
 });
 
+for (const form of ['react-hook-form', 'tanstack-form'] as const) {
+  for (const auth of ['none', 'better-auth'] as const) {
+    test(`Start oRPC preview composes ${form} and ${auth}`, () => {
+      const result = buildCreateFileMap(
+        { ...YES_DEFAULTS, frontend: 'tanstack-start', auth, form },
+        'start-form'
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.files['src/routes/notes.tsx']).toContain(
+        'onSubmit={saveNote}'
+      );
+      expect(result.files['src/components/notes-form.tsx']).toContain(
+        'submitLabel'
+      );
+    });
+  }
+}
+
 test('convex preview keeps relational none and is not convex-database-off', () => {
   const flags = normalizeFlags({ ...YES_DEFAULTS, backend: 'convex' });
   expect(flagsToRaw(flags)).toEqual({

@@ -38,6 +38,34 @@ const cases = {
     auth: 'better-auth',
     linter: 'oxlint',
   },
+  'start-orpc-rhf': {
+    frontend: 'tanstack-start',
+    api: 'orpc',
+    auth: 'none',
+    linter: 'oxlint',
+    form: 'react-hook-form',
+  },
+  'start-orpc-rhf-auth': {
+    frontend: 'tanstack-start',
+    api: 'orpc',
+    auth: 'better-auth',
+    linter: 'oxlint',
+    form: 'react-hook-form',
+  },
+  'start-orpc-tanstack-form': {
+    frontend: 'tanstack-start',
+    api: 'orpc',
+    auth: 'none',
+    linter: 'oxlint',
+    form: 'tanstack-form',
+  },
+  'start-orpc-tanstack-form-auth': {
+    frontend: 'tanstack-start',
+    api: 'orpc',
+    auth: 'better-auth',
+    linter: 'oxlint',
+    form: 'tanstack-form',
+  },
 } satisfies Record<string, RawFlags>;
 
 const caseName = process.argv[2];

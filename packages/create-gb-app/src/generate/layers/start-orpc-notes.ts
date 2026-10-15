@@ -3,6 +3,7 @@ import { setFile } from '../files';
 
 export function emitStartOrpcNotes(ctx: EmitCtx): void {
   const authenticated = ctx.stack.auth === 'better-auth';
+  const withForms = ctx.stack.form !== 'none';
   setFile(
     ctx.files,
     'src/server/router.ts',
@@ -48,9 +49,9 @@ export const router = {
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute${authenticated ? ', redirect' : ''} } from "@tanstack/react-router";
 import { orpc${authenticated ? ', client' : ''} } from "../lib/orpc";
-import { noteInputSchema } from "../lib/note-validation";
+${withForms ? 'import type { NoteInput } from "../lib/note-validation";\nimport { NotesForm } from "../components/notes-form";' : 'import { noteInputSchema } from "../lib/note-validation";'}
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
+${withForms ? '' : 'import { Input } from "../components/ui/input";'}
 import { Card } from "../components/ui/card";
 ${
   authenticated
@@ -81,8 +82,7 @@ export const Route = createFileRoute("/notes")({
 function NotesPage() {
   const queryClient = useQueryClient();
   const notes = useSuspenseQuery(orpc.notes.list.queryOptions());
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  ${withForms ? '' : 'const [title, setTitle] = useState("");\n  const [body, setBody] = useState("");'}
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const refreshNotes = () => queryClient.invalidateQueries({ queryKey: orpc.notes.list.key() });
@@ -115,7 +115,16 @@ function NotesPage() {
       : ''
   }
 
-  async function submitNote(event: React.FormEvent<HTMLFormElement>) {
+  ${
+    withForms
+      ? `const editingNote = notes.data.find((note) => note.id === editingId);
+  async function saveNote(input: NoteInput) {
+    if (editingId) await update.mutateAsync({ id: editingId, ...input });
+    else await create.mutateAsync(input);
+    await refreshNotes();
+    setEditingId(null);
+  }`
+      : `async function submitNote(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
     const parsed = noteInputSchema.safeParse({ title, body });
@@ -134,20 +143,31 @@ function NotesPage() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not save note");
     }
+  }`
   }
 
   ${authenticated ? 'if (identityChanged || signingOut) return <p role="status">Updating session...</p>;' : ''}
   return <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-8">
     <h1 className="text-2xl font-semibold">Notes</h1>
     ${authenticated ? '<div className="flex items-center justify-between"><p>Signed in as {user.email}</p><Button type="button" onClick={() => { void signOut(); }}>Sign out</Button></div>' : ''}
-    <form className="flex flex-col gap-3" onSubmit={submitNote}>
+    ${
+      withForms
+        ? `<NotesForm
+      key={editingId ?? "new"}
+      defaultValues={{ title: editingNote?.title ?? "", body: editingNote?.body ?? "" }}
+      submitLabel={editingId ? "Save changes" : "Add note"}
+      onSubmit={saveNote}
+    />
+    {editingId ? <Button type="button" disabled={pending} onClick={() => setEditingId(null)}>Cancel editing</Button> : null}`
+        : `<form className="flex flex-col gap-3" onSubmit={submitNote}>
       <label htmlFor="note-title">Title</label>
       <Input id="note-title" name="title" value={title} onChange={(event) => setTitle(event.target.value)} required disabled={pending} />
       <label htmlFor="note-body">Body</label>
       <Input id="note-body" name="body" value={body} onChange={(event) => setBody(event.target.value)} disabled={pending} />
       <Button type="submit" disabled={pending}>{pending ? "Saving..." : editingId ? "Save changes" : "Add note"}</Button>
       {editingId ? <Button type="button" disabled={pending} onClick={() => { setEditingId(null); setTitle(""); setBody(""); setError(null); }}>Cancel editing</Button> : null}
-    </form>
+    </form>`
+    }
     {error || remove.error ? <p role="alert">{error ?? remove.error?.message}</p> : null}
     {notes.data.length === 0 ? <p>No notes yet.</p> : null}
     <ul className="flex flex-col gap-3">{notes.data.map((note) => <li key={note.id}>
@@ -155,7 +175,7 @@ function NotesPage() {
         <h2 className="font-medium">{note.title}</h2>
         <p>{note.body}</p>
         <div className="flex gap-2">
-          <Button type="button" disabled={pending} onClick={() => { setEditingId(note.id); setTitle(note.title); setBody(note.body); setError(null); }}>Edit</Button>
+          <Button type="button" disabled={pending} onClick={() => { setEditingId(note.id); ${withForms ? '' : 'setTitle(note.title); setBody(note.body);'} setError(null); }}>Edit</Button>
           <Button type="button" disabled={pending} onClick={() => remove.mutate({ id: note.id })}>Delete</Button>
         </div>
       </Card>

@@ -53,7 +53,6 @@ test('private Start oRPC includes a complete Better Auth flow and ownership cons
 test('Start oRPC rejects unverified variants with an actionable generation gap', () => {
   for (const flags of [
     { ...publicFlags, auth: 'clerk' },
-    { ...publicFlags, form: 'react-hook-form' },
     { ...publicFlags, structure: 'turborepo' },
     { ...publicFlags, database: 'mysql' },
   ] as const) {
@@ -65,3 +64,27 @@ test('Start oRPC rejects unverified variants with an actionable generation gap',
     ).toThrow(GenerateError);
   }
 });
+
+for (const form of ['react-hook-form', 'tanstack-form'] as const) {
+  for (const auth of ['none', 'better-auth'] as const) {
+    test(`Start oRPC composes ${form} with ${auth} without rewriting the Notes mutations`, () => {
+      const files = buildTree(resolveStack({ ...publicFlags, auth, form }), {
+        projectName: 'form-notes',
+        packageManager: 'bun',
+      });
+      const route = files['src/routes/notes.tsx'];
+      expect(route).toContain('<NotesForm');
+      expect(route).toContain('onSubmit={saveNote}');
+      expect(route).toContain('update.mutateAsync');
+      expect(route).toContain('remove.mutate');
+      expect(files['src/components/notes-form.tsx']).toContain('defaultValues');
+      const manifest = JSON.parse(files['package.json']);
+      expect(Boolean(manifest.dependencies['react-hook-form'])).toBe(
+        form === 'react-hook-form'
+      );
+      expect(Boolean(manifest.dependencies['@tanstack/react-form'])).toBe(
+        form === 'tanstack-form'
+      );
+    });
+  }
+}
