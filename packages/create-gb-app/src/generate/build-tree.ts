@@ -28,6 +28,7 @@ import { emitPrisma } from './layers/prisma';
 import { emitSelf } from './layers/self';
 import { emitShadcn } from './layers/shadcn';
 import { emitStart } from './layers/start';
+import { emitStartOrpc, validateStartOrpc } from './layers/start-orpc';
 import { emitStripe } from './layers/stripe';
 import { emitTrpc } from './layers/trpc';
 import { emitValidation } from './layers/validation';
@@ -149,13 +150,8 @@ function emitApi(
 ) {
   switch (stack.api) {
     case 'orpc':
-      if (stack.frontend !== 'next') {
-        throw new GenerateError(
-          'start-orpc',
-          'start oRPC generate is not implemented yet'
-        );
-      }
-      emitOrpc(ctx);
+      if (stack.frontend === 'tanstack-start') emitStartOrpc(ctx);
+      else emitOrpc(ctx);
       break;
     case 'trpc':
       emitTrpc(ctx);
@@ -277,5 +273,6 @@ export function Providers({ children }: { children: ReactNode }) {
 }
 
 export function buildTree(stack: Stack, ctx: GenerateContext): FileMap {
+  validateStartOrpc(stack);
   return buildProject(stack, ctx, true);
 }

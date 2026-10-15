@@ -20,6 +20,18 @@ const cases = {
     linter: 'oxlint',
   },
   nest: { frontend: 'tanstack-start', backend: 'nest' },
+  'start-orpc': {
+    frontend: 'tanstack-start',
+    api: 'orpc',
+    auth: 'none',
+    linter: 'oxlint',
+  },
+  'start-orpc-eslint': {
+    frontend: 'tanstack-start',
+    api: 'orpc',
+    auth: 'none',
+    linter: 'eslint',
+  },
 } satisfies Record<string, RawFlags>;
 
 const caseName = process.argv[2];
@@ -205,13 +217,38 @@ try {
     stack.backend,
     stack.api,
     stack.auth,
+    stack.frontend,
   ]);
+  await run('lint', ['bun', 'run', 'lint'], web);
+  if (
+    stack.backend === 'self' &&
+    stack.frontend === 'tanstack-start' &&
+    stack.api === 'orpc'
+  ) {
+    await run('browser', [
+      'bun',
+      join(dirname(fileURLToPath(import.meta.url)), 'verify-browser.ts'),
+      origin,
+      artifacts,
+    ]);
+  }
   await run('resolved-dependencies', ['bun', 'pm', 'ls', '--all']);
   await Bun.write(
     join(artifacts, 'bun.lock'),
     await readFile(join(app, 'bun.lock'))
   );
   console.log(`Verification evidence: ${artifacts}`);
+  if (process.argv.includes('--hold')) {
+    console.log(
+      `Browser verification ready: ${origin}. Create ${join(artifacts, 'release')} to stop.`
+    );
+    for (
+      let attempt = 0;
+      attempt < 900 && !(await Bun.file(join(artifacts, 'release')).exists());
+      attempt++
+    )
+      await Bun.sleep(1000);
+  }
 } finally {
   for (const child of processes.reverse()) {
     stop(child);

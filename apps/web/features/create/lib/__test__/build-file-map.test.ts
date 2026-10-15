@@ -14,6 +14,34 @@ test('isCreateFlags rejects incomplete payloads', () => {
   expect(isCreateFlags(null)).toBe(false);
 });
 
+test('public Start oRPC preview agrees with its native generated application', () => {
+  const result = buildCreateFileMap(
+    {
+      ...YES_DEFAULTS,
+      frontend: 'tanstack-start',
+      auth: 'none',
+      linter: 'oxlint',
+    },
+    'start-orpc'
+  );
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(result.files['src/routes/api/rpc.$.ts']).toBeDefined();
+  expect(result.files['src/routes/notes.tsx']).toContain('Delete');
+  expect(result.files['app/notes/page.tsx']).toBeUndefined();
+});
+
+test('unverified Start oRPC combinations return the generation gap in preview', () => {
+  const result = buildCreateFileMap(
+    { ...YES_DEFAULTS, frontend: 'tanstack-start', database: 'mysql' },
+    'unsupported'
+  );
+  expect(result.ok).toBe(false);
+  if (result.ok) return;
+  expect(result.code).toBe('start-orpc');
+  expect(result.message).toContain('PostgreSQL');
+});
+
 test('convex preview keeps relational none and is not convex-database-off', () => {
   const flags = normalizeFlags({ ...YES_DEFAULTS, backend: 'convex' });
   expect(flagsToRaw(flags)).toEqual({

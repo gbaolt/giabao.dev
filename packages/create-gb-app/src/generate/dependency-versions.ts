@@ -36,6 +36,7 @@ export const DEPENDENCY_VERSIONS: Readonly<Record<string, string>> = {
   '@tanstack/react-query-next-experimental': '^5.89.0',
   '@tanstack/react-router': '1.170.42',
   '@tanstack/react-router-devtools': '1.167.2',
+  '@tanstack/react-router-ssr-query': '1.167.3',
   '@tanstack/react-start': '1.168.61',
   '@tanstack/router-core': '1.171.35',
   '@thallesp/nestjs-better-auth': '^2.2.0',
