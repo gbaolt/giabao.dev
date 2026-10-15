@@ -33,6 +33,7 @@ bun run --filter create-gb-app verify:generated start-trpc
 bun run --filter create-gb-app verify:generated nest
 bun run --filter create-gb-app verify:generated start-orpc
 bun run --filter create-gb-app verify:generated start-orpc-eslint
+bun run --filter create-gb-app verify:generated start-orpc-auth
 ```
 
 The printed evidence directory contains stage logs, the generator revision, Configuration, resolved dependencies, and the fixture lockfile. Failed stages exit with a nonzero status. Application processes and the disposable database are cleaned up; generated files and evidence remain available for inspection. This workflow requires Bun and Node.js 22.12 or newer. The portfolio site's server and database are separate.
@@ -41,10 +42,12 @@ The generated oRPC client, server, contract, OpenAPI, Nest, and Query integratio
 
 ## Start with the built-in oRPC backend
 
-The initial verified Configuration uses a single application, PostgreSQL, Prisma, no hosted database setup, no payments, disabled authentication, and the plain Notes form. It includes list, create, edit, and delete operations, shared server validation, SSR-prefetched Notes, and Query hydration. The CLI and Create preview return a specific generation gap for other combinations until they are verified. Existing separate-backend integrations retain their own support.
+The verified Configuration uses a single application, PostgreSQL, Prisma, no hosted database setup, no payments, disabled authentication or Better Auth, and the plain Notes form. It includes list, create, edit, and delete operations, shared server validation, SSR-prefetched Notes, and Query hydration. The CLI and Create preview return a specific generation gap for other combinations until they are verified. Existing separate-backend integrations retain their own support.
 
 The browser uses the same-origin RPC endpoint. SSR calls the router in process with request-local headers. Each router creates its own QueryClient; fresh server data remains fresh for 60 seconds after hydration, and successful mutations invalidate the Notes list.
 
 Install the verification browser with `bun x playwright install chromium`. Start/oRPC fixture commands also exercise browser CRUD, validation, a rejected network save and retry, query invalidation, and hydration without an immediate duplicate read. Browser automation is a development dependency of the generator, not a dependency of generated applications.
+
+With Better Auth, the generated application includes email/password signup, signin, and signout. Notes ownership comes from the server session on every RPC operation. Private pages and RPC responses use `private, no-store`. Set `BETTER_AUTH_URL` to the application's origin and replace the example auth secret before deployment. Signin, signout, and observed account changes cancel private queries, clear the cache, and load a fresh document so previous route state cannot cross identities. The authenticated verifier also checks direct anonymous rejection, two-user ownership, concurrent SSR isolation, and switching accounts while a private response is in flight.
 
 Append `--hold` to a fixture command to keep the built application and disposable database running for browser checks for up to 15 minutes. The verifier prints its origin and the release-file location. Creating that file triggers cleanup immediately.

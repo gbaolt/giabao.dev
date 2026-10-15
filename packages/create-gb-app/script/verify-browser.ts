@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import { chromium } from 'playwright';
 
-const [origin, artifacts] = process.argv.slice(2);
+const [origin, artifacts, auth] = process.argv.slice(2);
 if (!origin || !artifacts)
   throw new Error('Pass the running fixture origin and evidence directory');
 const browser = await chromium.launch();
@@ -17,6 +17,19 @@ try {
       reads.push(request.url());
   });
   await page.goto(`${origin}/notes`, { waitUntil: 'networkidle' });
+  if (auth === 'better-auth') {
+    assert.ok(
+      page.url().includes('/login'),
+      'Anonymous navigation must lead to signin'
+    );
+    await page.getByLabel('Email', { exact: true }).fill('fixture@example.com');
+    await page
+      .getByLabel('Password', { exact: true })
+      .fill('fixture-test-password');
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.waitForURL('**/notes');
+    await page.waitForLoadState('networkidle');
+  }
   assert.ok(
     (await page
       .getByRole('heading', { name: 'Fixture note updated', exact: true })
@@ -70,7 +83,8 @@ try {
     .waitFor({ state: 'detached' });
 
   await page.route('**/api/rpc/notes/create', (route) => route.abort());
-  await page.getByLabel('Title', { exact: true }).fill('Retry this note');
+  const retryTitle = `Retry this note ${Date.now()}`;
+  await page.getByLabel('Title', { exact: true }).fill(retryTitle);
   await page
     .getByLabel('Body', { exact: true })
     .fill('Retained after a network error');
@@ -78,7 +92,7 @@ try {
   await page.getByRole('alert').waitFor();
   assert.equal(
     await page.getByLabel('Title', { exact: true }).inputValue(),
-    'Retry this note'
+    retryTitle
   );
   assert.equal(
     await page.getByLabel('Body', { exact: true }).inputValue(),
@@ -86,13 +100,80 @@ try {
   );
   await page.unroute('**/api/rpc/notes/create');
   await page.getByRole('button', { name: 'Add note', exact: true }).click();
-  await page
-    .getByRole('heading', { name: 'Retry this note', exact: true })
-    .waitFor();
+  await page.getByRole('heading', { name: retryTitle, exact: true }).waitFor();
   assert.ok(
     reads.length >= 4,
     'Successful mutations must refresh the Notes list'
   );
+  if (auth === 'better-auth') {
+    let releaseRead = () => {};
+    let responseReady = () => {};
+    const release = new Promise<void>((resolve) => {
+      releaseRead = resolve;
+    });
+    const ready = new Promise<void>((resolve) => {
+      responseReady = resolve;
+    });
+    await page.route('**/api/rpc/notes/list', async (route) => {
+      const response = await route.fetch();
+      assert.ok((await response.text()).includes('Fixture note updated'));
+      responseReady();
+      await release;
+      await route.fulfill({ response }).catch(() => {});
+    });
+    await page
+      .getByLabel('Title', { exact: true })
+      .fill('Previous account late note');
+    await page.getByRole('button', { name: 'Add note', exact: true }).click();
+    await ready;
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await page.waitForURL('**/login');
+    await page
+      .getByRole('button', { name: 'Create an account', exact: true })
+      .click();
+    await page.getByLabel('Name', { exact: true }).fill('Browser second user');
+    await page
+      .getByLabel('Email', { exact: true })
+      .fill(`browser-${Date.now()}@example.com`);
+    await page
+      .getByLabel('Password', { exact: true })
+      .fill('fixture-test-password');
+    await page
+      .getByRole('button', { name: 'Create account', exact: true })
+      .click();
+    await page.waitForURL('**/notes');
+    releaseRead();
+    await page.unroute('**/api/rpc/notes/list');
+    await page.waitForLoadState('networkidle');
+    assert.equal(
+      await page
+        .getByRole('heading', { name: 'Fixture note updated', exact: true })
+        .count(),
+      0
+    );
+    assert.equal(
+      await page
+        .getByRole('heading', {
+          name: 'Previous account late note',
+          exact: true,
+        })
+        .count(),
+      0
+    );
+    await page
+      .getByLabel('Title', { exact: true })
+      .fill('Browser second account note');
+    await page.getByRole('button', { name: 'Add note', exact: true }).click();
+    await page
+      .getByRole('heading', {
+        name: 'Browser second account note',
+        exact: true,
+      })
+      .waitFor();
+    console.log(
+      'Browser signin, signup, signout, and account switching with an in-flight private response passed'
+    );
+  }
   assert.deepEqual(
     errors,
     [],

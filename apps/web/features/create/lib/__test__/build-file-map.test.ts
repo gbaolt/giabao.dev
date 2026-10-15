@@ -42,6 +42,20 @@ test('unverified Start oRPC combinations return the generation gap in preview', 
   expect(result.message).toContain('PostgreSQL');
 });
 
+test('private Start oRPC preview includes its auth and login routes', () => {
+  const result = buildCreateFileMap(
+    { ...YES_DEFAULTS, frontend: 'tanstack-start' },
+    'private-start'
+  );
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(result.files['src/routes/api/auth.$.ts']).toBeDefined();
+  expect(result.files['src/routes/login.tsx']).toContain('resetSession');
+  expect(result.files['src/server/router.ts']).toContain(
+    'userId: context.user.id'
+  );
+});
+
 test('convex preview keeps relational none and is not convex-database-off', () => {
   const flags = normalizeFlags({ ...YES_DEFAULTS, backend: 'convex' });
   expect(flagsToRaw(flags)).toEqual({

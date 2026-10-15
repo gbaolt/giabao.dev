@@ -16,18 +16,19 @@ export function validateStartOrpc(stack: Stack): void {
     stack.orm !== 'prisma' ||
     stack.dbSetup !== 'none' ||
     stack.payments !== 'none' ||
-    stack.auth !== 'none' ||
+    (stack.auth !== 'none' && stack.auth !== 'better-auth') ||
     stack.structure !== 'single' ||
     stack.form !== 'none'
   ) {
     throw new GenerateError(
       'start-orpc',
-      'Start with the built-in oRPC backend currently supports a single application with PostgreSQL, Prisma, no auth, no payments, no database setup, and the plain form. Choose that configuration or another API/backend.'
+      'Start with the built-in oRPC backend currently supports a single application with PostgreSQL, Prisma, auth disabled or Better Auth, no payments, no database setup, and the plain form. Choose that configuration or another API/backend.'
     );
   }
 }
 
 export function emitStartOrpc(ctx: EmitCtx): void {
+  const authenticated = ctx.stack.auth === 'better-auth';
   for (const name of [
     '@orpc/server',
     '@orpc/client',
@@ -54,7 +55,9 @@ export const Route = createFileRoute("/api/rpc/$")({
           prefix: "/api/rpc",
           context: { headers: request.headers },
         });
-        return response ?? new Response("Not found", { status: 404 });
+        const result = response ?? new Response("Not found", { status: 404 });
+        ${authenticated ? 'result.headers.set("Cache-Control", "private, no-store");' : ''}
+        return result;
       },
     },
   },

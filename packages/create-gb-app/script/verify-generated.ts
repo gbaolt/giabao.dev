@@ -32,6 +32,12 @@ const cases = {
     auth: 'none',
     linter: 'eslint',
   },
+  'start-orpc-auth': {
+    frontend: 'tanstack-start',
+    api: 'orpc',
+    auth: 'better-auth',
+    linter: 'oxlint',
+  },
 } satisfies Record<string, RawFlags>;
 
 const caseName = process.argv[2];
@@ -230,6 +236,7 @@ try {
       join(dirname(fileURLToPath(import.meta.url)), 'verify-browser.ts'),
       origin,
       artifacts,
+      stack.auth,
     ]);
   }
   await run('resolved-dependencies', ['bun', 'pm', 'ls', '--all']);

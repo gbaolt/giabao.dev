@@ -34,9 +34,25 @@ test('public Start oRPC emits a native fullstack Notes application', () => {
   ).toBeUndefined();
 });
 
+test('private Start oRPC includes a complete Better Auth flow and ownership constraints', () => {
+  const files = buildTree(
+    resolveStack({ ...publicFlags, auth: 'better-auth' }),
+    { projectName: 'private-notes', packageManager: 'bun' }
+  );
+  expect(files['src/routes/api/auth.$.ts']).toContain('auth.handler(request)');
+  expect(files['src/routes/login.tsx']).toContain('LoginForm');
+  expect(files['src/components/login-form.tsx']).toContain(
+    'authClient.signUp.email'
+  );
+  expect(files['src/server/router.ts']).toContain('auth.api.getSession');
+  expect(files['src/server/router.ts']).toContain('userId: context.user.id');
+  expect(files['src/routes/notes.tsx']).toContain('Sign out');
+  expect(files['src/routes/notes.tsx']).toContain('private, no-store');
+});
+
 test('Start oRPC rejects unverified variants with an actionable generation gap', () => {
   for (const flags of [
-    { ...publicFlags, auth: 'better-auth' },
+    { ...publicFlags, auth: 'clerk' },
     { ...publicFlags, form: 'react-hook-form' },
     { ...publicFlags, structure: 'turborepo' },
     { ...publicFlags, database: 'mysql' },
