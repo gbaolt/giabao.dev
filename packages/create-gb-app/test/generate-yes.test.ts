@@ -74,9 +74,9 @@ test('buildTree --yes emits literal paths and package names', () => {
   expect(pkg.name).toBe('yes-app');
   expect(pkg.dependencies.next).toBe('^15.5.4');
   expect(pkg.dependencies['better-auth']).toBe('^1.3.8');
-  expect(pkg.dependencies['@orpc/server']).toBe('beta');
-  expect(pkg.dependencies['@orpc/client']).toBe('beta');
-  expect(pkg.dependencies['@orpc/tanstack-query']).toBe('beta');
+  expect(pkg.dependencies['@orpc/server']).toBe('2.0.0-beta.43');
+  expect(pkg.dependencies['@orpc/client']).toBe('2.0.0-beta.43');
+  expect(pkg.dependencies['@orpc/tanstack-query']).toBe('2.0.0-beta.43');
   expect(pkg.dependencies['@prisma/client']).toBe('^6.16.1');
   expect(pkg.dependencies['@tanstack/react-query']).toBe('^5.89.0');
   expect(JSON.stringify(pkg)).not.toContain('workspace:');

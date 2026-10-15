@@ -17,6 +17,7 @@
   "scripts": {
     "dev": "bun src/index.ts",
     "test": "bun test",
+    "verify:generated": "bun script/verify-generated.ts",
     "typecheck": "bun check",
     "lint": "eslint . --cache --cache-location .eslintcache",
     "lint:fix": "eslint --fix . --cache --cache-location .eslintcache",

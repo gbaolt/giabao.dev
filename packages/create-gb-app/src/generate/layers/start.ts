@@ -104,7 +104,7 @@ export function emitStartWebApp(
         extends: '@repo/typescript-config/base.json',
         compilerOptions: {
           lib: ['ES2022', 'DOM', 'DOM.Iterable'],
-          types: ['vite/client'],
+          types: ['vite/client', '@tanstack/react-start'],
           jsx: 'react-jsx',
           noEmit: true,
           paths: { '@/*': ['./src/*'] },
@@ -159,7 +159,7 @@ function startRootTsconfig(): string {
         module: 'ESNext',
         moduleResolution: 'bundler',
         jsx: 'react-jsx',
-        types: ['vite/client'],
+        types: ['vite/client', '@tanstack/react-start'],
         strict: true,
         noEmit: true,
         skipLibCheck: true,
