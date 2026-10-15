@@ -38,9 +38,11 @@ bun run --filter create-gb-app verify:generated start-orpc-rhf
 bun run --filter create-gb-app verify:generated start-orpc-rhf-auth
 bun run --filter create-gb-app verify:generated start-orpc-tanstack-form
 bun run --filter create-gb-app verify:generated start-orpc-tanstack-form-auth
+bun run --filter create-gb-app verify:generated start-orpc-workspace
+bun run --filter create-gb-app verify:generated start-orpc-workspace-auth
 ```
 
-The printed evidence directory contains stage logs, the generator revision, Configuration, resolved dependencies, and the fixture lockfile. Failed stages exit with a nonzero status. Application processes and the disposable database are cleaned up; generated files and evidence remain available for inspection. This workflow requires Bun and Node.js 22.12 or newer. The portfolio site's server and database are separate.
+The printed evidence directory contains stage logs, startup commands, owned process IDs, Bun and Node versions, the generator revision, configuration, resolved dependencies, and the fixture lockfile. Failed stages exit with a nonzero status. Completion, failure, SIGINT, and SIGTERM clean up owned command trees and the disposable database; generated files and evidence remain available for inspection. This workflow requires Bun and Node.js 22.12 or newer. The portfolio site's server and database are separate.
 
 The generated oRPC client, server, contract, OpenAPI, Nest, and Query integrations use `2.0.0-beta.43`. Start uses `1.168.61` with Router `1.170.42` and Router core `1.171.35` to retain Vite 7 compatibility and a single compatible router type registration. The generator's other dependency ranges remain unchanged. Runtime evidence describes the resolved fixture lockfile, not every possible future resolution of those ranges.
 
@@ -55,5 +57,9 @@ Install the verification browser with `bun x playwright install chromium`. Start
 With Better Auth, the generated application includes email/password signup, signin, and signout. Notes ownership comes from the server session on every RPC operation. Private pages and RPC responses use `private, no-store`. Set `BETTER_AUTH_URL` to the application's origin and replace the example auth secret before deployment. Signin, signout, and observed account changes cancel private queries, clear the cache, and load a fresh document so previous route state cannot cross identities. The authenticated verifier also checks direct anonymous rejection, two-user ownership, concurrent SSR isolation, and switching accounts while a private response is in flight.
 
 Optional form libraries use the same typed create/update/delete operations and session checks. The Notes form accepts initial values for editing and retains entered values after a failed submission. A successful save refreshes the list before resetting the form. The selected library also supplies the authenticated login form; applications do not include the other form library's dependencies.
+
+The existing `turborepo` layout supports the same PostgreSQL/Prisma public and Better Auth applications with the plain form. The fullstack server and database stay in the web application, alongside its local environment file. Root database, build, and development tasks forward the required database/auth variables and build shared validation before starting the web application. Optional form libraries in this layout remain an explicit generation gap. Bun workspace fixtures run end to end; npm, pnpm, and Yarn workspace metadata and linking are covered by generator tests, without a claim of runtime verification for those managers.
+
+Start workspaces generated for Bun use its hoisted install layout. This keeps Vite's module identity consistent between the CLI and Start's development plugin. Workspace verification exercises root database commands, the production application, and root development startup with real HTTP Notes scenarios.
 
 Append `--hold` to a fixture command to keep the built application and disposable database running for browser checks for up to 15 minutes. The verifier prints its origin and the release-file location. Creating that file triggers cleanup immediately.

@@ -75,6 +75,42 @@ for (const form of ['react-hook-form', 'tanstack-form'] as const) {
   }
 }
 
+for (const auth of ['none', 'better-auth'] as const) {
+  test(`Start oRPC ${auth} workspace preview retains a fullstack web application`, () => {
+    const result = buildCreateFileMap(
+      {
+        ...YES_DEFAULTS,
+        frontend: 'tanstack-start',
+        auth,
+        structure: 'turborepo',
+      },
+      'start-workspace'
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.files['apps/web/src/routes/api/rpc.$.ts']).toBeDefined();
+    expect(result.files['apps/server/package.json']).toBeUndefined();
+  });
+}
+
+test('Start oRPC workspace preview explains the remaining form-library gap', () => {
+  const result = buildCreateFileMap(
+    {
+      ...YES_DEFAULTS,
+      frontend: 'tanstack-start',
+      structure: 'turborepo',
+      form: 'tanstack-form',
+    },
+    'unsupported-workspace-form'
+  );
+  expect(result.ok).toBe(false);
+  if (result.ok) return;
+  expect(result.code).toBe('start-orpc');
+  expect(result.message).toContain(
+    'Workspaces currently require the plain form'
+  );
+});
+
 test('convex preview keeps relational none and is not convex-database-off', () => {
   const flags = normalizeFlags({ ...YES_DEFAULTS, backend: 'convex' });
   expect(flagsToRaw(flags)).toEqual({

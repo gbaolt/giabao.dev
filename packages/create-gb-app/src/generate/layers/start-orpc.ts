@@ -17,11 +17,11 @@ export function validateStartOrpc(stack: Stack): void {
     stack.dbSetup !== 'none' ||
     stack.payments !== 'none' ||
     (stack.auth !== 'none' && stack.auth !== 'better-auth') ||
-    stack.structure !== 'single'
+    (stack.structure === 'turborepo' && stack.form !== 'none')
   ) {
     throw new GenerateError(
       'start-orpc',
-      'Start with the built-in oRPC backend currently supports a single application with PostgreSQL, Prisma, auth disabled or Better Auth, and no payments or database setup. Choose that configuration or another API/backend.'
+      'Start with the built-in oRPC backend supports PostgreSQL, Prisma, auth disabled or Better Auth, and no payments or database setup. Workspaces currently require the plain form. Choose that configuration or another API/backend.'
     );
   }
 }
@@ -34,6 +34,7 @@ export function emitStartOrpc(ctx: EmitCtx): void {
     '@orpc/tanstack-query',
     '@tanstack/react-query',
     '@tanstack/react-router-ssr-query',
+    'zod',
   ]) {
     ctx.pkg.dependencies[name] = DEPENDENCY_VERSIONS[name];
   }

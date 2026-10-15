@@ -33,3 +33,28 @@ test('README keeps hosted setup instructions once', () => {
   expect(readme).toContain('turso db shell');
   expect(readme).toContain('bun run db:migrate');
 });
+
+for (const structure of ['single', 'turborepo'] as const) {
+  for (const packageManager of ['bun', 'npm', 'pnpm', 'yarn'] as const) {
+    test(`private Start README explains auth setup for ${structure} with ${packageManager}`, () => {
+      const files = buildTree(
+        resolveStack({
+          frontend: 'tanstack-start',
+          api: 'orpc',
+          auth: 'better-auth',
+          structure,
+        }),
+        { projectName: 'private-notes', packageManager }
+      );
+      const readme = files['README.md'];
+      expect(readme).toContain('BETTER_AUTH_URL');
+      expect(readme).toContain('http://localhost:3000');
+      expect(readme).toContain('actual served origin');
+      expect(readme).toContain('preview or production');
+      expect(readme).toContain('BETTER_AUTH_SECRET');
+      expect(readme).toContain(
+        structure === 'single' ? '`.env`' : '`apps/web/.env`'
+      );
+    });
+  }
+}

@@ -53,7 +53,6 @@ test('private Start oRPC includes a complete Better Auth flow and ownership cons
 test('Start oRPC rejects unverified variants with an actionable generation gap', () => {
   for (const flags of [
     { ...publicFlags, auth: 'clerk' },
-    { ...publicFlags, structure: 'turborepo' },
     { ...publicFlags, database: 'mysql' },
   ] as const) {
     expect(() =>
@@ -88,3 +87,42 @@ for (const form of ['react-hook-form', 'tanstack-form'] as const) {
     });
   }
 }
+
+for (const packageManager of ['bun', 'npm', 'pnpm', 'yarn'] as const) {
+  for (const auth of ['none', 'better-auth'] as const) {
+    test(`Start oRPC ${auth} workspaces retain web ownership with ${packageManager}`, () => {
+      const files = buildTree(
+        resolveStack({ ...publicFlags, auth, structure: 'turborepo' }),
+        { projectName: 'workspace-notes', packageManager }
+      );
+      expect(files['apps/web/src/routes/api/rpc.$.ts']).toBeDefined();
+      expect(files['apps/web/src/server/router.ts']).toBeDefined();
+      expect(files['apps/web/prisma/schema.prisma']).toBeDefined();
+      expect(files['apps/server/package.json']).toBeUndefined();
+      expect(files['apps/web/src/lib/note-validation.ts']).toContain(
+        '@repo/validation'
+      );
+      const web = JSON.parse(files['apps/web/package.json']);
+      expect(web.dependencies.zod).toBeDefined();
+      expect(web.dependencies['@repo/validation']).toBe(
+        packageManager === 'npm' ? '*' : 'workspace:*'
+      );
+      const tasks = JSON.parse(files['turbo.json']).tasks;
+      expect(tasks.build.env).toContain('BETTER_AUTH_SECRET');
+      expect(tasks.dev.env).toContain('BETTER_AUTH_URL');
+      expect(tasks['db:push'].env).toContain('DATABASE_URL');
+      if (packageManager === 'bun') expect(files['bunfig.toml']).toContain('linker = "hoisted"');
+    });
+  }
+}
+
+test('Start oRPC keeps unverified workspace and form-library combinations gated', () => {
+  for (const form of ['react-hook-form', 'tanstack-form'] as const) {
+    expect(() =>
+      buildTree(
+        resolveStack({ ...publicFlags, form, structure: 'turborepo' }),
+        { projectName: 'unsupported-workspace', packageManager: 'bun' }
+      )
+    ).toThrow(GenerateError);
+  }
+});

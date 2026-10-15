@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const [web, origin, authOrigin, backend, api, auth, frontend] =
+const [web, origin, authOrigin, backend, api, auth, frontend, scenario] =
   process.argv.slice(2);
 const require = createRequire(join(web, 'package.json'));
 let cookie = '';
@@ -12,7 +12,8 @@ if (auth === 'better-auth') {
     method: 'POST',
     headers: { 'content-type': 'application/json', origin: authOrigin },
     body: JSON.stringify({
-      email: 'fixture@example.com',
+      email:
+        scenario === 'dev' ? 'fixture-dev@example.com' : 'fixture@example.com',
       name: 'Fixture',
       password: 'fixture-test-password',
     }),
@@ -141,7 +142,9 @@ if (api === 'trpc') {
         () => client.notes.delete({ id: note.id }),
       ])
         await assert.rejects(action(), { code: 'UNAUTHORIZED' });
-      cookie = await createAccount('second@example.com');
+      cookie = await createAccount(
+        scenario === 'dev' ? 'second-dev@example.com' : 'second@example.com'
+      );
       const secondCookie = cookie;
       assert.ok(
         !(await client.notes.list()).some((value) => value.id === note.id)
