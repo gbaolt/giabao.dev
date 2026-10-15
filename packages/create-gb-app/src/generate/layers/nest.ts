@@ -125,7 +125,7 @@ dist
   }
   emitWeb(ctx, dep);
 
-  switch (ctx.stack.linter) {
+  switch (ctx.stack.addons.linting) {
     case 'biome':
       emitBiome(ctx);
       break;
@@ -136,7 +136,7 @@ dist
       emitOxlint(ctx);
       break;
     default: {
-      const _exhaustive: never = ctx.stack.linter;
+      const _exhaustive: never = ctx.stack.addons.linting;
       throw new Error(`unhandled linter: ${_exhaustive}`);
     }
   }

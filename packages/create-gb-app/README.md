@@ -23,6 +23,28 @@ npx create-gb-app my-gb-app --yes --preset gb0 --frontend tanstack-start
 
 `--preset` expands to stack flags. Named values `nest`, `start`, and `convex` are aliases. Compact codes start with `gb`. Explicit stack flags overlay the preset.
 
+## Configuration and addons
+
+The selected Configuration keeps architecture fields at the top level and optional selections in `addons`. Project name and package manager remain separate generation inputs.
+
+```ts
+const configuration = {
+  ...YES_DEFAULTS,
+  addons: {
+    toolchain: 'standard',
+    taskRunner: 'auto',
+    linting: 'auto',
+    form: 'none',
+  },
+};
+```
+
+Standard tooling resolves automatic linting to ESLint and the automatic task runner to no additional runner. New codes use `gb-v2-`; historical compact and `gb-v1-` codes retain their original choices, including Turbo workspaces. Create URLs use `schema=2` to distinguish the new defaults from historical links.
+
+CLI flags remain flat: `--toolchain`, `--task-runner`, `--linting`, and `--form`. `--linter` remains a linting alias. `--structure turborepo` remains an alias for a monorepo with the Turbo addon. Explicit modern flags win aliases, and overriding one addon keeps its siblings.
+
+At this migration stage, existing workspace entry points explicitly retain Turbo. Plain monorepo generation reports a specific generation gap until its root command implementation is available. Vite+ is not implemented.
+
 ## Verify generated applications
 
 Set `FIXTURE_DATABASE_URL` to a disposable PostgreSQL cluster with permission to create databases. The verifier creates and drops a unique database for each run. It generates an unmodified application in the operating system's temporary directory, installs with Bun, initializes Prisma, builds, typechecks, starts the application, and exercises Notes through its real HTTP client.

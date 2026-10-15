@@ -1,9 +1,12 @@
 'use client';
 
 import {
+  ADDON_GROUPS,
+  CORE_GROUPS,
   type CreateFlags,
-  FLAG_GROUPS,
   type FlagGroup,
+  selectionValue,
+  type SelectionValues,
 } from 'create-gb-app/preset';
 import { BlocksIcon, TerminalIcon } from 'lucide-react';
 import { useId } from 'react';
@@ -24,7 +27,7 @@ import { cn } from '@/lib/utils';
 
 import {
   FLAG_GROUP_LABELS,
-  FLAG_OPTIONS,
+  optionsFor,
   presentFlagOption,
 } from '../data/options';
 import { isSelectable } from '../lib/command';
@@ -38,7 +41,7 @@ export function CreateBuilder() {
     <Card className="rounded-none bg-transparent ring-0">
       <CardContent>
         <FieldGroup className="gap-6">
-          {FLAG_GROUPS.filter((group) => group !== 'form').map((group) =>
+          {CORE_GROUPS.map((group) =>
             isGroupVisible(flags, group) ? (
               <FlagRadioGroup key={group} group={group} />
             ) : null
@@ -51,7 +54,9 @@ export function CreateBuilder() {
               </div>
               <div className="bg-border absolute -z-1 ml-2 h-px w-full flex-1 grow" />
             </FieldLegend>
-            <FlagRadioGroup group="form" />
+            {ADDON_GROUPS.map((group) => (
+              <FlagRadioGroup key={group} group={group} />
+            ))}
           </FieldSet>
         </FieldGroup>
       </CardContent>
@@ -62,7 +67,7 @@ export function CreateBuilder() {
 function FlagRadioGroup({ group }: { group: FlagGroup }) {
   const id = useId();
   const { flags, setFlag } = useCreate();
-  const selected = flags[group];
+  const selected = selectionValue(flags, group);
 
   return (
     <FieldSet>
@@ -77,7 +82,7 @@ function FlagRadioGroup({ group }: { group: FlagGroup }) {
         }}
         className="grid grid-cols-1 gap-2 lg:grid-cols-2"
       >
-        {FLAG_OPTIONS[group].map((rawOption) => {
+        {optionsFor(group).map((rawOption) => {
           const option = presentFlagOption(rawOption, flags);
           const optionId = `${id}-${option.value}`;
           const enabled = isSelectable(flags, group, option.value);
@@ -131,7 +136,7 @@ function assignFlag(
   group: FlagGroup,
   value: unknown,
   flags: CreateFlags,
-  setFlag: <K extends FlagGroup>(key: K, value: CreateFlags[K]) => void
+  setFlag: <K extends FlagGroup>(key: K, value: SelectionValues[K]) => void
 ) {
   if (typeof value !== 'string') {
     return;
@@ -139,5 +144,5 @@ function assignFlag(
   if (!isSelectable(flags, group, value)) {
     return;
   }
-  setFlag(group, value as CreateFlags[typeof group]);
+  setFlag(group, value as SelectionValues[typeof group]);
 }

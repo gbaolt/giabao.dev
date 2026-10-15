@@ -122,7 +122,7 @@ See the Hono Node guide for the Node.js adapter.
 }
 
 function emitChosenLinter(ctx: EmitCtx, stack: HonoStack): void {
-  switch (stack.linter) {
+  switch (stack.addons.linting) {
     case 'eslint':
       emitEslint(ctx);
       break;
@@ -133,7 +133,7 @@ function emitChosenLinter(ctx: EmitCtx, stack: HonoStack): void {
       emitOxlint(ctx);
       break;
     default: {
-      const _exhaustive: never = stack.linter;
+      const _exhaustive: never = stack.addons.linting;
       throw new Error(`unhandled linter: ${_exhaustive}`);
     }
   }

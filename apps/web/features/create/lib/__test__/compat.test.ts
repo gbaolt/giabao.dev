@@ -4,6 +4,7 @@ import {
   FLAG_GROUPS,
   type FlagGroup,
 } from 'create-gb-app/preset';
+import { selectionValue } from 'create-gb-app/preset';
 
 import compat from '../../data/compat.json';
 import { buildCommand } from '../command';
@@ -16,75 +17,89 @@ import {
   type RuleId,
   YES_DEFAULTS,
 } from '../compat';
-
 test('vendored yesDefault is the picker default', () => {
   expect(compat.yesDefault).toEqual(YES_DEFAULTS);
 });
-
 test('nest keeps the selected linter', () => {
   const next = applyFlagChange(YES_DEFAULTS, 'backend', 'nest');
   expect(next).toEqual({
     ...YES_DEFAULTS,
     backend: 'nest',
-    structure: 'turborepo',
+    structure: 'monorepo',
+    addons: {
+      ...YES_DEFAULTS.addons,
+      taskRunner: 'turborepo',
+    },
   });
-  expect(next.linter).toBe('eslint');
+  expect(next.addons.linting).toBe('auto');
   expect(normalizeFlags({ ...YES_DEFAULTS, backend: 'nest' })).toEqual(next);
-  expect(disabledRuleId(next, 'linter', 'eslint')).toBeNull();
-  expect(disabledRuleId(next, 'linter', 'biome')).toBeNull();
-  expect(disabledRuleId(next, 'linter', 'oxlint')).toBeNull();
+  expect(disabledRuleId(next, 'linting', 'eslint')).toBeNull();
+  expect(disabledRuleId(next, 'linting', 'biome')).toBeNull();
+  expect(disabledRuleId(next, 'linting', 'oxlint')).toBeNull();
 });
-
 test('hono keeps eslint and leaves tRPC enabled', () => {
   const next = applyFlagChange(YES_DEFAULTS, 'backend', 'hono');
   expect(next).toEqual({
     ...YES_DEFAULTS,
     backend: 'hono',
-    structure: 'turborepo',
+    structure: 'monorepo',
+    addons: {
+      ...YES_DEFAULTS.addons,
+      taskRunner: 'turborepo',
+    },
   });
   expect(disabledRuleId(next, 'api', 'trpc')).toBeNull();
-  expect(disabledRuleId(next, 'linter', 'eslint')).toBeNull();
+  expect(disabledRuleId(next, 'linting', 'eslint')).toBeNull();
   expect(
     disabledRuleId({ ...YES_DEFAULTS, backend: 'nest' }, 'api', 'trpc')
   ).toBe('nest-trpc');
 });
-
 test('required Turborepo stays selected and explains its constraint', () => {
   const nest = applyFlagChange(YES_DEFAULTS, 'backend', 'nest');
-  expect(nest.structure).toBe('turborepo');
+  expect(nest.structure).toBe('monorepo');
   expect(disabledRuleId(nest, 'structure', 'single')).toBe(
-    'backend-requires-turborepo'
+    'backend-requires-monorepo'
   );
-  expect(disabledRuleId(nest, 'structure', 'turborepo')).toBeNull();
+  expect(disabledRuleId(nest, 'structure', 'monorepo')).toBeNull();
   const self = applyFlagChange(nest, 'backend', 'self');
   expect(self.structure).toBe('single');
-  expect(disabledRuleId(self, 'structure', 'turborepo')).toBeNull();
+  expect(disabledRuleId(self, 'structure', 'monorepo')).toBeNull();
 });
-
 for (const backend of ['self', 'convex'] as const) {
   test(`${backend} allows both layouts and preserves URL structure`, () => {
     const defaults = applyFlagChange(YES_DEFAULTS, 'backend', backend);
     expect(defaults.structure).toBe('single');
-    for (const structure of ['single', 'turborepo'] as const) {
+    for (const structure of ['single', 'monorepo'] as const) {
       expect(disabledRuleId(defaults, 'structure', structure)).toBeNull();
       const selected = applyFlagChange(defaults, 'structure', structure);
       expect(normalizeFlags(selected)).toEqual(selected);
     }
   });
 }
-
 test('nest plus oxlint stays oxlint', () => {
   const next = applyFlagChange(
-    { ...YES_DEFAULTS, linter: 'oxlint' },
+    {
+      ...YES_DEFAULTS,
+      addons: {
+        ...YES_DEFAULTS.addons,
+        linting: 'oxlint',
+      },
+    },
     'backend',
     'nest'
   );
-  expect(next.linter).toBe('oxlint');
+  expect(next.addons.linting).toBe('oxlint');
   expect(
-    normalizeFlags({ ...YES_DEFAULTS, backend: 'nest', linter: 'oxlint' })
+    normalizeFlags({
+      ...YES_DEFAULTS,
+      backend: 'nest',
+      addons: {
+        ...YES_DEFAULTS.addons,
+        linting: 'oxlint',
+      },
+    })
   ).toEqual(next);
 });
-
 for (const legal of compat.legal) {
   test(legal.name, () => {
     const flags = normalizeFlags({
@@ -102,9 +117,8 @@ for (const legal of compat.legal) {
       if (typeof expected !== 'string') {
         continue;
       }
-      expect(flags[group] as string).toBe(expected);
+      expect(selectionValue(flags, group) as string).toBe(expected);
     }
-
     const command = buildCommand(flags);
     expect(command.startsWith('npx create-gb-app my-gb-app')).toBe(true);
     expect(command).not.toContain('--yes');
@@ -113,29 +127,26 @@ for (const legal of compat.legal) {
     }
   });
 }
-
 for (const illegal of compat.illegal) {
   test(illegal.name, () => {
     const patch = illegal.flags as Partial<CreateFlags>;
     const groups = (Object.keys(patch) as FlagGroup[]).filter(
-      (group) => patch[group] !== undefined
+      (group) => patch[group as keyof typeof patch] !== undefined
     );
     expect(groups.length).toBeGreaterThan(0);
-
     const hits = groups.map((group) => {
-      const value = patch[group];
-      if (value === undefined) {
+      const value = patch[group as keyof typeof patch];
+      if (typeof value !== 'string') {
         return null;
       }
       const probe = {
         ...YES_DEFAULTS,
         ...patch,
-        [group]: YES_DEFAULTS[group],
+        [group]: selectionValue(YES_DEFAULTS, group),
       } as CreateFlags;
       return disabledRuleId(probe, group, value);
     });
     expect(hits).toContain(illegal.ruleId as RuleId);
-
     const flags = { ...YES_DEFAULTS, ...patch } as CreateFlags;
     if (flags.backend !== 'convex') {
       return;

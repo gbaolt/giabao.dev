@@ -1,19 +1,23 @@
 import {
   type CreateFlags,
   FLAG_GROUPS,
+  selectionValue,
   VOCAB_BY_GROUP,
+  withSelection,
   YES_DEFAULTS,
 } from 'create-gb-app/preset';
 
 import { applyFlagChange, isOptionEnabled, normalizeFlags } from './compat';
 
 function sameConfiguration(left: CreateFlags, right: CreateFlags): boolean {
-  return FLAG_GROUPS.every((group) => left[group] === right[group]);
+  return FLAG_GROUPS.every(
+    (group) => selectionValue(left, group) === selectionValue(right, group)
+  );
 }
 
 function canGenerate(flags: CreateFlags): boolean {
   return (
-    flags.linter !== 'biome' &&
+    flags.addons.linting !== 'biome' &&
     !(
       flags.frontend === 'tanstack-start' &&
       flags.backend === 'self' &&
@@ -45,8 +49,11 @@ export function shuffleConfiguration(
     }
   }
 
-  return normalizeFlags({
-    ...current,
-    linter: current.linter === 'eslint' ? 'oxlint' : 'eslint',
-  });
+  return normalizeFlags(
+    withSelection(
+      current,
+      'linting',
+      current.addons.linting === 'eslint' ? 'oxlint' : 'eslint'
+    )
+  );
 }

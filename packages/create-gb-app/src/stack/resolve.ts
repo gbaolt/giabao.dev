@@ -9,6 +9,7 @@ import type {
   Stack,
 } from '#/types/stack';
 
+import { canonicalRaw } from './configuration';
 import { CompatError, RULE_IDS } from './errors';
 
 export const YES_DEFAULTS = {
@@ -21,14 +22,18 @@ export const YES_DEFAULTS = {
   dbSetup: 'none',
   auth: 'better-auth',
   payments: 'none',
-  linter: 'eslint',
-  form: 'none',
+  addons: {
+    toolchain: 'standard',
+    taskRunner: 'auto',
+    linting: 'auto',
+    form: 'none',
+  },
 } as const satisfies PresetFields;
 
 export function defaultStructureForBackend(
   backend: PresetFields['backend']
 ): ProjectStructure {
-  return backend === 'nest' || backend === 'hono' ? 'turborepo' : 'single';
+  return backend === 'nest' || backend === 'hono' ? 'monorepo' : 'single';
 }
 
 function assertPayments(auth: Auth, payments: Payments): void {
@@ -91,18 +96,33 @@ function rejectUnlessNone(
   }
 }
 
-export function resolveStack(raw: RawFlags): Stack {
+export function resolveStack(input: RawFlags): Stack {
+  const raw = canonicalRaw(input);
   const frontend = raw.frontend ?? YES_DEFAULTS.frontend;
   const backend = raw.backend ?? YES_DEFAULTS.backend;
   const structure = raw.structure ?? defaultStructureForBackend(backend);
   const auth = raw.auth ?? YES_DEFAULTS.auth;
   const payments = raw.payments ?? YES_DEFAULTS.payments;
-  const linter = raw.linter ?? YES_DEFAULTS.linter;
-  const form = raw.form ?? YES_DEFAULTS.form;
+  const requested = {
+    ...YES_DEFAULTS.addons,
+    ...(structure === 'monorepo' ? { taskRunner: 'turborepo' as const } : {}),
+    ...raw.addons,
+  };
+  const addons = {
+    ...requested,
+    linting:
+      requested.linting === 'auto' ? ('eslint' as const) : requested.linting,
+    taskRunner:
+      requested.taskRunner === 'auto'
+        ? ('none' as const)
+        : requested.taskRunner,
+  };
 
-  if ((backend === 'nest' || backend === 'hono') && structure !== 'turborepo') {
-    throw new CompatError(RULE_IDS.backendRequiresTurborepo);
+  if ((backend === 'nest' || backend === 'hono') && structure !== 'monorepo') {
+    throw new CompatError(RULE_IDS.backendRequiresMonorepo);
   }
+  if (structure === 'single' && addons.taskRunner === 'turborepo')
+    throw new CompatError(RULE_IDS.turboRequiresMonorepo);
 
   if (backend === 'convex') {
     rejectUnlessNone(raw.database, RULE_IDS.convexDatabaseOff);
@@ -115,8 +135,7 @@ export function resolveStack(raw: RawFlags): Stack {
       backend: 'convex',
       auth,
       payments,
-      linter,
-      form,
+      addons,
       structure,
     };
   }
@@ -144,9 +163,8 @@ export function resolveStack(raw: RawFlags): Stack {
       dbSetup,
       auth,
       payments,
-      linter,
-      form,
-      structure: 'turborepo',
+      addons,
+      structure: 'monorepo',
     };
   }
 
@@ -160,8 +178,7 @@ export function resolveStack(raw: RawFlags): Stack {
       dbSetup,
       auth,
       payments,
-      linter,
-      form,
+      addons,
       structure,
     };
   }

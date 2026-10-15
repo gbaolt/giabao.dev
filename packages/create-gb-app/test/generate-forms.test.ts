@@ -3,7 +3,6 @@ import ts from 'typescript';
 
 import { buildTree, resolveStack } from '#/generate/public';
 import { decodePreset, encodePreset, YES_DEFAULTS } from '#/preset';
-
 for (const frontend of ['next', 'tanstack-start'] as const) {
   for (const form of ['react-hook-form', 'tanstack-form'] as const) {
     test(`${frontend} Hono tRPC ${form} submits through its generated client`, async () => {
@@ -108,23 +107,30 @@ for (const frontend of ['next', 'tanstack-start'] as const) {
     });
   }
 }
-
 test('forms default to none and preserve existing saved commands', () => {
-  expect(resolveStack({ yes: true }).form).toBe('none');
-  expect(decodePreset('gb0').form).toBe('none');
+  expect(resolveStack({ yes: true }).addons.form).toBe('none');
+  expect(decodePreset('gb0').addons.form).toBe('none');
   expect(
-    decodePreset(encodePreset({ ...YES_DEFAULTS, form: 'react-hook-form' }))
-      .form
+    decodePreset(
+      encodePreset({
+        ...YES_DEFAULTS,
+        addons: {
+          ...YES_DEFAULTS.addons,
+          form: 'react-hook-form',
+        },
+      })
+    ).addons.form
   ).toBe('react-hook-form');
 });
-
 test('React Hook Form selection includes only its reusable integration', () => {
   const files = buildTree(
     resolveStack({
       auth: 'none',
       api: 'none',
       database: 'none',
-      form: 'react-hook-form',
+      addons: {
+        form: 'react-hook-form',
+      },
     }),
     { projectName: 'forms', packageManager: 'bun' }
   );
@@ -138,7 +144,6 @@ test('React Hook Form selection includes only its reusable integration', () => {
   expect(files['app/notes/page.tsx']).toBeDefined();
   expect(files['components/notes-form.tsx']).toContain('zodResolver');
 });
-
 for (const frontend of ['next', 'tanstack-start'] as const) {
   for (const structure of ['single', 'turborepo'] as const) {
     for (const form of ['none', 'react-hook-form', 'tanstack-form'] as const) {

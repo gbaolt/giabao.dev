@@ -1,5 +1,6 @@
 export const RULE_IDS = {
-  backendRequiresTurborepo: 'backend-requires-turborepo',
+  backendRequiresMonorepo: 'backend-requires-monorepo',
+  turboRequiresMonorepo: 'turbo-requires-monorepo',
   optionalTurborepoUnavailable: 'optional-turborepo-unavailable',
   polarRequiresBetterAuth: 'polar-requires-better-auth',
   paymentsRequireAuth: 'payments-require-auth',
@@ -23,7 +24,8 @@ export const RULE_IDS = {
 export type RuleId = (typeof RULE_IDS)[keyof typeof RULE_IDS];
 
 const RULE_MESSAGES: Record<RuleId, string> = {
-  'backend-requires-turborepo': 'Nest and Hono require Turborepo',
+  'backend-requires-monorepo': 'Nest and Hono require a monorepo',
+  'turbo-requires-monorepo': 'Choose a monorepo to use Turborepo',
   'optional-turborepo-unavailable':
     'Turborepo for this backend is not available yet',
   'polar-requires-better-auth': 'Polar requires Better Auth',

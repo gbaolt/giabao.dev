@@ -1,7 +1,7 @@
 import type { Stack } from '#/types/stack';
 
 export function previewTree(stack: Stack): string {
-  if (stack.structure === 'turborepo') {
+  if (stack.structure === 'monorepo') {
     const rows = ['apps/web'];
     if (stack.backend === 'nest' || stack.backend === 'hono')
       rows.push('apps/server');

@@ -9,8 +9,12 @@
     "dbSetup": "none",
     "auth": "better-auth",
     "payments": "none",
-    "linter": "eslint",
-    "form": "none"
+    "addons": {
+      "toolchain": "standard",
+      "taskRunner": "auto",
+      "linting": "auto",
+      "form": "none"
+    }
   },
   "legal": [
     {
@@ -21,15 +25,19 @@
       "stack": {
         "frontend": "next",
         "backend": "nest",
-        "structure": "turborepo",
+        "structure": "monorepo",
         "api": "orpc",
         "database": "postgres",
         "orm": "prisma",
         "dbSetup": "none",
         "auth": "better-auth",
         "payments": "none",
-        "linter": "eslint",
-        "form": "none"
+        "addons": {
+          "toolchain": "standard",
+          "taskRunner": "turborepo",
+          "linting": "eslint",
+          "form": "none"
+        }
       }
     },
     {
@@ -43,8 +51,12 @@
         "structure": "single",
         "auth": "better-auth",
         "payments": "none",
-        "linter": "eslint",
-        "form": "none"
+        "addons": {
+          "toolchain": "standard",
+          "taskRunner": "none",
+          "linting": "eslint",
+          "form": "none"
+        }
       }
     }
   ],

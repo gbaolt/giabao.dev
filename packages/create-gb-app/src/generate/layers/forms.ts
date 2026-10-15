@@ -8,14 +8,16 @@ import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 
 export function emitForms(ctx: EmitCtx): void {
-  if (ctx.stack.form === 'none') return;
+  if (ctx.stack.addons.form === 'none') return;
   const isNext = ctx.stack.frontend === 'next';
   const webRoot = ctx.layout.frontendRoot ? ctx.layout.frontendRoot + '/' : '';
   const sourceRoot = webRoot + (isNext ? '' : 'src/');
   const assets =
-    ctx.stack.form === 'react-hook-form' ? rhfFormAssets : tanstackFormAssets;
+    ctx.stack.addons.form === 'react-hook-form'
+      ? rhfFormAssets
+      : tanstackFormAssets;
   const deps =
-    ctx.stack.form === 'react-hook-form'
+    ctx.stack.addons.form === 'react-hook-form'
       ? ['react-hook-form', '@hookform/resolvers']
       : ['@tanstack/react-form'];
   const manifest =
@@ -25,7 +27,7 @@ export function emitForms(ctx: EmitCtx): void {
   for (const dependency of deps)
     manifest.dependencies[dependency] =
       DEPENDENCY_VERSIONS[dependency as keyof typeof DEPENDENCY_VERSIONS];
-  if (ctx.layout.structure === 'turborepo')
+  if (ctx.layout.structure === 'monorepo')
     setFile(
       ctx.files,
       ctx.layout.frontendManifest,
@@ -43,14 +45,14 @@ export function emitForms(ctx: EmitCtx): void {
   setFile(
     ctx.files,
     sourceRoot + 'components/notes-form.tsx',
-    adapt(notesFormSource(ctx.stack.form))
+    adapt(notesFormSource(ctx.stack.addons.form))
   );
   setFile(
     ctx.files,
     sourceRoot + 'components/form/README.md',
     `# Form controls
 
-These controls adapt the supplied ${ctx.stack.form === 'react-hook-form' ? 'React Hook Form controller pattern' : 'TanStack form-hook composition'} to shadcn Base UI. Input and textarea controls represent strings; numeric, file, OTP, date, and combobox variants are outside this starter's form API. Parse optional numeric strings explicitly in your schema so an empty field is never silently converted to zero.
+These controls adapt the supplied ${ctx.stack.addons.form === 'react-hook-form' ? 'React Hook Form controller pattern' : 'TanStack form-hook composition'} to shadcn Base UI. Input and textarea controls represent strings; numeric, file, OTP, date, and combobox variants are outside this starter's form API. Parse optional numeric strings explicitly in your schema so an empty field is never silently converted to zero.
 
 The Notes form submits the shared schema's parsed values, disables controls while submitting, retains entered values after a failure, and resets after a successful submission. Every field instance has a React-generated ID linking its label, help, and error messages. Select options carry their values; checkbox callbacks carry booleans.
 `

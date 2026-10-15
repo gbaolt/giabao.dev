@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test';
 
 import { YES_DEFAULTS } from '../compat';
 import { generatePreview } from './generate-preview';
-
 test('generatePreview rejects invalid flags', async () => {
   const result = await generatePreview(
     { frontend: 'next' } as never,
@@ -14,7 +13,6 @@ test('generatePreview rejects invalid flags', async () => {
     code: 'invalid',
   });
 });
-
 test('generatePreview returns the YES tree', async () => {
   const result = await generatePreview(YES_DEFAULTS, 'my-gb-app');
   expect(result.ok).toBe(true);
@@ -29,11 +27,18 @@ test('generatePreview returns the YES tree', async () => {
     'return (\n    <Card>'
   );
 });
-
 test('preview follows the command package manager for workspace configuration', async () => {
   for (const manager of ['bun', 'pnpm', 'yarn', 'npm'] as const) {
     const result = await generatePreview(
-      { ...YES_DEFAULTS, backend: 'hono', structure: 'turborepo' },
+      {
+        ...YES_DEFAULTS,
+        backend: 'hono',
+        structure: 'monorepo',
+        addons: {
+          ...YES_DEFAULTS.addons,
+          taskRunner: 'turborepo',
+        },
+      },
       'manager-app',
       manager
     );

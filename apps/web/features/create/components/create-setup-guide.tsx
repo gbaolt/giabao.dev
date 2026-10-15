@@ -1,10 +1,11 @@
 'use client';
 
-import type { CreateFlags } from 'create-gb-app/preset';
+import { parseConfiguration } from 'create-gb-app/preset';
 import { BookOpenIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { MDXDocument } from '@/components/mdx/mdx-document';
+import { usePackageManager } from '@/components/ncdai/code-block-command';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,11 +24,13 @@ import { useCreate } from './create-provider';
 
 export function CreateSetupGuide() {
   const { flags, projectName } = useCreate();
+  const [selectedManager] = usePackageManager();
+  const packageManager = selectedManager === 'prompt' ? 'bun' : selectedManager;
   const [open, setOpen] = useState(false);
   const [guide, setGuide] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const flagsJson = JSON.stringify(flags);
-  const requestKey = `${projectName}:${flagsJson}`;
+  const requestKey = `${projectName}:${packageManager}:${flagsJson}`;
   const [guideKey, setGuideKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,9 +38,9 @@ export function CreateSetupGuide() {
 
     let cancelled = false;
     void generatePreview(
-      JSON.parse(flagsJson) as CreateFlags,
+      parseConfiguration(JSON.parse(flagsJson)),
       projectName,
-      'bun'
+      packageManager
     )
       .then((result) => {
         if (cancelled) return;
@@ -60,7 +63,7 @@ export function CreateSetupGuide() {
     return () => {
       cancelled = true;
     };
-  }, [open, flagsJson, projectName, requestKey]);
+  }, [open, flagsJson, projectName, packageManager, requestKey]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

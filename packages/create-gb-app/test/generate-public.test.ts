@@ -3,7 +3,6 @@ import { expect, test } from 'bun:test';
 import type { RawFlags } from '#/generate/public';
 import * as generate from '#/generate/public';
 import { buildTree, resolveStack, YES_DEFAULTS } from '#/generate/public';
-
 const YES_PATHS = [
   '.env',
   '.env.example',
@@ -37,7 +36,6 @@ const YES_PATHS = [
   'router.ts',
   'tsconfig.json',
 ];
-
 test('public generate still emits YES paths', () => {
   const flags: RawFlags = { yes: true };
   const files = buildTree(resolveStack(flags), {
@@ -51,14 +49,12 @@ test('public generate still emits YES paths', () => {
   expect(YES_DEFAULTS.frontend).toBe('next');
   expect(YES_DEFAULTS.backend).toBe('self');
 });
-
 test('public generate exports stack and tree entry points', () => {
-  expect(generate.encodePreset(YES_DEFAULTS)).toBe('gb0');
-  expect(generate.decodePreset('gb0')).toEqual(YES_DEFAULTS);
+  expect(generate.encodePreset(YES_DEFAULTS)).toBe('gb-v2-0');
+  expect(generate.decodePreset('gb-v2-0')).toEqual(YES_DEFAULTS);
   expect(typeof generate.CompatError).toBe('function');
   expect(typeof generate.GenerateError).toBe('function');
 });
-
 test('literal legacy preset generates its historical layout', () => {
   const files = buildTree(resolveStack(generate.decodePreset('gb2')), {
     projectName: 'saved-nest',
@@ -67,7 +63,6 @@ test('literal legacy preset generates its historical layout', () => {
   expect(files['turbo.json']).toBeDefined();
   expect(files['apps/server/package.json']).toContain('@nestjs/core');
 });
-
 test('resolved structure owns the generated app and server paths', () => {
   const single = buildTree(
     resolveStack({ database: 'none', auth: 'none', api: 'none' }),
@@ -76,7 +71,6 @@ test('resolved structure owns the generated app and server paths', () => {
   expect(single['app/layout.tsx']).toBeDefined();
   expect(single['apps/web/package.json']).toBeUndefined();
   expect(single['turbo.json']).toBeUndefined();
-
   for (const backend of ['nest', 'hono'] as const) {
     const workspace = buildTree(resolveStack({ backend }), {
       projectName: `workspace-${backend}`,
@@ -91,7 +85,6 @@ test('resolved structure owns the generated app and server paths', () => {
     expect(rootManifest.workspaces).toContain('apps/*');
     expect(rootManifest.workspaces).toContain('packages/*');
   }
-
   const convex = buildTree(resolveStack({ backend: 'convex' }), {
     projectName: 'convex-single',
     packageManager: 'bun',
@@ -100,7 +93,6 @@ test('resolved structure owns the generated app and server paths', () => {
   expect(convex['apps/server/package.json']).toBeUndefined();
   expect(convex['turbo.json']).toBeUndefined();
 });
-
 test('public generate does not export CLI or goldens', () => {
   expect('GOLDEN_PRESETS' in generate).toBe(false);
   expect('writeTree' in generate).toBe(false);

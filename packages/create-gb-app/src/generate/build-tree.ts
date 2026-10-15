@@ -96,7 +96,7 @@ function emitUi(_stack: Stack, ctx: Parameters<typeof emitNext>[0]) {
 }
 
 function emitLinter(stack: Stack, ctx: Parameters<typeof emitNext>[0]) {
-  switch (stack.linter) {
+  switch (stack.addons.linting) {
     case 'eslint':
       emitEslint(ctx);
       break;
@@ -106,7 +106,7 @@ function emitLinter(stack: Stack, ctx: Parameters<typeof emitNext>[0]) {
     case 'biome':
       throw new GenerateError('biome', 'biome generate is not implemented yet');
     default: {
-      const _exhaustive: never = stack.linter;
+      const _exhaustive: never = stack.addons.linting;
       throw new Error(`unhandled linter: ${_exhaustive}`);
     }
   }
@@ -273,6 +273,12 @@ export function Providers({ children }: { children: ReactNode }) {
 }
 
 export function buildTree(stack: Stack, ctx: GenerateContext): FileMap {
+  if (stack.structure === 'monorepo' && stack.addons.taskRunner === 'none') {
+    throw new GenerateError(
+      'plain-monorepo',
+      'Plain monorepo generation is not available yet; select Turborepo'
+    );
+  }
   validateStartOrpc(stack);
   return buildProject(stack, ctx, true);
 }

@@ -76,9 +76,9 @@ function features(stack: Stack): string[] {
   }
   if (stack.auth !== 'none') selected.push(stack.auth);
   if (stack.payments !== 'none') selected.push(stack.payments);
-  if (stack.form !== 'none') selected.push(stack.form);
-  if (stack.structure === 'turborepo') selected.push('turborepo');
-  selected.push(stack.linter);
+  if (stack.addons.form !== 'none') selected.push(stack.addons.form);
+  if (stack.structure === 'monorepo') selected.push('turborepo');
+  selected.push(stack.addons.linting);
   return selected.map(
     (item) =>
       `- **${LABELS[item] ?? item}** — ${FEATURE_DESCRIPTIONS[item] ?? 'Included in the stack'}`

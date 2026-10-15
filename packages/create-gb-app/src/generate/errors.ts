@@ -1,4 +1,9 @@
-export const GENERATE_GAPS = ['nest-trpc', 'biome', 'start-orpc'] as const;
+export const GENERATE_GAPS = [
+  'nest-trpc',
+  'biome',
+  'start-orpc',
+  'plain-monorepo',
+] as const;
 
 export type GenerateGapCode = (typeof GENERATE_GAPS)[number];
 
