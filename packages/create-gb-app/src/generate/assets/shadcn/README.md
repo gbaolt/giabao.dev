@@ -2,7 +2,7 @@
 
 `source.json` contains unmodified UTF-8 text captured from the official shadcn CLI. The command ran on 2026-09-25 with `shadcn` 4.21.0:
 
-`formatted-source.json` contains the consumed source files after applying this repository's Prettier settings. The generator reads this formatted copy; `source.json` remains the unmodified reference, including its unused package manifest.
+Editable source files live in `packages/create-gb-app/templates/shadcn/`. `formatted-source.json` is generated from those files with `bun run templates:generate` and committed for the CLI and Create to import. Format the templates with this repository's Prettier settings before regenerating. `source.json` remains the unmodified upstream reference, including its unused package manifest.
 
 ```sh
 shadcn init --name reference --template next --preset b1YnQPagE --base base --no-monorepo --yes
