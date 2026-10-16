@@ -312,31 +312,32 @@ function ScrollProgressSectionList() {
 function ScrollProgressSections() {
   const context = React.use(ScrollProgressSectionsContext);
   if (!context) throw new Error('Sections must be inside ScrollProgress.');
-  const {
-    sections,
-    activeSectionId,
-    visibleHeadingIds,
-    minimumDepth,
-    selectSection,
-    activeLinkRef,
-  } = context;
+  const { sections, activeSectionId, visibleHeadingIds, ...linkProps } =
+    context;
   return (
     <ul className="flex flex-col gap-1">
       {sections.map((section) => (
         <li key={section.id}>
           <ScrollProgressSectionLink
+            {...linkProps}
             section={section}
             active={section.id === activeSectionId}
             visible={visibleHeadingIds.has(section.id)}
-            minimumDepth={minimumDepth}
-            selectSection={selectSection}
-            activeLinkRef={activeLinkRef}
           />
         </li>
       ))}
     </ul>
   );
 }
+
+type ScrollProgressSectionLinkProps = Pick<
+  ScrollProgressSectionsContextValue,
+  'minimumDepth' | 'selectSection' | 'activeLinkRef'
+> & {
+  section: ScrollProgressSection;
+  active: boolean;
+  visible: boolean;
+};
 
 function ScrollProgressSectionLink({
   section,
@@ -345,14 +346,7 @@ function ScrollProgressSectionLink({
   minimumDepth,
   selectSection,
   activeLinkRef,
-}: {
-  section: ScrollProgressSection;
-  active: boolean;
-  visible: boolean;
-  minimumDepth: number;
-  selectSection: ScrollProgressContextValue['actions']['selectSection'];
-  activeLinkRef: React.RefObject<HTMLAnchorElement | null>;
-}) {
+}: ScrollProgressSectionLinkProps) {
   return (
     <a
       ref={active ? activeLinkRef : undefined}
@@ -434,11 +428,7 @@ function labelTransform(
   direction: number
 ) {
   return mode === 'slide'
-    ? 'translateY(calc(' +
-        direction * 50 +
-        '% + ' +
-        direction * edgeOffset +
-        'px))'
+    ? `translateY(calc(${direction * 50}% + ${direction * edgeOffset}px))`
     : 'translateY(0px)';
 }
 
@@ -524,9 +514,7 @@ function NavigationSectionLabel({
       },
       () => {}
     );
-    return () => {
-      animation.cancel();
-    };
+    return () => animation.cancel();
   }, [navigation, height, stripRef, onComplete]);
 
   return (
