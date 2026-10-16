@@ -138,7 +138,7 @@ function finalizeServerDatabase(ctx: EmitCtx): void {
   for (const [name, command] of Object.entries(ctx.pkg.scripts)) {
     if (!name.startsWith('db:')) continue;
     manifest.scripts[name] = command;
-    ctx.pkg.scripts[name] = `turbo run ${name} --filter server`;
+    delete ctx.pkg.scripts[name];
   }
   if (dbSetup === 'turso' && orm === 'prisma')
     delete manifest.scripts['db:push'];
@@ -180,8 +180,17 @@ function finalizeServerDatabase(ctx: EmitCtx): void {
     'apps/server/package.json',
     JSON.stringify(manifest, null, 2)
   );
-  for (const name of ['.env', '.env.example'])
-    setFile(ctx.files, owner + name, ctx.files[name]);
+  for (const name of ['.env', '.env.example']) {
+    const source = ctx.files[name];
+    setFile(ctx.files, owner + name, source);
+    const publicValues = source
+      .split('\n')
+      .filter((line) => /^(NEXT_PUBLIC_|VITE_)/.test(line))
+      .join('\n');
+    if (publicValues)
+      setFile(ctx.files, 'apps/web/' + name, publicValues + '\n');
+    delete ctx.files[name];
+  }
   if (orm === 'drizzle')
     setFile(
       ctx.files,
@@ -202,10 +211,6 @@ function finalizeServerDatabase(ctx: EmitCtx): void {
       )
     );
   }
-  const turbo = JSON.parse(ctx.files['turbo.json']);
-  for (const name of Object.keys(manifest.scripts))
-    if (name.startsWith('db:')) turbo.tasks[name] = { cache: false };
-  setFile(ctx.files, 'turbo.json', JSON.stringify(turbo, null, 2));
 }
 
 function appendDatabaseSetupReadme(ctx: EmitCtx): void {

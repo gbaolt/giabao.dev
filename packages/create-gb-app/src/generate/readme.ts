@@ -27,6 +27,7 @@ const LABELS: Record<string, string> = {
   polar: 'Polar',
   eslint: 'ESLint',
   oxlint: 'Oxlint',
+  turborepo: 'Turborepo',
   'react-hook-form': 'React Hook Form',
   'tanstack-form': 'TanStack Form',
 };
@@ -61,6 +62,7 @@ const SCRIPT_DESCRIPTIONS: Record<string, string> = {
   build: 'Build the project for production',
   start: 'Start the production build',
   lint: 'Check the code',
+  typecheck: 'Check TypeScript types across the project',
   'db:generate': 'Generate database client or migration files',
   'db:push': 'Apply the schema to the database',
   'db:migrate': 'Run database migrations',
@@ -76,9 +78,9 @@ function features(stack: Stack): string[] {
   }
   if (stack.auth !== 'none') selected.push(stack.auth);
   if (stack.payments !== 'none') selected.push(stack.payments);
-  if (stack.form !== 'none') selected.push(stack.form);
-  if (stack.structure === 'turborepo') selected.push('turborepo');
-  selected.push(stack.linter);
+  if (stack.addons.form !== 'none') selected.push(stack.addons.form);
+  if (stack.addons.taskRunner === 'turborepo') selected.push('turborepo');
+  selected.push(stack.addons.linting);
   return selected.map(
     (item) =>
       `- **${LABELS[item] ?? item}** — ${FEATURE_DESCRIPTIONS[item] ?? 'Included in the stack'}`

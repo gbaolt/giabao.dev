@@ -26,7 +26,7 @@ export function emitOptionalWorkspace(
   for (const [path, contents] of Object.entries(single)) {
     if (path === 'package.json' || path === 'README.md') continue;
     if (path === '.gitignore') {
-      setFile(ctx.files, path, `${contents}\n.turbo\n`);
+      setFile(ctx.files, path, contents);
       continue;
     }
     const source = contents.replace(
@@ -45,63 +45,6 @@ export function emitOptionalWorkspace(
   );
 
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
-  ctx.pkg.devDependencies.turbo = DEPENDENCY_VERSIONS.turbo;
-  ctx.pkg.scripts.dev = 'turbo run dev';
-  ctx.pkg.scripts.build = 'turbo run build';
-  ctx.pkg.scripts.lint = 'turbo run lint';
-  for (const name of Object.keys(web.scripts)) {
-    if (
-      name === 'dev' ||
-      name === 'build' ||
-      name === 'start' ||
-      name === 'lint'
-    )
-      continue;
-    ctx.pkg.scripts[name] = `turbo run ${name} --filter web`;
-  }
-  const environment = [
-    'DATABASE_URL',
-    'DIRECT_URL',
-    'BETTER_AUTH_SECRET',
-    'BETTER_AUTH_URL',
-    'TURSO_DATABASE_URL',
-    'TURSO_AUTH_TOKEN',
-    'CLERK_SECRET_KEY',
-    'CLERK_JWT_ISSUER_DOMAIN',
-    'NEXT_PUBLIC_*',
-    'VITE_*',
-  ];
-  const tasks: Record<string, unknown> = {
-    build: {
-      dependsOn: ['^build'],
-      inputs: ['$TURBO_DEFAULT$', '.env*'],
-      env: environment,
-      outputs: ['dist/**', '.output/**', '.next/**', '!.next/cache/**'],
-    },
-    dev: {
-      dependsOn: ['^build'],
-      cache: false,
-      persistent: true,
-      env: environment,
-    },
-    lint: { dependsOn: ['^lint'] },
-  };
-  for (const name of Object.keys(web.scripts)) {
-    if (name in tasks || name === 'start') continue;
-    tasks[name] =
-      name === 'convex:dev'
-        ? { dependsOn: ['^build'], cache: false, persistent: true }
-        : { cache: false, env: environment };
-  }
-  setFile(
-    ctx.files,
-    'turbo.json',
-    JSON.stringify(
-      { $schema: 'https://turborepo.dev/schema.json', tasks },
-      null,
-      2
-    )
-  );
   setFile(
     ctx.files,
     'packages/typescript-config/package.json',

@@ -1,15 +1,15 @@
 import { expect, test } from 'bun:test';
 
 import { buildTree, GenerateError, resolveStack } from '#/generate/public';
-
 const publicFlags = {
   frontend: 'tanstack-start',
   backend: 'self',
   api: 'orpc',
   auth: 'none',
-  linter: 'oxlint',
+  addons: {
+    linting: 'oxlint',
+  },
 } as const;
-
 test('public Start oRPC emits a native fullstack Notes application', () => {
   const files = buildTree(resolveStack(publicFlags), {
     projectName: 'start-notes',
@@ -33,7 +33,6 @@ test('public Start oRPC emits a native fullstack Notes application', () => {
     manifest.dependencies['@tanstack/react-query-next-experimental']
   ).toBeUndefined();
 });
-
 test('private Start oRPC includes a complete Better Auth flow and ownership constraints', () => {
   const files = buildTree(
     resolveStack({ ...publicFlags, auth: 'better-auth' }),
@@ -49,7 +48,6 @@ test('private Start oRPC includes a complete Better Auth flow and ownership cons
   expect(files['src/routes/notes.tsx']).toContain('Sign out');
   expect(files['src/routes/notes.tsx']).toContain('private, no-store');
 });
-
 test('Start oRPC rejects unverified variants with an actionable generation gap', () => {
   for (const flags of [
     { ...publicFlags, auth: 'clerk' },
@@ -63,7 +61,6 @@ test('Start oRPC rejects unverified variants with an actionable generation gap',
     ).toThrow(GenerateError);
   }
 });
-
 for (const form of ['react-hook-form', 'tanstack-form'] as const) {
   for (const auth of ['none', 'better-auth'] as const) {
     test(`Start oRPC composes ${form} with ${auth} without rewriting the Notes mutations`, () => {
@@ -87,12 +84,18 @@ for (const form of ['react-hook-form', 'tanstack-form'] as const) {
     });
   }
 }
-
 for (const packageManager of ['bun', 'npm', 'pnpm', 'yarn'] as const) {
   for (const auth of ['none', 'better-auth'] as const) {
     test(`Start oRPC ${auth} workspaces retain web ownership with ${packageManager}`, () => {
       const files = buildTree(
-        resolveStack({ ...publicFlags, auth, structure: 'turborepo' }),
+        resolveStack({
+          ...publicFlags,
+          auth,
+          structure: 'monorepo',
+          addons: {
+            taskRunner: 'turborepo',
+          },
+        }),
         { projectName: 'workspace-notes', packageManager }
       );
       expect(files['apps/web/src/routes/api/rpc.$.ts']).toBeDefined();
@@ -107,20 +110,30 @@ for (const packageManager of ['bun', 'npm', 'pnpm', 'yarn'] as const) {
       expect(web.dependencies['@repo/validation']).toBe(
         packageManager === 'npm' ? '*' : 'workspace:*'
       );
-      const tasks = JSON.parse(files['turbo.json']).tasks;
-      expect(tasks.build.env).toContain('BETTER_AUTH_SECRET');
-      expect(tasks.dev.env).toContain('BETTER_AUTH_URL');
-      expect(tasks['db:push'].env).toContain('DATABASE_URL');
-      if (packageManager === 'bun') expect(files['bunfig.toml']).toContain('linker = "hoisted"');
+      const turbo = JSON.parse(files['turbo.json']);
+      expect(turbo.globalEnv).toContain('DATABASE_URL');
+      if (auth === 'better-auth') {
+        expect(turbo.globalEnv).toContain('BETTER_AUTH_SECRET');
+        expect(turbo.globalEnv).toContain('BETTER_AUTH_URL');
+      }
+      expect(turbo.tasks['db:push'].cache).toBe(false);
+      if (packageManager === 'bun')
+        expect(files['bunfig.toml']).toContain('linker = "hoisted"');
     });
   }
 }
-
 test('Start oRPC keeps unverified workspace and form-library combinations gated', () => {
   for (const form of ['react-hook-form', 'tanstack-form'] as const) {
     expect(() =>
       buildTree(
-        resolveStack({ ...publicFlags, form, structure: 'turborepo' }),
+        resolveStack({
+          ...publicFlags,
+          form,
+          structure: 'monorepo',
+          addons: {
+            taskRunner: 'turborepo',
+          },
+        }),
         { projectName: 'unsupported-workspace', packageManager: 'bun' }
       )
     ).toThrow(GenerateError);

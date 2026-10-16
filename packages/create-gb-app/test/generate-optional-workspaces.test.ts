@@ -2,17 +2,19 @@ import { expect, test } from 'bun:test';
 
 import { buildTree, resolveStack } from '#/generate/public';
 import { previewTree } from '#/preview/tree';
-
 test('optional fullstack workspaces retain web-owned server actions and shared foundations', () => {
   for (const frontend of ['next', 'tanstack-start'] as const) {
     const files = buildTree(
       resolveStack({
         backend: 'self',
-        structure: 'turborepo',
+        structure: 'monorepo',
         frontend,
         api: 'none',
         database: 'sqlite',
         auth: 'none',
+        addons: {
+          taskRunner: 'turborepo',
+        },
       }),
       { projectName: 'fullstack-workspace', packageManager: 'bun' }
     );
@@ -37,12 +39,11 @@ test('optional fullstack workspaces retain web-owned server actions and shared f
     expect(
       JSON.parse(files['apps/web/package.json']).scripts['db:generate']
     ).toBe('prisma generate');
-    expect(JSON.parse(files['package.json']).scripts['db:generate']).toContain(
-      '--filter web'
+    expect(JSON.parse(files['package.json']).scripts['db:generate']).toBe(
+      'turbo run db:generate'
     );
   }
 });
-
 test('Convex frontend and Clerk configuration agree across both layouts', () => {
   for (const frontend of ['next', 'tanstack-start'] as const) {
     for (const structure of ['single', 'turborepo'] as const) {
@@ -77,15 +78,17 @@ test('Convex frontend and Clerk configuration agree across both layouts', () => 
     }
   }
 });
-
 test('Convex workspaces keep native functions with their frontend and explicit codegen tasks', () => {
   for (const frontend of ['next', 'tanstack-start'] as const) {
     const files = buildTree(
       resolveStack({
         backend: 'convex',
-        structure: 'turborepo',
+        structure: 'monorepo',
         frontend,
         auth: 'none',
+        addons: {
+          taskRunner: 'turborepo',
+        },
       }),
       { projectName: 'convex-workspace', packageManager: 'pnpm' }
     );

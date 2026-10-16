@@ -3,7 +3,7 @@ import { setFile } from '../files';
 
 export function emitStartOrpcNotes(ctx: EmitCtx): void {
   const authenticated = ctx.stack.auth === 'better-auth';
-  const withForms = ctx.stack.form !== 'none';
+  const withForms = ctx.stack.addons.form !== 'none';
   setFile(
     ctx.files,
     'src/server/router.ts',

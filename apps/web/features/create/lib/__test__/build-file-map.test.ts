@@ -7,20 +7,28 @@ import {
   flagsToRaw,
   isCreateFlags,
 } from '../generate-files';
-
 test('isCreateFlags rejects incomplete payloads', () => {
   expect(isCreateFlags(YES_DEFAULTS)).toBe(true);
   expect(isCreateFlags({ frontend: 'next' })).toBe(false);
   expect(isCreateFlags(null)).toBe(false);
+  expect(isCreateFlags({ ...YES_DEFAULTS, addons: null })).toBe(false);
+  expect(
+    isCreateFlags({
+      ...YES_DEFAULTS,
+      addons: { ...YES_DEFAULTS.addons, toolchain: 'vite-plus' },
+    })
+  ).toBe(false);
 });
-
 test('public Start oRPC preview agrees with its native generated application', () => {
   const result = buildCreateFileMap(
     {
       ...YES_DEFAULTS,
       frontend: 'tanstack-start',
       auth: 'none',
-      linter: 'oxlint',
+      addons: {
+        ...YES_DEFAULTS.addons,
+        linting: 'oxlint',
+      },
     },
     'start-orpc'
   );
@@ -30,7 +38,6 @@ test('public Start oRPC preview agrees with its native generated application', (
   expect(result.files['src/routes/notes.tsx']).toContain('Delete');
   expect(result.files['app/notes/page.tsx']).toBeUndefined();
 });
-
 test('unverified Start oRPC combinations return the generation gap in preview', () => {
   const result = buildCreateFileMap(
     { ...YES_DEFAULTS, frontend: 'tanstack-start', database: 'mysql' },
@@ -41,7 +48,6 @@ test('unverified Start oRPC combinations return the generation gap in preview', 
   expect(result.code).toBe('start-orpc');
   expect(result.message).toContain('PostgreSQL');
 });
-
 test('private Start oRPC preview includes its auth and login routes', () => {
   const result = buildCreateFileMap(
     { ...YES_DEFAULTS, frontend: 'tanstack-start' },
@@ -55,12 +61,16 @@ test('private Start oRPC preview includes its auth and login routes', () => {
     'userId: context.user.id'
   );
 });
-
 for (const form of ['react-hook-form', 'tanstack-form'] as const) {
   for (const auth of ['none', 'better-auth'] as const) {
     test(`Start oRPC preview composes ${form} and ${auth}`, () => {
       const result = buildCreateFileMap(
-        { ...YES_DEFAULTS, frontend: 'tanstack-start', auth, form },
+        {
+          ...YES_DEFAULTS,
+          frontend: 'tanstack-start',
+          auth,
+          addons: { ...YES_DEFAULTS.addons, form },
+        },
         'start-form'
       );
       expect(result.ok).toBe(true);
@@ -74,7 +84,6 @@ for (const form of ['react-hook-form', 'tanstack-form'] as const) {
     });
   }
 }
-
 for (const auth of ['none', 'better-auth'] as const) {
   test(`Start oRPC ${auth} workspace preview retains a fullstack web application`, () => {
     const result = buildCreateFileMap(
@@ -82,7 +91,11 @@ for (const auth of ['none', 'better-auth'] as const) {
         ...YES_DEFAULTS,
         frontend: 'tanstack-start',
         auth,
-        structure: 'turborepo',
+        structure: 'monorepo',
+        addons: {
+          ...YES_DEFAULTS.addons,
+          taskRunner: 'turborepo',
+        },
       },
       'start-workspace'
     );
@@ -92,14 +105,17 @@ for (const auth of ['none', 'better-auth'] as const) {
     expect(result.files['apps/server/package.json']).toBeUndefined();
   });
 }
-
 test('Start oRPC workspace preview explains the remaining form-library gap', () => {
   const result = buildCreateFileMap(
     {
       ...YES_DEFAULTS,
       frontend: 'tanstack-start',
-      structure: 'turborepo',
-      form: 'tanstack-form',
+      structure: 'monorepo',
+      addons: {
+        ...YES_DEFAULTS.addons,
+        form: 'tanstack-form',
+        taskRunner: 'turborepo',
+      },
     },
     'unsupported-workspace-form'
   );
@@ -110,7 +126,6 @@ test('Start oRPC workspace preview explains the remaining form-library gap', () 
     'Workspaces currently require the plain form'
   );
 });
-
 test('convex preview keeps relational none and is not convex-database-off', () => {
   const flags = normalizeFlags({ ...YES_DEFAULTS, backend: 'convex' });
   expect(flagsToRaw(flags)).toEqual({
@@ -123,8 +138,12 @@ test('convex preview keeps relational none and is not convex-database-off', () =
     dbSetup: 'none',
     auth: 'better-auth',
     payments: 'none',
-    linter: 'eslint',
-    form: 'none',
+    addons: {
+      toolchain: 'standard',
+      taskRunner: 'auto',
+      linting: 'auto',
+      form: 'none',
+    },
   });
   const result = buildCreateFileMap(flags, 'convex-app');
   expect(result.ok).toBe(true);
@@ -137,7 +156,6 @@ test('convex preview keeps relational none and is not convex-database-off', () =
       result.files['src/components/ui/button.tsx']
   ).toBeDefined();
 });
-
 test.each([
   ['next', 'react-hook-form', 'components/notes-form.tsx', 'react-hook-form'],
   [
@@ -152,13 +170,12 @@ test.each([
     const flags = normalizeFlags({
       ...YES_DEFAULTS,
       frontend,
-      form,
+      addons: { ...YES_DEFAULTS.addons, form },
       api: frontend === 'tanstack-start' ? 'none' : YES_DEFAULTS.api,
     });
     const result = buildCreateFileMap(flags, 'forms-app');
     if (!result.ok) throw new Error(result.message);
     expect(result.ok).toBe(true);
-
     expect(result.files[notesPath]).toBeDefined();
     expect(
       result.files[notesPath.replace('notes-form.tsx', 'form/form-base.tsx')]
@@ -169,7 +186,6 @@ test.each([
     expect(result.files['package.json']).toContain(dependency);
   }
 );
-
 test('database none is a shell without notes', () => {
   const flags = normalizeFlags({
     ...YES_DEFAULTS,
@@ -186,7 +202,6 @@ test('database none is a shell without notes', () => {
   expect(result.files['app/notes/page.tsx']).toBeUndefined();
   expect(result.files['prisma/schema.prisma']).toBeUndefined();
 });
-
 test('api none emits notes without an RPC router', () => {
   const flags = normalizeFlags({ ...YES_DEFAULTS, api: 'none' });
   const result = buildCreateFileMap(flags, 'actions-app');
@@ -197,7 +212,6 @@ test('api none emits notes without an RPC router', () => {
   expect(result.files['app/notes/actions.ts']).toContain('"use server"');
   expect(result.files['router.ts']).toBeUndefined();
 });
-
 test('default generate includes package.json', () => {
   const result = buildCreateFileMap(YES_DEFAULTS, 'my-gb-app');
   expect(result.ok).toBe(true);
@@ -210,7 +224,6 @@ test('default generate includes package.json', () => {
   expect(result.files['app/layout.tsx']).toBeDefined();
   expect(result.files['apps/web/package.json']).toBeUndefined();
 });
-
 test('hono next preview lists apps/server and @hono/node-server', () => {
   const flags = normalizeFlags({ ...YES_DEFAULTS, backend: 'hono' });
   const result = buildCreateFileMap(flags, 'hono-app');
@@ -226,7 +239,6 @@ test('hono next preview lists apps/server and @hono/node-server', () => {
     'https://hono.dev/docs/getting-started/nodejs'
   );
 });
-
 test('hono start preview lists apps/server', () => {
   const flags = normalizeFlags({
     ...YES_DEFAULTS,
@@ -244,7 +256,6 @@ test('hono start preview lists apps/server', () => {
   expect(result.files['apps/web/vite.config.ts']).toBeDefined();
   expect(result.files['vite.config.ts']).toBeUndefined();
 });
-
 test('hono api none preview has no packages/contract', () => {
   const flags = normalizeFlags({
     ...YES_DEFAULTS,
@@ -263,7 +274,6 @@ test('hono api none preview has no packages/contract', () => {
   ).toBe(false);
   expect(result.files['apps/server/src/index.ts']).toContain('"/notes"');
 });
-
 test('nest plus start returns a FileMap', () => {
   const flags = normalizeFlags({
     ...YES_DEFAULTS,
@@ -279,12 +289,13 @@ test('nest plus start returns a FileMap', () => {
   expect(result.files['apps/web/vite.config.ts']).toContain('tanstackStart');
   expect(result.files['apps/web/src/routes/__root.tsx']).toBeDefined();
   expect(result.files['apps/web/src/components/providers.tsx']).toBeDefined();
-  expect(result.files['package.json']).toContain('"dev": "turbo run dev"');
+  expect(result.files['package.json']).toContain(
+    '"dev": "node scripts/workspace.mjs dev"'
+  );
   expect(result.files['vite.config.ts']).toBeUndefined();
   expect(result.files['src/routes/__root.tsx']).toBeUndefined();
   expect(result.files['packages/contract/package.json']).toBeDefined();
 });
-
 test('nest plus start with api none omits the contract', () => {
   const flags = normalizeFlags({
     ...YES_DEFAULTS,
@@ -307,7 +318,6 @@ test('nest plus start with api none omits the contract', () => {
   );
   expect(result.files['apps/web/src/routes/notes.tsx']).toBeDefined();
 });
-
 test('nest plus start with trpc stays disabled', () => {
   const flags = normalizeFlags({
     ...YES_DEFAULTS,
@@ -320,10 +330,14 @@ test('nest plus start with trpc stays disabled', () => {
     {
       ...YES_DEFAULTS,
       backend: 'nest',
-      structure: 'turborepo',
+      structure: 'monorepo',
       frontend: 'tanstack-start',
       api: 'trpc',
-      linter: 'biome',
+      addons: {
+        ...YES_DEFAULTS.addons,
+        linting: 'biome',
+        taskRunner: 'turborepo',
+      },
     },
     'nest-start-trpc'
   );
@@ -333,7 +347,6 @@ test('nest plus start with trpc stays disabled', () => {
   }
   expect(result.code).toBe('nest-trpc');
 });
-
 test('nest plus eslint returns a FileMap', () => {
   const result = buildCreateFileMap(
     normalizeFlags({ ...YES_DEFAULTS, backend: 'nest' }),

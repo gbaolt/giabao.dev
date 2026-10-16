@@ -1,24 +1,20 @@
 import { expect, test } from 'bun:test';
 
 import { buildTree, resolveStack, SHADCN_FOUNDATION } from '#/generate/public';
-
 test('generated Next app includes the official Base UI button', () => {
   const files = buildTree(resolveStack({ yes: true }), {
     projectName: 'shadcn-next',
     packageManager: 'bun',
   });
-
   expect(files['components/ui/button.tsx']).toContain(
     "import { Button as ButtonPrimitive } from '@base-ui/react/button'"
   );
 });
-
 test('generated Next app includes the official form controls and their dependencies', () => {
   const files = buildTree(resolveStack({ yes: true }), {
     projectName: 'shadcn-next',
     packageManager: 'bun',
   });
-
   for (const component of [
     'button',
     'card',
@@ -40,7 +36,6 @@ test('generated Next app includes the official form controls and their dependenc
   expect(files['components/ui/card.tsx']).toContain('CardHeader');
   expect(files['components/ui/field.tsx']).toContain('FieldGroup');
 });
-
 test('generated Next app carries the resolved preset theme and installable dependencies', () => {
   const files = buildTree(resolveStack({ yes: true }), {
     projectName: 'shadcn-next',
@@ -48,7 +43,6 @@ test('generated Next app carries the resolved preset theme and installable depen
   });
   const config = JSON.parse(files['components.json']!);
   const pkg = JSON.parse(files['package.json']!);
-
   expect(config.style).toBe('base-nova');
   expect(config.tailwind.baseColor).toBe('zinc');
   expect(config.tailwind.cssVariables).toBe(true);
@@ -68,32 +62,35 @@ test('generated Next app carries the resolved preset theme and installable depen
     expect(pkg.dependencies[dependency]).toBeDefined();
   }
 });
-
 test('public generator describes its included UI foundation', () => {
   expect(SHADCN_FOUNDATION.preset).toBe('b1YnQPagE');
   expect(SHADCN_FOUNDATION.base).toBe('base');
   expect(SHADCN_FOUNDATION.style).toBe('nova');
   expect(SHADCN_FOUNDATION.components).toContain('field');
 });
-
 test('generated Next layout enables the preset font and light or dark theme', () => {
   const files = buildTree(resolveStack({ yes: true }), {
     projectName: 'shadcn-next',
     packageManager: 'bun',
   });
-
   expect(files['components/theme-provider.tsx']).toContain('next-themes');
   expect(files['app/layout.tsx']).toContain('Geist');
   expect(files['app/layout.tsx']).toContain('ThemeProvider');
   expect(files['app/layout.tsx']).toContain('suppressHydrationWarning');
 });
-
 test('Nest workspace shares the same official UI components with its web app', () => {
-  const files = buildTree(resolveStack({ backend: 'nest', linter: 'biome' }), {
-    projectName: 'shadcn-nest',
-    packageManager: 'pnpm',
-  });
-
+  const files = buildTree(
+    resolveStack({
+      backend: 'nest',
+      addons: {
+        linting: 'biome',
+      },
+    }),
+    {
+      projectName: 'shadcn-nest',
+      packageManager: 'pnpm',
+    }
+  );
   expect(files['packages/ui/src/button.tsx']).toContain(
     '@base-ui/react/button'
   );
@@ -117,13 +114,11 @@ test('Nest workspace shares the same official UI components with its web app', (
   const webConfig = JSON.parse(files['apps/web/tsconfig.json']!);
   expect(webConfig.compilerOptions.paths['@/*']).toEqual(['./*']);
 });
-
 test('Hono workspace uses the same Base UI package and theme', () => {
   const files = buildTree(resolveStack({ backend: 'hono' }), {
     projectName: 'shadcn-hono',
     packageManager: 'npm',
   });
-
   expect(files['packages/ui/src/button.tsx']).toContain(
     '@base-ui/react/button'
   );
@@ -134,7 +129,6 @@ test('Hono workspace uses the same Base UI package and theme', () => {
   expect(files['apps/web/app/layout.tsx']).toContain('ThemeProvider');
   expect(files['apps/web/components.json']).toContain('@repo/ui/components');
 });
-
 test('TanStack Start includes the same controls with a working theme and Geist font', () => {
   const files = buildTree(
     resolveStack({
@@ -149,7 +143,6 @@ test('TanStack Start includes the same controls with a working theme and Geist f
     }
   );
   const pkg = JSON.parse(files['package.json']!);
-
   expect(files['src/components/ui/input.tsx']).toContain(
     '@base-ui/react/input'
   );

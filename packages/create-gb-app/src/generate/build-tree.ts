@@ -5,6 +5,7 @@ import type {
   GenerateContext,
   PackageJsonShape,
 } from '../types/generate';
+import { emitTurborepo } from './addons/turborepo';
 import { GenerateError } from './errors';
 import { setFile, setFileIfAbsent, sortRecord } from './files';
 import { emitBetterAuth } from './layers/better-auth';
@@ -34,6 +35,7 @@ import { emitTrpc } from './layers/trpc';
 import { emitValidation } from './layers/validation';
 import { projectLayout } from './layout';
 import { generateReadme } from './readme';
+import { emitPlainWorkspace, prepareWorkspaceTasks } from './workspace-tasks';
 import { finalizeWorkspaces } from './workspaces';
 
 function emitDatabase(
@@ -96,7 +98,7 @@ function emitUi(_stack: Stack, ctx: Parameters<typeof emitNext>[0]) {
 }
 
 function emitLinter(stack: Stack, ctx: Parameters<typeof emitNext>[0]) {
-  switch (stack.linter) {
+  switch (stack.addons.linting) {
     case 'eslint':
       emitEslint(ctx);
       break;
@@ -106,7 +108,7 @@ function emitLinter(stack: Stack, ctx: Parameters<typeof emitNext>[0]) {
     case 'biome':
       throw new GenerateError('biome', 'biome generate is not implemented yet');
     default: {
-      const _exhaustive: never = stack.linter;
+      const _exhaustive: never = stack.addons.linting;
       throw new Error(`unhandled linter: ${_exhaustive}`);
     }
   }
@@ -259,6 +261,13 @@ export function Providers({ children }: { children: ReactNode }) {
     emitForms(emitCtx);
     emitLogin(emitCtx);
     finalizeDatabaseSetup(emitCtx);
+  }
+
+  if (stack.structure === 'monorepo') {
+    const workspaces = prepareWorkspaceTasks(emitCtx);
+    if (stack.addons.taskRunner === 'turborepo')
+      emitTurborepo(emitCtx, workspaces);
+    else emitPlainWorkspace(emitCtx, workspaces);
   }
 
   pkg.dependencies = sortRecord(pkg.dependencies);

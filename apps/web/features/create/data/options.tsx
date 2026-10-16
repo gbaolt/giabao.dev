@@ -1,4 +1,8 @@
-import type { CreateFlags, FlagGroup } from 'create-gb-app/preset';
+import type {
+  CreateFlags,
+  FlagGroup,
+  SelectionValues,
+} from 'create-gb-app/preset';
 import type { ComponentType } from 'react';
 
 import {
@@ -38,18 +42,20 @@ export const FLAG_GROUP_LABELS: Record<FlagGroup, string> = {
   dbSetup: 'Database setup',
   auth: 'Authentication',
   payments: 'Payments',
-  linter: 'Linter',
+  linting: 'Linting',
+  taskRunner: 'Task runner',
+  toolchain: 'Toolchain',
   form: 'Forms',
 };
 
 export type FlagOption<K extends FlagGroup> = {
-  value: CreateFlags[K];
+  value: SelectionValues[K];
   label: string;
   description: string;
   icon?: ComponentType<IconProps>;
 };
 
-export const FLAG_OPTIONS: { [K in FlagGroup]: readonly FlagOption<K>[] } = {
+const selections: { [K in FlagGroup]: readonly FlagOption<K>[] } = {
   form: [
     {
       value: 'none',
@@ -243,7 +249,37 @@ export const FLAG_OPTIONS: { [K in FlagGroup]: readonly FlagOption<K>[] } = {
       icon: PolarIcon,
     },
   ],
-  linter: [
+  toolchain: [
+    {
+      value: 'standard',
+      label: 'Standard',
+      description: 'Framework tooling with separately selected addons',
+    },
+  ],
+  taskRunner: [
+    {
+      value: 'auto',
+      label: 'Auto',
+      description: 'No additional task runner with standard tooling',
+    },
+    {
+      value: 'none',
+      label: 'None',
+      description: 'Use ordinary workspace commands',
+    },
+    {
+      value: 'turborepo',
+      label: 'Turborepo',
+      description: 'Cache and orchestrate workspace tasks',
+      icon: TurborepoIcon,
+    },
+  ],
+  linting: [
+    {
+      value: 'auto',
+      label: 'Auto',
+      description: 'Use ESLint with standard tooling',
+    },
     {
       value: 'eslint',
       label: 'ESLint',
@@ -270,13 +306,36 @@ export const FLAG_OPTIONS: { [K in FlagGroup]: readonly FlagOption<K>[] } = {
       description: 'One application at the project root',
     },
     {
-      value: 'turborepo',
+      value: 'monorepo',
       label: 'Monorepo',
-      description: 'Use Turborepo build system for coding agents',
+      description: 'Applications and shared packages',
       icon: TurborepoIcon,
     },
   ],
 };
+
+export const FLAG_OPTIONS = {
+  core: {
+    frontend: selections.frontend,
+    backend: selections.backend,
+    structure: selections.structure,
+    api: selections.api,
+    database: selections.database,
+    orm: selections.orm,
+    dbSetup: selections.dbSetup,
+    auth: selections.auth,
+    payments: selections.payments,
+  },
+  addons: {
+    toolchain: selections.toolchain,
+    taskRunner: selections.taskRunner,
+    linting: selections.linting,
+    form: selections.form,
+  },
+};
+export function optionsFor(group: FlagGroup) {
+  return { ...FLAG_OPTIONS.core, ...FLAG_OPTIONS.addons }[group];
+}
 
 export function presentFlagOption<K extends FlagGroup>(
   option: FlagOption<K>,

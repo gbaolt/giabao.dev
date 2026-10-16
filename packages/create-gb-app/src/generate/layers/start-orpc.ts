@@ -17,7 +17,7 @@ export function validateStartOrpc(stack: Stack): void {
     stack.dbSetup !== 'none' ||
     stack.payments !== 'none' ||
     (stack.auth !== 'none' && stack.auth !== 'better-auth') ||
-    (stack.structure === 'turborepo' && stack.form !== 'none')
+    (stack.structure === 'monorepo' && stack.addons.form !== 'none')
   ) {
     throw new GenerateError(
       'start-orpc',

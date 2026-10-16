@@ -7,16 +7,20 @@ import {
   type DbSetup,
   FLAG_GROUPS,
   type FlagGroup,
+  isAddonGroup,
   type Payments,
+  selectionValue,
+  type SelectionValues,
   VOCAB_BY_GROUP,
+  withSelection,
   YES_DEFAULTS,
 } from 'create-gb-app/preset';
 
 export { YES_DEFAULTS };
 
 export const RULE_IDS = {
-  backendRequiresTurborepo: 'backend-requires-turborepo',
-  optionalTurborepoUnavailable: 'optional-turborepo-unavailable',
+  backendRequiresMonorepo: 'backend-requires-monorepo',
+  turboRequiresMonorepo: 'turbo-requires-monorepo',
   nestTrpc: 'nest-trpc',
   polarRequiresBetterAuth: 'polar-requires-better-auth',
   paymentsRequireAuth: 'payments-require-auth',
@@ -40,9 +44,8 @@ export const RULE_IDS = {
 export type RuleId = (typeof RULE_IDS)[keyof typeof RULE_IDS];
 
 export const RULE_MESSAGES: Record<RuleId, string> = {
-  'backend-requires-turborepo': 'Nest and Hono require Turborepo',
-  'optional-turborepo-unavailable':
-    'Turborepo for this backend is not available yet',
+  'backend-requires-monorepo': 'Nest and Hono require a monorepo',
+  'turbo-requires-monorepo': 'Choose a monorepo to use Turborepo',
   'nest-trpc': 'Nest tRPC generate is not implemented yet',
   'polar-requires-better-auth': 'Polar requires Better Auth',
   'payments-require-auth': 'Payments require auth',
@@ -76,7 +79,7 @@ export function isRelationalGroup(group: FlagGroup): boolean {
 }
 
 export function isGroupVisible(flags: CreateFlags, group: FlagGroup): boolean {
-  return Object.hasOwn(flags, group);
+  return isAddonGroup(group) || Object.hasOwn(flags, group);
 }
 
 export function disabledRuleId(
@@ -119,7 +122,9 @@ function convexRelationalRule(group: FlagGroup): RuleId | null {
     case 'structure':
     case 'auth':
     case 'payments':
-    case 'linter':
+    case 'linting':
+    case 'taskRunner':
+    case 'toolchain':
     case 'form':
       return null;
     default: {
@@ -134,12 +139,18 @@ function disabledRule(
   group: FlagGroup,
   value: string
 ): RuleId | null {
+  if (
+    group === 'taskRunner' &&
+    value === 'turborepo' &&
+    flags.structure === 'single'
+  )
+    return RULE_IDS.turboRequiresMonorepo;
   if (group === 'structure') {
     if (
       (flags.backend === 'nest' || flags.backend === 'hono') &&
       value === 'single'
     ) {
-      return RULE_IDS.backendRequiresTurborepo;
+      return RULE_IDS.backendRequiresMonorepo;
     }
   }
   if (flags.backend === 'convex' && value !== 'none') {
@@ -216,28 +227,38 @@ function disabledRule(
 export function applyFlagChange<K extends FlagGroup>(
   flags: CreateFlags,
   key: K,
-  value: CreateFlags[K]
+  value: SelectionValues[K]
 ): CreateFlags {
-  const next: CreateFlags = { ...flags, [key]: value };
+  const next = withSelection(flags, key, value);
 
   switch (key) {
     case 'backend':
-      return applyBackendSideEffects(next, value as Backend);
+      return applyBackendSideEffects(next, next.backend);
     case 'database':
-      return applyDatabaseSideEffects(next, value as Database);
+      return applyDatabaseSideEffects(next, next.database);
     case 'auth':
-      return applyAuthSideEffects(next, value as Auth);
+      return applyAuthSideEffects(next, next.auth);
     case 'payments':
-      return applyPaymentsSideEffects(next, value as Payments);
+      return applyPaymentsSideEffects(next, next.payments);
     case 'dbSetup':
-      return applyDbSetupSideEffects(next, value as DbSetup);
+      return applyDbSetupSideEffects(next, next.dbSetup);
     case 'frontend':
-    case 'structure':
     case 'api':
     case 'orm':
-    case 'linter':
+    case 'linting':
+    case 'taskRunner':
+    case 'toolchain':
     case 'form':
       return next;
+    case 'structure':
+      return {
+        ...next,
+        addons: {
+          ...next.addons,
+          taskRunner:
+            next.structure === 'single' ? 'auto' : next.addons.taskRunner,
+        },
+      };
     default: {
       const _exhaustive: never = key;
       throw new Error(`unhandled flag group: ${_exhaustive}`);
@@ -248,31 +269,35 @@ export function applyFlagChange<K extends FlagGroup>(
 function enabledFallback(
   flags: CreateFlags,
   group: FlagGroup
-): CreateFlags[FlagGroup] {
-  const preferred = YES_DEFAULTS[group];
+): SelectionValues[FlagGroup] {
+  const preferred = selectionValue(YES_DEFAULTS, group);
   if (isOptionEnabled(flags, group, preferred)) {
     return preferred;
   }
   const vocab = VOCAB_BY_GROUP[group];
   if (
-    (vocab as readonly string[]).includes('none') &&
+    vocab.some((value) => value === 'none') &&
     isOptionEnabled(flags, group, 'none')
   ) {
-    return 'none' as CreateFlags[FlagGroup];
+    return 'none';
   }
   for (const value of vocab) {
     if (isOptionEnabled(flags, group, value)) {
-      return value as CreateFlags[FlagGroup];
+      return value;
     }
   }
   return preferred;
 }
 
 export function normalizeFlags(flags: CreateFlags): CreateFlags {
-  let next = { ...YES_DEFAULTS, ...flags };
+  let next = {
+    ...YES_DEFAULTS,
+    ...flags,
+    addons: { ...YES_DEFAULTS.addons, ...flags.addons },
+  };
 
   for (const group of FLAG_GROUPS) {
-    if (isOptionEnabled(next, group, next[group])) {
+    if (isOptionEnabled(next, group, selectionValue(next, group))) {
       continue;
     }
     next = applyFlagChange(next, group, enabledFallback(next, group));
@@ -288,13 +313,22 @@ function applyBackendSideEffects(
   switch (backend) {
     case 'nest':
     case 'hono':
-      return { ...flags, structure: 'turborepo' };
+      return {
+        ...flags,
+        structure: 'monorepo',
+        addons: { ...flags.addons },
+      };
     case 'self':
-      return { ...flags, structure: 'single' };
+      return {
+        ...flags,
+        structure: 'single',
+        addons: { ...flags.addons, taskRunner: 'auto' },
+      };
     case 'convex':
       return {
         ...flags,
         structure: 'single',
+        addons: { ...flags.addons, taskRunner: 'auto' },
         api: 'none',
         database: 'none',
         orm: 'none',

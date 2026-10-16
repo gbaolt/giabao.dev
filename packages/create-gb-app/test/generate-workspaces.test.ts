@@ -6,7 +6,7 @@ test('workspace output installs with the selected manager and builds shared depe
   for (const packageManager of ['bun', 'pnpm', 'yarn', 'npm'] as const) {
     const files = buildTree(
       resolveStack({
-        backend: 'hono',
+        backend: 'hono', addons: { taskRunner: 'turborepo' },
         database: 'none',
         auth: 'none',
         api: 'none',

@@ -29,10 +29,6 @@ export function emitNest(ctx: EmitCtx): void {
 
   const dep = proto(ctx);
   ctx.pkg.private = true;
-  ctx.pkg.scripts.dev = 'turbo dev';
-  ctx.pkg.scripts.build = 'turbo build';
-  ctx.pkg.scripts.lint = 'turbo lint';
-  ctx.pkg.devDependencies.turbo = DEPENDENCY_VERSIONS['turbo'];
   ctx.pkg.devDependencies.typescript = DEPENDENCY_VERSIONS['typescript'];
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
 
@@ -55,32 +51,11 @@ export function emitNest(ctx: EmitCtx): void {
     emitDbSetup(ctx);
   }
 
-  setFile(
-    ctx.files,
-    'turbo.json',
-    JSON.stringify(
-      {
-        $schema: 'https://turborepo.dev/schema.json',
-        tasks: {
-          build: {
-            dependsOn: ['^build'],
-            outputs: turboBuildOutputs(ctx.stack.frontend),
-          },
-          dev: { cache: false, persistent: true },
-          lint: { dependsOn: ['^lint'] },
-        },
-      },
-      null,
-      2
-    )
-  );
-
   if (ctx.stack.frontend === 'tanstack-start') {
     setFile(
       ctx.files,
       '.gitignore',
       `node_modules
-.turbo
 .next
 .output
 .vinxi
@@ -125,7 +100,7 @@ dist
   }
   emitWeb(ctx, dep);
 
-  switch (ctx.stack.linter) {
+  switch (ctx.stack.addons.linting) {
     case 'biome':
       emitBiome(ctx);
       break;
@@ -136,7 +111,7 @@ dist
       emitOxlint(ctx);
       break;
     default: {
-      const _exhaustive: never = ctx.stack.linter;
+      const _exhaustive: never = ctx.stack.addons.linting;
       throw new Error(`unhandled linter: ${_exhaustive}`);
     }
   }
@@ -433,7 +408,7 @@ import { AppModule } from "./app.module.js";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(3333);
+  await app.listen(Number(process.env.SERVER_PORT ?? process.env.PORT ?? 3333));
 }
 
 void bootstrap();
@@ -514,7 +489,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(3333);
+  await app.listen(Number(process.env.SERVER_PORT ?? process.env.PORT ?? 3333));
 }
 
 void bootstrap();
@@ -711,7 +686,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(3333);
+  await app.listen(Number(process.env.SERVER_PORT ?? process.env.PORT ?? 3333));
 }
 
 void bootstrap();
@@ -889,25 +864,6 @@ export class NotesController {
 }
 
 const SERVER_URL = 'http://localhost:3333';
-
-function turboBuildOutputs(frontend: 'next' | 'tanstack-start'): string[] {
-  switch (frontend) {
-    case 'next':
-      return ['dist/**', '.next/**', '!.next/cache/**'];
-    case 'tanstack-start':
-      return [
-        'dist/**',
-        '.next/**',
-        '!.next/cache/**',
-        '.output/**',
-        '.vinxi/**',
-      ];
-    default: {
-      const _exhaustive: never = frontend;
-      throw new Error(`unhandled frontend: ${_exhaustive}`);
-    }
-  }
-}
 
 function emitNestStartWeb(ctx: EmitCtx, dep: string): void {
   if (ctx.stack.backend !== 'nest') {
@@ -1264,7 +1220,7 @@ function emitWebShell(ctx: EmitCtx, dep: string): void {
         private: true,
         type: 'module',
         scripts: {
-          dev: 'next dev --port 3000',
+          dev: 'next dev',
           build: 'next build',
           start: 'next start',
         },
@@ -1487,7 +1443,7 @@ function emitWeb(ctx: EmitCtx, dep: string): void {
         private: true,
         type: 'module',
         scripts: {
-          dev: 'next dev --port 3000',
+          dev: 'next dev',
           build: 'next build',
           start: 'next start',
         },

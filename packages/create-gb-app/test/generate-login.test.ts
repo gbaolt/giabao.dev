@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test';
 import ts from 'typescript';
 
 import { buildTree, resolveStack } from '#/generate/public';
-
 for (const form of ['none', 'react-hook-form', 'tanstack-form'] as const) {
   test(`Next login uses login-03 layout with ${form} fields`, () => {
     const files = buildTree(resolveStack({ yes: true, form }), {
@@ -40,14 +39,15 @@ for (const form of ['none', 'react-hook-form', 'tanstack-form'] as const) {
     }
   });
 }
-
 test('Nest and TanStack Start login uses the same form component', () => {
   const files = buildTree(
     resolveStack({
       backend: 'nest',
       frontend: 'tanstack-start',
-      form: 'tanstack-form',
       api: 'orpc',
+      addons: {
+        form: 'tanstack-form',
+      },
     }),
     { projectName: 'login-example', packageManager: 'bun' }
   );

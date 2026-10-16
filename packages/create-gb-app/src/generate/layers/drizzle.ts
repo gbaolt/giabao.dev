@@ -146,7 +146,7 @@ export function emitDrizzleNotesRepository(ctx: EmitCtx): void {
   const root =
     ctx.stack.backend !== 'self'
       ? 'apps/server/'
-      : ctx.stack.structure === 'turborepo'
+      : ctx.stack.structure === 'monorepo'
         ? 'apps/web/'
         : '';
   const lib =

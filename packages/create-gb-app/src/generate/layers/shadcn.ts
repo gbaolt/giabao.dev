@@ -4,7 +4,7 @@ import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile, setFileIfAbsent } from '../files';
 
 export function emitShadcn(ctx: EmitCtx): void {
-  if (ctx.layout.structure === 'turborepo') {
+  if (ctx.layout.structure === 'monorepo') {
     emitSharedShadcn(ctx);
     return;
   }
