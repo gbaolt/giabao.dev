@@ -5,17 +5,19 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import { BrandMark } from '@/components/app/brand';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
-const calcDistance = (el: HTMLElement) => {
+const calcDistance = (el: HTMLElement, mobile: boolean) => {
   const rect = el.getBoundingClientRect();
   const scrollTop = document.documentElement.scrollTop;
-  const headerHeight = 65;
+  const headerHeight = mobile ? 58 : 65;
   return scrollTop + rect.top + rect.height - headerHeight;
 };
 
 function BrandMotion() {
   const { scrollY } = useScroll();
   const [visible, setVisible] = useState(false);
+  const mobile = useMediaQuery('(max-width: 640px)');
   const distanceRef = useRef(160);
 
   useMotionValueEvent(scrollY, 'change', (latestValue) => {
@@ -26,17 +28,17 @@ function BrandMotion() {
     const coverMark = document.getElementById('js-cover-mark');
     if (!coverMark) return;
 
-    distanceRef.current = calcDistance(coverMark);
+    distanceRef.current = calcDistance(coverMark, mobile);
 
     const resizeObserver = new ResizeObserver(() => {
-      distanceRef.current = calcDistance(coverMark);
+      distanceRef.current = calcDistance(coverMark, mobile);
     });
     resizeObserver.observe(coverMark);
 
     return () => {
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [mobile]);
 
   return (
     <div data-visible={visible} className="group/motion relative">
