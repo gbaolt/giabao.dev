@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { createElement, isValidElement } from 'react';
 import ts from 'typescript';
 
 import { buildTree, resolveStack } from '#/generate/public';
@@ -20,13 +21,94 @@ function evaluate(source: string, bindings: Record<string, unknown>): unknown {
   const compilation = ts.transpileModule(`const value = (${source});`, {
     fileName: 'login-callback.tsx',
     reportDiagnostics: true,
-    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      jsx: ts.JsxEmit.React,
+      jsxFactory: 'createElement',
+    },
   });
   expect(compilation.diagnostics).toEqual([]);
   return new Function(
     ...Object.keys(bindings),
     compilation.outputText + '\nreturn value;'
   )(...Object.values(bindings));
+}
+
+for (const mode of ['signin', 'signup'] as const) {
+  test(`TanStack ${mode} locks inputs while submitting and unlocks afterward`, () => {
+    const source = loginSource('tanstack-form');
+    const component = source.statements.find(
+      (node): node is ts.FunctionDeclaration =>
+        ts.isFunctionDeclaration(node) && node.name?.text === 'LoginForm'
+    );
+    const view = component?.body?.statements.find(
+      ts.isReturnStatement
+    )?.expression;
+    if (!view) throw new Error('Missing login form view');
+    const tree = evaluate(view.getText(source), {
+      createElement,
+      mode,
+      error: null,
+      form: {
+        AppForm: 'app-form',
+        AppField: 'app-field',
+        Subscribe: 'subscribe',
+      },
+      Card: 'section',
+      CardHeader: 'header',
+      CardTitle: 'h1',
+      CardDescription: 'p',
+      CardContent: 'div',
+      FieldGroup: 'fieldset',
+      FieldDescription: 'p',
+      Button: 'button',
+      setMode() {},
+      setError() {},
+    });
+    for (const pending of [false, true, false]) {
+      const inputs: { name: string | undefined; disabled: boolean }[] = [];
+      const buttons: boolean[] = [];
+      const inspect = (node: unknown, fieldName?: string): void => {
+        if (Array.isArray(node)) {
+          for (const child of node) inspect(child, fieldName);
+        } else if (
+          isValidElement<{
+            children?: unknown;
+            name?: string;
+            type?: string;
+            disabled?: boolean;
+          }>(node)
+        ) {
+          if (node.type === 'subscribe' || node.type === 'app-field') {
+            const render = node.props.children;
+            if (typeof render !== 'function')
+              throw new Error('Missing form render callback');
+            inspect(
+              render(node.type === 'subscribe' ? pending : { Input: 'input' }),
+              node.type === 'app-field' ? node.props.name : fieldName
+            );
+          } else {
+            if (node.type === 'input')
+              inputs.push({
+                name: fieldName,
+                disabled: Boolean(node.props.disabled),
+              });
+            if (node.type === 'button' && node.props.type === 'submit')
+              buttons.push(Boolean(node.props.disabled));
+            inspect(node.props.children, fieldName);
+          }
+        }
+      };
+      inspect(tree);
+      expect(inputs).toEqual(
+        (mode === 'signup'
+          ? ['name', 'email', 'password']
+          : ['email', 'password']
+        ).map((name) => ({ name, disabled: pending }))
+      );
+      expect(buttons).toEqual([pending]);
+    }
+  });
 }
 
 for (const form of ['none', 'react-hook-form', 'tanstack-form'] as const) {

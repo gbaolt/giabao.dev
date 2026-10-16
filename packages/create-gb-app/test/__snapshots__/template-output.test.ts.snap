@@ -123,7 +123,7 @@ exports[`template migration preserves next-tanstack-form output 1`] = `
   "components/form/form-select.tsx": "3a24332c952e9a918bbe551f79921022ac1a832010551da5aea71e8a2980507b",
   "components/form/form-textarea.tsx": "f736e2f8d31f144329469bec402d084a84e1d89e6dc9a8dbf36ec5270e707aab",
   "components/form/hooks.tsx": "227d6c7c434d944f526651f43711f41493b9d7098e7600c2d7c2a659f1ad2545",
-  "components/login-form.tsx": "81a029fea152c84b88635c14aabe8ad568074c0fabb77aedcdbbf539c6709b3a",
+  "components/login-form.tsx": "22335624b95c28642e15ec59de974425149d343e2e93fac5a36914e8dd99cd4e",
   "components/notes-form.tsx": "5279996d8515fe2afbc6ee92458c3f0e4c15b36e2a30a09a7bcfab741729ec2a",
   "components/theme-provider.tsx": "0a160191b8a1dfcce47b5b5981be679621a072015147fe9131cf069b4386083a",
   "components/ui/button.tsx": "460ebaaa48b7d70fd4c4cf7d394a0786651921c868a5fdb65c3f91db0911cb11",

@@ -66,44 +66,53 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
           }}
         >
           <form.AppForm>
-            <FieldGroup>
-              {mode === 'signup' ? (
-                <form.AppField name="name">
-                  {(field) => (
-                    <field.Input label="Name" autoComplete="name" required />
-                  )}
-                </form.AppField>
-              ) : null}
-              <form.AppField name="email">
-                {(field) => (
-                  <field.Input
-                    label="Email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="m@example.com"
-                    required
-                  />
-                )}
-              </form.AppField>
-              <form.AppField name="password">
-                {(field) => (
-                  <field.Input
-                    label="Password"
-                    type="password"
-                    autoComplete={
-                      mode === 'signup' ? 'new-password' : 'current-password'
-                    }
-                    required
-                  />
-                )}
-              </form.AppField>
-              {error ? (
-                <p role="alert" className="text-destructive text-sm">
-                  {error}
-                </p>
-              ) : null}
-              <form.Subscribe selector={(state) => state.isSubmitting}>
-                {(pending) => (
+            <form.Subscribe selector={(state) => state.isSubmitting}>
+              {(pending) => (
+                <FieldGroup>
+                  {mode === 'signup' ? (
+                    <form.AppField name="name">
+                      {(field) => (
+                        <field.Input
+                          label="Name"
+                          autoComplete="name"
+                          required
+                          disabled={pending}
+                        />
+                      )}
+                    </form.AppField>
+                  ) : null}
+                  <form.AppField name="email">
+                    {(field) => (
+                      <field.Input
+                        label="Email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="m@example.com"
+                        required
+                        disabled={pending}
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField name="password">
+                    {(field) => (
+                      <field.Input
+                        label="Password"
+                        type="password"
+                        autoComplete={
+                          mode === 'signup'
+                            ? 'new-password'
+                            : 'current-password'
+                        }
+                        required
+                        disabled={pending}
+                      />
+                    )}
+                  </form.AppField>
+                  {error ? (
+                    <p role="alert" className="text-destructive text-sm">
+                      {error}
+                    </p>
+                  ) : null}
                   <Button type="submit" disabled={pending}>
                     {pending
                       ? 'Please wait…'
@@ -111,22 +120,24 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
                         ? 'Sign in'
                         : 'Create account'}
                   </Button>
-                )}
-              </form.Subscribe>
-              <FieldDescription className="text-center">
-                {mode === 'signin' ? 'New here?' : 'Already have an account?'}{' '}
-                <button
-                  type="button"
-                  className="underline underline-offset-4"
-                  onClick={() => {
-                    setMode(mode === 'signin' ? 'signup' : 'signin');
-                    setError(null);
-                  }}
-                >
-                  {mode === 'signin' ? 'Create an account' : 'Sign in'}
-                </button>
-              </FieldDescription>
-            </FieldGroup>
+                  <FieldDescription className="text-center">
+                    {mode === 'signin'
+                      ? 'New here?'
+                      : 'Already have an account?'}{' '}
+                    <button
+                      type="button"
+                      className="underline underline-offset-4"
+                      onClick={() => {
+                        setMode(mode === 'signin' ? 'signup' : 'signin');
+                        setError(null);
+                      }}
+                    >
+                      {mode === 'signin' ? 'Create an account' : 'Sign in'}
+                    </button>
+                  </FieldDescription>
+                </FieldGroup>
+              )}
+            </form.Subscribe>
           </form.AppForm>
         </form>
       </CardContent>
