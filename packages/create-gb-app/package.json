@@ -17,6 +17,8 @@
   "scripts": {
     "dev": "bun src/index.ts",
     "test": "bun test",
+    "verify:generated": "bun script/verify-generated.ts",
+    "verify:browser": "bun script/verify-browser.ts",
     "typecheck": "bun check",
     "lint": "eslint . --cache --cache-location .eslintcache",
     "lint:fix": "eslint --fix . --cache --cache-location .eslintcache",
@@ -41,6 +43,7 @@
     "eslint": "catalog:",
     "eslint-config-prettier": "catalog:",
     "eslint-plugin-simple-import-sort": "catalog:",
+    "playwright": "1.64.1",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:"
   },
