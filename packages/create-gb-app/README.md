@@ -47,6 +47,22 @@ New monorepos use plain workspace commands by default. Nest and Hono require a m
 
 The Turbo addon delegates to the same package scripts with `turbo run`. It caches shared `dist` and framework production output, hashes workspace environment files and selected environment variables, and leaves development, production servers, and database mutations uncached. Start typechecking prepares its generated route tree through the web build. Run build before start in either mode. Configure `PORT` for the web application and `SERVER_PORT` for a separate server; Start also accepts `HOST`.
 
+## Author generated source
+
+Edit the ordinary source files in [`templates/`](templates/README.md), then run
+these commands from this package:
+
+```sh
+bun run format
+bun run templates:generate
+bun run templates:check
+```
+
+Commit both templates and generated JSON assets. Tests, format checks and CLI
+builds reject stale assets; checking never regenerates them. The CLI and Create
+import the committed JSON with no template filesystem access at runtime.
+Later generation layers can change formatting after loading a template.
+
 ## Verify generated applications
 
 Set `FIXTURE_DATABASE_URL` to a disposable PostgreSQL cluster with permission to create databases for relational cases. The verifier creates and drops a unique database for each run. It generates an application in the operating system's temporary directory, installs, initializes Prisma when selected, builds, typechecks, lints, starts the application, and exercises Notes through its real HTTP client. Shell cases need no database.

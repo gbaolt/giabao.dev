@@ -1,4 +1,5 @@
 import type { EmitCtx } from '../../types/generate';
+import nextSource from '../assets/next/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 
@@ -51,62 +52,14 @@ export function emitNext(ctx: EmitCtx): void {
 `
   );
 
-  setFile(
-    ctx.files,
-    'next.config.ts',
-    `import type { NextConfig } from 'next';
+  setFile(ctx.files, 'next.config.ts', nextSource['next.config.ts']);
 
-const nextConfig: NextConfig = {};
+  setFile(ctx.files, 'postcss.config.mjs', nextSource['postcss.config.mjs']);
 
-export default nextConfig;
-`
-  );
+  setFile(ctx.files, 'next-env.d.ts', nextSource['next-env.d.ts']);
+  setFile(ctx.files, 'global.d.ts', nextSource['global.d.ts']);
 
-  setFile(
-    ctx.files,
-    'postcss.config.mjs',
-    `const config = {
-  plugins: {
-    '@tailwindcss/postcss': {},
-  },
-};
-
-export default config;
-`
-  );
-
-  setFile(
-    ctx.files,
-    'next-env.d.ts',
-    `/// <reference types="next" />
-/// <reference types="next/image-types/global" />
-`
-  );
-  setFile(ctx.files, 'global.d.ts', "declare module '*.css';\n");
-
-  setFile(
-    ctx.files,
-    'app/globals.css',
-    `@import 'tailwindcss';
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-}
-`
-  );
+  setFile(ctx.files, 'app/globals.css', nextSource['app/globals.css']);
 
   setFile(
     ctx.files,

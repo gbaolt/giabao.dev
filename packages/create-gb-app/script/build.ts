@@ -13,6 +13,7 @@ import {
   hostTarget,
   platformPackageName,
 } from './targets';
+import { syncTemplates } from './templates';
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const root = join(dir, '..');
@@ -22,6 +23,8 @@ const allFlag = process.argv.includes('--all');
 const skipInstall = process.argv.includes('--skip-install');
 
 const targets: CompileTarget[] = allFlag ? ALL_TARGETS : [hostTarget()];
+
+await syncTemplates({ check: true });
 
 await rm(join(root, 'dist'), { recursive: true, force: true });
 

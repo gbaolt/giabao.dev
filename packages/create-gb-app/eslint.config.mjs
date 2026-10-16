@@ -12,6 +12,7 @@ const eslintConfig = defineConfig([
     'bin/**',
     'dist/**',
     'node_modules/**',
+    'templates/**',
   ]),
   {
     // ESLint 10 removed context.getFilename(); eslint-plugin-react still uses it
