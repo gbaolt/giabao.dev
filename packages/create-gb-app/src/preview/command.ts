@@ -1,4 +1,4 @@
-import { parsePresetToken } from '#/preset';
+import { parsePresetToken, rawSelection, selectionValue } from '#/preset';
 import { defaultStructureForBackend, YES_DEFAULTS } from '#/stack/resolve';
 import type { FlagGroup } from '#/stack/vocab';
 import { RELATIONAL_GROUPS, STACK_CLI_FLAGS } from '#/stack/vocab';
@@ -22,18 +22,18 @@ function impliedValue(baseline: RawFlags, key: FlagGroup): string | undefined {
   if (key === 'structure') {
     return baseline.structure ?? defaultStructureForBackend(backend);
   }
-  const fromBaseline = baseline[key];
+  const fromBaseline = rawSelection(baseline, key);
   if (fromBaseline !== undefined) {
     return fromBaseline;
   }
-  return YES_DEFAULTS[key];
+  return selectionValue(YES_DEFAULTS, key);
 }
 
 function definedEntries(flags: RawFlags): Array<[string, string]> {
   const baseline = flags.preset ? parsePresetToken(flags.preset) : {};
   const entries: Array<[string, string]> = [];
   for (const { key, flag } of STACK_CLI_FLAGS) {
-    const current = flags[key];
+    const current = rawSelection(flags, key);
     if (current === undefined || current === impliedValue(baseline, key)) {
       continue;
     }

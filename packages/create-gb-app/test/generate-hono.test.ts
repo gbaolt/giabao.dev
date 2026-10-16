@@ -23,13 +23,13 @@ test('hono next FileMap includes apps/server and @hono/node-server', () => {
   expect(files['app/api/[[...route]]/route.ts']).toBeUndefined();
   expect(files['apps/web/app/api/[[...route]]/route.ts']).toBeUndefined();
   expect(files['vite.config.ts']).toBeUndefined();
-  expect(encodePreset(YES_DEFAULTS)).toBe('gb0');
-  expect(decodePreset('gb0')).toEqual(YES_DEFAULTS);
+  expect(encodePreset(YES_DEFAULTS)).toBe('gb-v2-0');
+  expect(decodePreset('gb-v2-0')).toEqual(YES_DEFAULTS);
 });
 
 test('hono start FileMap includes apps/server under the turbo root', () => {
   const files = buildTree(
-    resolveStack({ backend: 'hono', frontend: 'tanstack-start' }),
+    resolveStack({ backend: 'hono', frontend: 'tanstack-start', addons: { taskRunner: 'turborepo' } }),
     ctx
   );
   expect(files['apps/server/package.json']).toContain('@hono/node-server');

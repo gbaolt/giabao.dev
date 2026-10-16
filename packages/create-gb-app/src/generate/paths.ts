@@ -5,7 +5,7 @@ export function isStart(stack: Stack): boolean {
 }
 
 export function isAppsLayout(stack: Stack): boolean {
-  return stack.structure === 'turborepo';
+  return stack.structure === 'monorepo';
 }
 
 export function webPrefix(stack: Stack): string {

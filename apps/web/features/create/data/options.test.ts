@@ -2,9 +2,10 @@ import { expect, test } from 'bun:test';
 
 import { YES_DEFAULTS } from '../lib/compat';
 import { FLAG_OPTIONS, presentFlagOption } from './options';
-
 test('self backend is Fullstack Next.js by default', () => {
-  const option = FLAG_OPTIONS.backend.find((item) => item.value === 'self');
+  const option = FLAG_OPTIONS.core.backend.find(
+    (item) => item.value === 'self'
+  );
   expect(option).toBeDefined();
   if (!option) {
     return;
@@ -15,9 +16,10 @@ test('self backend is Fullstack Next.js by default', () => {
     'Next.js built-in API routes & server actions'
   );
 });
-
 test('self backend follows the selected frontend', () => {
-  const option = FLAG_OPTIONS.backend.find((item) => item.value === 'self');
+  const option = FLAG_OPTIONS.core.backend.find(
+    (item) => item.value === 'self'
+  );
   expect(option).toBeDefined();
   if (!option) {
     return;

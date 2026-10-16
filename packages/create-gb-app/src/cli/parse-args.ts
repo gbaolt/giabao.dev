@@ -1,4 +1,4 @@
-import { overlayRawFlags, parsePresetToken } from '#/preset';
+import { canonicalRaw, overlayRawFlags, parsePresetToken } from '#/preset';
 import { ParseError } from '#/stack/parse-error';
 import { defaultStructureForBackend } from '#/stack/resolve';
 import {
@@ -10,9 +10,12 @@ import {
   FORMS,
   FRONTENDS,
   LINTERS,
+  LINTING,
   ORMS,
   PAYMENTS,
   PROJECT_STRUCTURES,
+  TASK_RUNNERS,
+  TOOLCHAINS,
 } from '#/stack/vocab';
 import type { RawFlags } from '#/types/stack';
 
@@ -120,7 +123,10 @@ export function parseArgs(argv: string[]): RawFlags {
       }
       case '--structure': {
         const { value, consumed } = takeValue(argv, i, name);
-        flags.structure = oneOf('structure', value, PROJECT_STRUCTURES);
+        flags.structure = oneOf('structure', value, [
+          ...PROJECT_STRUCTURES,
+          'turborepo',
+        ] as const);
         i += consumed;
         break;
       }
@@ -162,7 +168,34 @@ export function parseArgs(argv: string[]): RawFlags {
       }
       case '--form': {
         const { value, consumed } = takeValue(argv, i, name);
-        flags.form = oneOf('form', value, FORMS);
+        flags.addons = { ...flags.addons, form: oneOf('form', value, FORMS) };
+        i += consumed;
+        break;
+      }
+      case '--toolchain': {
+        const { value, consumed } = takeValue(argv, i, name);
+        flags.addons = {
+          ...flags.addons,
+          toolchain: oneOf('toolchain', value, TOOLCHAINS),
+        };
+        i += consumed;
+        break;
+      }
+      case '--task-runner': {
+        const { value, consumed } = takeValue(argv, i, name);
+        flags.addons = {
+          ...flags.addons,
+          taskRunner: oneOf('task runner', value, TASK_RUNNERS),
+        };
+        i += consumed;
+        break;
+      }
+      case '--linting': {
+        const { value, consumed } = takeValue(argv, i, name);
+        flags.addons = {
+          ...flags.addons,
+          linting: oneOf('linting', value, LINTING),
+        };
         i += consumed;
         break;
       }
@@ -188,7 +221,7 @@ export function parseArgs(argv: string[]): RawFlags {
 
   const token = flags.preset;
   if (token === undefined) {
-    return flags;
+    return canonicalRaw(flags);
   }
 
   try {
@@ -202,6 +235,12 @@ export function parseArgs(argv: string[]): RawFlags {
       explicit.structure === undefined
     ) {
       merged.structure = defaultStructureForBackend(explicit.backend);
+      if (
+        merged.structure === 'single' &&
+        explicit.addons?.taskRunner === undefined
+      ) {
+        merged.addons = { ...merged.addons, taskRunner: 'auto' };
+      }
     }
     return merged;
   } catch (error) {
@@ -227,14 +266,17 @@ Flags
   --preset <nest|start|convex|gb…>
   --frontend next|tanstack-start
   --backend self|nest|convex|hono
-  --structure single|turborepo (Nest and Hono require turborepo)
+  --structure single|monorepo (Nest and Hono require monorepo; turborepo is a legacy alias)
   --api orpc|trpc|none
   --database postgres|sqlite|mysql|none
   --orm prisma|drizzle|none
   --db-setup none|docker|neon|supabase|turso|planetscale|prisma-postgres
   --auth better-auth|clerk|none
   --payments none|stripe|polar
-  --linter eslint|biome|oxlint
+  --toolchain standard
+  --task-runner auto|none|turborepo
+  --linting auto|eslint|biome|oxlint
+  --linter eslint|biome|oxlint (legacy alias)
   --form none|react-hook-form|tanstack-form
   --no-git
   --no-install

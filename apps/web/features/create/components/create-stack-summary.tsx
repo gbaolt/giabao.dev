@@ -1,11 +1,11 @@
 'use client';
 
-import type { FlagGroup } from 'create-gb-app/preset';
+import { type FlagGroup, selectionValue } from 'create-gb-app/preset';
 import { Layers3Icon } from 'lucide-react';
 
 import {
   FLAG_GROUP_LABELS,
-  FLAG_OPTIONS,
+  optionsFor,
   presentFlagOption,
 } from '../data/options';
 import { useCreate } from './create-provider';
@@ -21,24 +21,27 @@ const SUMMARY_GROUPS: readonly FlagGroup[] = [
   'auth',
   'payments',
   'form',
-  'linter',
+  'linting',
+  'taskRunner',
+  'toolchain',
 ];
 
 export function CreateStackSummary() {
   const { flags } = useCreate();
   const architecture =
-    flags.structure === 'turborepo'
+    flags.structure === 'monorepo'
       ? 'Applications and shared packages in one workspace.'
       : 'One fullstack application at the project root.';
   const principalTools = (
     ['frontend', 'backend', 'api', 'database', 'orm', 'auth', 'form'] as const
   )
     .filter((group) => group !== 'backend' || flags.backend !== 'self')
-    .filter((group) => flags[group] !== 'none')
+    .filter((group) => selectionValue(flags, group) !== 'none')
     .map(
       (group) =>
-        FLAG_OPTIONS[group].find((option) => option.value === flags[group])
-          ?.label
+        optionsFor(group).find(
+          (option) => option.value === selectionValue(flags, group)
+        )?.label
     )
     .filter(Boolean);
 
@@ -56,9 +59,9 @@ export function CreateStackSummary() {
       </div>
       <ul className="relative h-full overflow-y-auto [--col-left-width:--spacing(14)]">
         {SUMMARY_GROUPS.map((group) => {
-          if (flags[group] === 'none') return null;
-          const selected = FLAG_OPTIONS[group].find(
-            (option) => option.value === flags[group]
+          if (selectionValue(flags, group) === 'none') return null;
+          const selected = optionsFor(group).find(
+            (option) => option.value === selectionValue(flags, group)
           );
           if (!selected) return null;
           const option = presentFlagOption(selected, flags);

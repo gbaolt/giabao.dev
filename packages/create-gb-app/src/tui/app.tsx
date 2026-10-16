@@ -8,13 +8,14 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { formatCommand } from '#/preview/command';
 import { previewTree } from '#/preview/tree';
+import { canonicalRaw, parseChoice } from '#/stack/configuration';
 import { CompatError } from '#/stack/errors';
 import {
   databaseSetupRule,
   defaultStructureForBackend,
   resolveStack,
 } from '#/stack/resolve';
-import { DATABASES, DB_SETUPS, ORMS } from '#/stack/vocab';
+import { DATABASES, DB_SETUPS, LINTING,ORMS, TASK_RUNNERS } from '#/stack/vocab';
 import type {
   Api,
   Auth,
@@ -39,6 +40,8 @@ type FocusId =
   | 'api'
   | 'auth'
   | 'payments'
+  | 'taskRunner'
+  | 'linting'
   | 'form'
   | 'confirm';
 
@@ -52,6 +55,8 @@ const FOCUS_ORDER: FocusId[] = [
   'dbSetup',
   'auth',
   'payments',
+  'taskRunner',
+  'linting',
   'form',
   'confirm',
 ];
@@ -83,16 +88,16 @@ const OPTIONAL_STRUCTURE_OPTIONS = [
     value: 'single',
   },
   {
-    name: 'Turborepo',
+    name: 'Monorepo',
     description: 'Web app with shared packages',
-    value: 'turborepo',
+    value: 'monorepo',
   },
 ];
 const REQUIRED_STRUCTURE_OPTIONS = [
   {
-    name: 'Turborepo',
-    description: 'Required by Nest and Hono',
-    value: 'turborepo',
+    name: 'Monorepo',
+    description: 'Multiple applications and shared packages',
+    value: 'monorepo',
   },
 ];
 
@@ -171,7 +176,8 @@ export type AppProps = {
   onGenerate?: (flags: RawFlags) => void | Promise<void>;
 };
 
-function wizardFlags(initialFlags: RawFlags): RawFlags {
+function wizardFlags(input: RawFlags): RawFlags {
+  const initialFlags = canonicalRaw(input);
   const backend = initialFlags.backend ?? 'self';
   const flags: RawFlags = {
     ...initialFlags,
@@ -180,8 +186,14 @@ function wizardFlags(initialFlags: RawFlags): RawFlags {
     structure: initialFlags.structure ?? defaultStructureForBackend(backend),
     auth: initialFlags.auth ?? 'better-auth',
     payments: initialFlags.payments ?? 'none',
-    linter: initialFlags.linter ?? 'eslint',
-    form: initialFlags.form ?? 'none',
+    addons: {
+      toolchain: 'standard',
+      linting: 'auto',
+      form: 'none',
+      taskRunner:
+        'auto',
+      ...initialFlags.addons,
+    },
     projectName: initialFlags.projectName ?? 'my-gb-app',
   };
   if (backend === 'convex') {
@@ -247,10 +259,19 @@ export function App({ initialFlags = {}, onExit, onGenerate }: AppProps) {
 
   function patch(next: Partial<RawFlags>) {
     setFlags((current: RawFlags) => {
-      const merged = { ...current, ...next };
+      const merged = {
+        ...current,
+        ...next,
+        addons: { ...current.addons, ...next.addons },
+      };
       if (next.backend !== undefined) {
         merged.structure = defaultStructureForBackend(next.backend);
+        merged.addons.taskRunner =
+          merged.structure === 'single' ? 'auto' : (current.addons?.taskRunner ?? 'auto');
       }
+      if (next.structure !== undefined)
+        merged.addons.taskRunner =
+          next.structure === 'single' ? 'auto' : (current.addons?.taskRunner ?? 'auto');
       if (merged.backend === 'convex') {
         merged.api = undefined;
         merged.database = undefined;
@@ -344,8 +365,8 @@ export function App({ initialFlags = {}, onExit, onGenerate }: AppProps) {
           />
           <text flexShrink={0}>
             {flags.backend === 'nest' || flags.backend === 'hono'
-              ? 'Nest/Hono need Turborepo'
-              : 'Single app or Turborepo'}
+              ? 'Nest/Hono need a monorepo'
+              : 'Single app or monorepo'}
           </text>
           <text id="label-frontend" flexShrink={0}>
             Frontend
@@ -494,6 +515,44 @@ export function App({ initialFlags = {}, onExit, onGenerate }: AppProps) {
               }
             }}
           />
+          <text flexShrink={0}>Addons / Development tools: Standard</text>
+          {(['taskRunner', 'linting'] as const).map((group) => {
+            const values =
+              group === 'taskRunner'
+                ? TASK_RUNNERS
+                : LINTING;
+            const options = values.map((value) => ({
+              name:
+                value === 'auto'
+                  ? group === 'taskRunner'
+                    ? 'Auto (no runner)'
+                    : 'Auto (ESLint)'
+                  : value,
+              description: value,
+              value,
+            }));
+            return (
+              <box key={group} flexDirection="column" flexShrink={0}>
+                <text id={`label-${group}`}>
+                  {group === 'taskRunner' ? 'Task runner' : 'Linting'}
+                </text>
+                <select
+                  id={`control-${group}`}
+                  height={values.length}
+                  showDescription={false}
+                  options={options}
+                  focused={focus === group}
+                  selectedIndex={indexOfValue(options, flags.addons?.[group])}
+                  onChange={(_index, option) => {
+                    if (option?.value) {
+                      if (group === 'taskRunner') patch({ addons: { taskRunner: parseChoice(group, option.value, TASK_RUNNERS) } });
+                      else patch({ addons: { linting: parseChoice(group, option.value, LINTING) } });
+                    }
+                  }}
+                />
+              </box>
+            );
+          })}
           <text id="label-form" flexShrink={0}>
             Add-ons: Forms
           </text>
@@ -504,9 +563,10 @@ export function App({ initialFlags = {}, onExit, onGenerate }: AppProps) {
             height={3}
             showDescription={false}
             options={FORM_OPTIONS}
-            selectedIndex={indexOfValue(FORM_OPTIONS, flags.form)}
+            selectedIndex={indexOfValue(FORM_OPTIONS, flags.addons?.form)}
             onChange={(_index, option) => {
-              if (option?.value) patch({ form: option.value as Form });
+              if (option?.value)
+                patch({ addons: { form: option.value as Form } });
             }}
           />
           <select

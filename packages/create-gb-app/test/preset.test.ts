@@ -9,25 +9,33 @@ import {
 } from '#/preset';
 import { resolveStack, YES_DEFAULTS } from '#/stack/resolve';
 import type { PresetFields } from '#/types/stack';
-
 test('encodePreset writes compact defaults and reads versioned defaults', () => {
-  expect(encodePreset(YES_DEFAULTS)).toBe('gb0');
-  expect(decodePreset('gb-v1-0')).toEqual(YES_DEFAULTS);
-  expect(decodePreset('gb0')).toEqual(YES_DEFAULTS);
+  expect(encodePreset(YES_DEFAULTS)).toBe('gb-v2-0');
+  expect(decodePreset('gb-v1-0')).toEqual({
+    ...YES_DEFAULTS,
+    addons: {
+      toolchain: 'standard',
+      taskRunner: 'none',
+      linting: 'eslint',
+      form: 'none',
+    },
+  });
+  expect(decodePreset('gb-v2-0')).toEqual(YES_DEFAULTS);
 });
-
 test('encodePreset and decodePreset round-trip a non-default overlay', () => {
   const fields: PresetFields = {
     ...YES_DEFAULTS,
     frontend: 'tanstack-start',
-    linter: 'oxlint',
+    addons: {
+      ...YES_DEFAULTS.addons,
+      linting: 'oxlint',
+    },
   };
   const code = encodePreset(fields);
   expect(code).toStartWith('gb');
   expect(code).not.toStartWith('gb-v1-');
   expect(decodePreset(code)).toEqual(fields);
 });
-
 test('literal legacy codes retain their original selections', () => {
   expect(decodePreset('gb8wy')).toEqual(GOLDEN_PRESETS.nest);
   expect(decodePreset('gbh3b')).toEqual(GOLDEN_PRESETS.start);
@@ -35,26 +43,34 @@ test('literal legacy codes retain their original selections', () => {
   expect(decodePreset('gb2')).toEqual({
     ...YES_DEFAULTS,
     backend: 'nest',
-    structure: 'turborepo',
+    structure: 'monorepo',
+    addons: {
+      ...YES_DEFAULTS.addons,
+      taskRunner: 'turborepo',
+      linting: 'eslint',
+    },
   });
   expect(decodePreset('gb6')).toEqual({
     ...YES_DEFAULTS,
     backend: 'hono',
-    structure: 'turborepo',
+    structure: 'monorepo',
+    addons: {
+      ...YES_DEFAULTS.addons,
+      taskRunner: 'turborepo',
+      linting: 'eslint',
+    },
   });
   expect(decodePreset('gb-v1-48')).toEqual(decodePreset('gb2'));
 });
-
 test('compact codes preserve named preset selections', () => {
   for (const fields of Object.values(GOLDEN_PRESETS)) {
     expect(decodePreset(encodePreset(fields))).toEqual(fields);
   }
 });
-
 test('malformed, unsupported, or future-slot codes fail closed', () => {
   expect(() => decodePreset('g111')).toThrow('invalid preset');
   expect(() => decodePreset('gc0')).toThrow('invalid preset');
-  expect(() => decodePreset('gb-v2-0')).toThrow('unsupported preset version');
+  expect(() => decodePreset('gb-v3-0')).toThrow('unsupported preset version');
   expect(() => decodePreset('gb-v1-')).toThrow('invalid preset');
   expect(() => decodePreset('gb-v1-00')).toThrow('invalid preset');
   expect(() => decodePreset('gb-v1-!')).toThrow('invalid preset');
@@ -64,7 +80,6 @@ test('malformed, unsupported, or future-slot codes fail closed', () => {
     'invalid preset'
   );
 });
-
 test('golden nest builds a FileMap', () => {
   const files = buildTree(
     resolveStack(rawFlagsFromPreset(GOLDEN_PRESETS.nest)),
@@ -76,7 +91,6 @@ test('golden nest builds a FileMap', () => {
   expect(files['turbo.json']).toBeDefined();
   expect(files['README.md']).toContain('nest-app');
 });
-
 test('golden start builds a FileMap', () => {
   const files = buildTree(
     resolveStack(rawFlagsFromPreset(GOLDEN_PRESETS.start)),
@@ -87,7 +101,6 @@ test('golden start builds a FileMap', () => {
   );
   expect(files['vite.config.ts']).toBeDefined();
 });
-
 test('golden convex builds a FileMap', () => {
   const files = buildTree(
     resolveStack(rawFlagsFromPreset(GOLDEN_PRESETS.convex)),
@@ -98,7 +111,6 @@ test('golden convex builds a FileMap', () => {
   );
   expect(files['convex/schema.ts']).toBeDefined();
 });
-
 test('nest plus default eslint builds a FileMap', () => {
   const files = buildTree(resolveStack({ backend: 'nest' }), {
     projectName: 'nest-app',
@@ -107,7 +119,6 @@ test('nest plus default eslint builds a FileMap', () => {
   expect(files['eslint.config.mjs']).toBeDefined();
   expect(files['apps/server/package.json']).toContain('@nestjs/core');
 });
-
 test('database none is an app shell', () => {
   const files = buildTree(
     resolveStack({
@@ -127,7 +138,6 @@ test('database none is an app shell', () => {
   expect(files['prisma/schema.prisma']).toBeUndefined();
   expect(files['router.ts']).toBeUndefined();
 });
-
 test('api none still emits notes without an RPC router', () => {
   const files = buildTree(resolveStack({ api: 'none' }), {
     projectName: 'actions-app',
@@ -139,14 +149,15 @@ test('api none still emits notes without an RPC router', () => {
   expect(files['app/rpc/[[...rest]]/route.ts']).toBeUndefined();
   expect(files['prisma/schema.prisma']).toContain('model Note');
 });
-
 test('api none on Start uses createServerFn', () => {
   const files = buildTree(
     resolveStack({
       frontend: 'tanstack-start',
       api: 'none',
       auth: 'none',
-      linter: 'oxlint',
+      addons: {
+        linting: 'oxlint',
+      },
     }),
     { projectName: 'start-actions', packageManager: 'bun' }
   );
@@ -154,7 +165,6 @@ test('api none on Start uses createServerFn', () => {
   expect(files['src/server/router.ts']).toBeUndefined();
   expect(files['packages/contract/package.json']).toBeUndefined();
 });
-
 test('minimal Start shell resolves its provider and Vite types', () => {
   const files = buildTree(
     resolveStack({
@@ -174,13 +184,14 @@ test('minimal Start shell resolves its provider and Vite types', () => {
   expect(files['src/router.tsx']).toContain('routeTree.gen');
   expect(files['tsconfig.json']).toContain('vite/client');
 });
-
 test('api none on Nest is REST without a contract package', () => {
   const files = buildTree(
     resolveStack({
       backend: 'nest',
       api: 'none',
-      linter: 'biome',
+      addons: {
+        linting: 'biome',
+      },
     }),
     { projectName: 'nest-rest', packageManager: 'pnpm' }
   );

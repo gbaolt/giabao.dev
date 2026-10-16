@@ -4,12 +4,12 @@ import { buildTree } from '#/generate/build-tree';
 import { GenerateError } from '#/generate/errors';
 import { previewTree } from '#/preview/tree';
 import { resolveStack } from '#/stack/resolve';
-
 const NEST_FLAGS = {
   backend: 'nest',
-  linter: 'biome',
+  addons: {
+    linting: 'biome',
+  },
 } as const;
-
 test('buildTree Nest golden emits contract-first monorepo', () => {
   const started = performance.now();
   const stack = resolveStack(NEST_FLAGS);
@@ -20,8 +20,7 @@ test('buildTree Nest golden emits contract-first monorepo', () => {
   const ms = performance.now() - started;
   console.log(`buildTree nest ${ms.toFixed(2)}ms`);
   expect(ms).toBeLessThan(4000);
-
-  expect(files['turbo.json']).toBeDefined();
+  expect(files['turbo.json']).toBeUndefined();
   expect(files['biome.json']).toContain('unsafeParameterDecoratorsEnabled');
   expect(files['apps/web/package.json']).toContain('@repo/contract');
   expect(files['apps/web/package.json']).toContain('workspace:*');
@@ -44,20 +43,17 @@ test('buildTree Nest golden emits contract-first monorepo', () => {
   expect(files['apps/server/src/notes.controller.ts']).toContain(
     'fromNodeHeaders'
   );
-
   const contract = Object.entries(files)
     .filter(([path]) => path.startsWith('packages/contract/'))
     .map(([, content]) => content)
     .join('\n');
   expect(contract).toContain('openapi(');
   expect(contract).not.toContain('.handler');
-
   expect(Object.keys(files).some((path) => path.includes('toWebHeaders'))).toBe(
     false
   );
   expect(files['packages/eslint-config/package.json']).toBeUndefined();
 });
-
 test('npm workspaces use star protocol', () => {
   const files = buildTree(resolveStack(NEST_FLAGS), {
     projectName: 'nest-npm',
@@ -66,14 +62,16 @@ test('npm workspaces use star protocol', () => {
   expect(files['apps/web/package.json']).toContain('"@repo/contract": "*"');
   expect(files['apps/web/package.json']).not.toContain('workspace:');
 });
-
 test('nest plus start returns a FileMap with a Nest server and Start web', () => {
-  const stack = resolveStack({ ...NEST_FLAGS, frontend: 'tanstack-start' });
+  const stack = resolveStack({
+    ...NEST_FLAGS,
+    frontend: 'tanstack-start',
+    addons: { ...NEST_FLAGS.addons, taskRunner: 'turborepo' },
+  });
   const files = buildTree(stack, {
     projectName: 'nest-start',
     packageManager: 'pnpm',
   });
-
   expect(files['apps/server/package.json']).toContain('@nestjs/core');
   expect(files['apps/server/src/main.ts']).toContain('NestFactory');
   expect(files['apps/web/vite.config.ts']).toContain('tanstackStart');
@@ -89,15 +87,17 @@ test('nest plus start returns a FileMap with a Nest server and Start web', () =>
   expect(files['src/routes/__root.tsx']).toBeUndefined();
   expect(files['package.json']).toContain('"dev": "turbo run dev"');
   expect(files['package.json']).not.toContain('vite dev');
-  expect(files['turbo.json']).toContain('.output/**');
-  expect(files['turbo.json']).toContain('.vinxi/**');
+  expect(JSON.parse(files['turbo.json']).tasks['web#build'].outputs).toContain(
+    'dist/**'
+  );
   expect(files['.gitignore']).toContain('.output');
-  expect(files['.env']).toContain('VITE_SERVER_URL="http://localhost:3333"');
+  expect(files['apps/web/.env']).toContain(
+    'VITE_SERVER_URL="http://localhost:3333"'
+  );
   expect(previewTree(stack)).toContain('apps/web');
   expect(previewTree(stack)).toContain('apps/server');
   expect(previewTree(stack).split('\n')[0]).toBe('apps/web');
 });
-
 test('nest plus start with api none keeps REST and omits the contract', () => {
   const files = buildTree(
     resolveStack({ ...NEST_FLAGS, frontend: 'tanstack-start', api: 'none' }),
@@ -113,7 +113,6 @@ test('nest plus start with api none keeps REST and omits the contract', () => {
   expect(files['apps/web/vite.config.ts']).toBeDefined();
   expect(files['apps/server/package.json']).toContain('@nestjs/core');
 });
-
 test('nest plus start with trpc stays a gap', () => {
   try {
     buildTree(
@@ -129,7 +128,6 @@ test('nest plus start with trpc stays a gap', () => {
     );
   }
 });
-
 test('nest plus eslint and oxlint return a FileMap', () => {
   const eslintFiles = buildTree(resolveStack({ backend: 'nest' }), {
     projectName: 'nest-app',
@@ -137,9 +135,13 @@ test('nest plus eslint and oxlint return a FileMap', () => {
   });
   expect(eslintFiles['eslint.config.mjs']).toContain('next/core-web-vitals');
   expect(eslintFiles['apps/server/package.json']).toContain('@nestjs/core');
-
   const oxlintFiles = buildTree(
-    resolveStack({ backend: 'nest', linter: 'oxlint' }),
+    resolveStack({
+      backend: 'nest',
+      addons: {
+        linting: 'oxlint',
+      },
+    }),
     { projectName: 'nest-app', packageManager: 'npm' }
   );
   expect(oxlintFiles['.oxlintrc.json']).toContain('typescript');

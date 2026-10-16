@@ -3,7 +3,6 @@
 import { isPackageManager, type PackageManager } from 'create-gb-app/generate';
 import type { CreateFlags } from 'create-gb-app/preset';
 
-import { normalizeFlags } from '../compat';
 import {
   buildCreateFileMap,
   type CreateFileMapResult,
@@ -23,5 +22,5 @@ export async function generatePreview(
     return { ok: false, message: 'invalid flags', code: 'invalid' };
   }
 
-  return buildCreateFileMap(normalizeFlags(flags), projectName, packageManager);
+  return buildCreateFileMap(flags, projectName, packageManager);
 }

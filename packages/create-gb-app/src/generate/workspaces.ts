@@ -108,12 +108,6 @@ export function finalizeWorkspaces(
       }
     }
     if (path === 'package.json') {
-      for (const [name, script] of Object.entries(manifest.scripts ?? {})) {
-        manifest.scripts![name] = script.replace(
-          /^turbo (?!run\b)/,
-          'turbo run '
-        );
-      }
       manifest.packageManager = `${packageManager}@${PACKAGE_MANAGER_METADATA[packageManager].version}`;
       manifest.workspaces =
         packageManager === 'bun'
@@ -138,9 +132,4 @@ export function finalizeWorkspaces(
   // Start's dev middleware needs Vite to have one module identity across plugins.
   if (packageManager === 'bun' && requirements.has('@tanstack/react-start'))
     files['bunfig.toml'] = '[install]\nlinker = "hoisted"\n';
-  const turbo = JSON.parse(files['turbo.json']) as {
-    tasks: Record<string, Record<string, unknown>>;
-  };
-  turbo.tasks.dev.dependsOn = ['^build'];
-  files['turbo.json'] = JSON.stringify(turbo, null, 2);
 }

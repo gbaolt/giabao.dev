@@ -88,7 +88,23 @@ for (const orm of ['prisma', 'drizzle'] as const) {
 }
 
 test('hosted setups serialize with stable slot IDs and preserve literal legacy presets', () => {
-  expect(decodePreset('gb0')).toEqual(YES_DEFAULTS);
+  expect(decodePreset('gb0')).toEqual({
+    frontend: 'next',
+    backend: 'self',
+    structure: 'single',
+    api: 'orpc',
+    database: 'postgres',
+    orm: 'prisma',
+    dbSetup: 'none',
+    auth: 'better-auth',
+    payments: 'none',
+    addons: {
+      toolchain: 'standard',
+      taskRunner: 'none',
+      linting: 'eslint',
+      form: 'none',
+    },
+  });
   expect(decodePreset('gb2').backend).toBe('nest');
   for (const dbSetup of ['turso', 'planetscale', 'prisma-postgres'] as const) {
     const flags = {

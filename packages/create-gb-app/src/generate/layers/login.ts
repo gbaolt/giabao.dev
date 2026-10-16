@@ -32,7 +32,7 @@ export function emitLogin(ctx: EmitCtx): void {
   setFile(
     ctx.files,
     `${sourceRoot}components/login-form.tsx`,
-    loginSource.forms[ctx.stack.form].replaceAll('__UI_PREFIX__', ui)
+    loginSource.forms[ctx.stack.addons.form].replaceAll('__UI_PREFIX__', ui)
   );
 
   const page = isNext

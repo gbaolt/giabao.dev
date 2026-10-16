@@ -20,6 +20,7 @@ export type PackageJsonShape = {
   workspaces?:
     string[] | { packages: string[]; catalog: Record<string, string> };
   packageManager?: string;
+  engines?: { node: string };
 };
 
 export type EmitCtx = GenerateContext & {

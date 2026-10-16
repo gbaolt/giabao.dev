@@ -188,8 +188,10 @@ import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   server: {
-    port: 3000,
+    port: Number(process.env.PORT ?? 3000),
+    host: process.env.HOST,
   },
+  preview: { port: Number(process.env.PORT ?? 4173), host: process.env.HOST },
   plugins: [
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tanstackStart(),

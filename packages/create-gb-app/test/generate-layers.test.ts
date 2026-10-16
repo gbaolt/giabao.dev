@@ -8,7 +8,6 @@ import { buildTree } from '#/generate/build-tree';
 import { writeTree } from '#/generate/write-tree';
 import { CompatError } from '#/stack/errors';
 import { resolveStack } from '#/stack/resolve';
-
 test('drizzle on Self writes drizzle schema not prisma', () => {
   const files = buildTree(resolveStack({ orm: 'drizzle', auth: 'none' }), {
     projectName: 'drizzle-app',
@@ -18,7 +17,6 @@ test('drizzle on Self writes drizzle schema not prisma', () => {
   expect(files['drizzle.config.ts']).toBeDefined();
   expect(files['prisma/schema.prisma']).toBeUndefined();
 });
-
 test('sqlite without docker uses file URL', () => {
   const files = buildTree(resolveStack({ database: 'sqlite', auth: 'none' }), {
     projectName: 'sqlite-app',
@@ -27,7 +25,6 @@ test('sqlite without docker uses file URL', () => {
   expect(files['.env']).toContain('file:');
   expect(files['docker-compose.yml']).toBeUndefined();
 });
-
 test('docker postgres writes compose YAML', () => {
   const files = buildTree(
     resolveStack({ dbSetup: 'docker', database: 'postgres', auth: 'none' }),
@@ -35,7 +32,6 @@ test('docker postgres writes compose YAML', () => {
   );
   expect(files['docker-compose.yml']).toContain('postgres');
 });
-
 test('neon env on postgres', () => {
   const files = buildTree(
     resolveStack({ dbSetup: 'neon', database: 'postgres', auth: 'none' }),
@@ -44,7 +40,6 @@ test('neon env on postgres', () => {
   expect(files['.env']).toContain('neon.tech');
   expect(files['docker-compose.yml']).toBeUndefined();
 });
-
 test('Clerk plus Next plus tRPC provider order', () => {
   const files = buildTree(
     resolveStack({
@@ -58,7 +53,6 @@ test('Clerk plus Next plus tRPC provider order', () => {
   expect(files['app/providers.tsx']).toContain('trpc.Provider');
   expect(files['middleware.ts']).toContain('trpc');
 });
-
 test('Stripe plus Clerk writes webhook and portal', () => {
   const files = buildTree(resolveStack({ auth: 'clerk', payments: 'stripe' }), {
     projectName: 'stripe-app',
@@ -67,7 +61,6 @@ test('Stripe plus Clerk writes webhook and portal', () => {
   expect(files['app/api/stripe/webhook/route.ts']).toBeDefined();
   expect(files['app/portal/page.tsx']).toBeDefined();
 });
-
 test('Polar plus Better Auth writes plugin', () => {
   const files = buildTree(
     resolveStack({ auth: 'better-auth', payments: 'polar' }),
@@ -80,7 +73,6 @@ test('Polar plus Better Auth writes plugin', () => {
     files['lib/auth.ts'].indexOf('nextCookies()')
   );
 });
-
 test('Polar plus Clerk still errors and dest stays empty', async () => {
   expect(() => resolveStack({ auth: 'clerk', payments: 'polar' })).toThrow(
     CompatError
@@ -92,7 +84,6 @@ test('Polar plus Clerk still errors and dest stays empty', async () => {
   expect(listing).toEqual([]);
   await rm(dest, { recursive: true, force: true });
 });
-
 test('supabase env on postgres', () => {
   const files = buildTree(
     resolveStack({ dbSetup: 'supabase', database: 'postgres', auth: 'none' }),
@@ -101,13 +92,14 @@ test('supabase env on postgres', () => {
   expect(files['.env']).toContain('supabase.co');
   expect(files['docker-compose.yml']).toBeUndefined();
 });
-
 test('Clerk on Nest writes @clerk/express', () => {
   const files = buildTree(
     resolveStack({
       backend: 'nest',
       auth: 'clerk',
-      linter: 'biome',
+      addons: {
+        linting: 'biome',
+      },
     }),
     { projectName: 'nest-clerk', packageManager: 'pnpm' }
   );
@@ -116,28 +108,30 @@ test('Clerk on Nest writes @clerk/express', () => {
   expect(files['apps/server/src/main.ts']).toContain('clerkMiddleware');
   expect(files['apps/server/src/app.module.ts']).not.toContain('AuthModule');
 });
-
 test('Better Auth on Convex writes @convex-dev/better-auth', () => {
   const files = buildTree(
     resolveStack({
       frontend: 'tanstack-start',
       backend: 'convex',
       auth: 'better-auth',
-      linter: 'oxlint',
+      addons: {
+        linting: 'oxlint',
+      },
     }),
     { projectName: 'convex-ba', packageManager: 'bun' }
   );
   expect(files['package.json']).toContain('@convex-dev/better-auth');
   expect(files['convex/betterAuth.ts']).toContain('convex()');
 });
-
 test('Better Auth plugin last on Start', () => {
   const files = buildTree(
     resolveStack({
       frontend: 'tanstack-start',
       api: 'trpc',
       auth: 'better-auth',
-      linter: 'oxlint',
+      addons: {
+        linting: 'oxlint',
+      },
     }),
     { projectName: 'start-auth', packageManager: 'bun' }
   );
