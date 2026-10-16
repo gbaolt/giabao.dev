@@ -53,7 +53,7 @@ export default function CreatePage() {
       />
 
       <AppShell title={title} description={description}>
-        {/* <section className="flex flex-1 flex-col items-center justify-center border-x px-4 pt-4 pb-12 text-center sm:pt-8 sm:pb-16">
+        <section className="flex flex-1 flex-col items-center justify-center border-x px-4 pt-4 pb-12 text-center sm:pt-8 sm:pb-16">
           <Image
             src="https://assets.giabao.dev/create-under-construction.webp"
             alt="A crane assembling a web page"
@@ -67,8 +67,8 @@ export default function CreatePage() {
           <p className="text-muted-foreground mt-4 max-w-md text-base text-balance">
             Create is still in development. Please check back later.
           </p>
-        </section> */}
-        <CreateWorkspace />
+        </section>
+        {/* <CreateWorkspace /> */}
       </AppShell>
     </>
   );
