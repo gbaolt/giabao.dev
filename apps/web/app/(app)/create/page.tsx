@@ -59,6 +59,7 @@ export default function CreatePage() {
             alt="A crane assembling a web page"
             width={960}
             height={640}
+            loading="eager"
             className="h-auto w-full max-w-md select-none! dark:invert"
           />
           <h2 className="font-heading text-3xl font-medium tracking-tight text-balance sm:text-4xl">
