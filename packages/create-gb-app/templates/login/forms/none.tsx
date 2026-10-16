@@ -35,6 +35,10 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         return;
       }
       onSuccess();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Authentication failed'
+      );
     } finally {
       setPending(false);
     }

@@ -25,22 +25,28 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const pending = form.formState.isSubmitting;
   async function submit(values: LoginValues) {
     setError(null);
-    const result =
-      mode === 'signup'
-        ? await authClient.signUp.email({
-            email: values.email,
-            password: values.password,
-            name: values.name,
-          })
-        : await authClient.signIn.email({
-            email: values.email,
-            password: values.password,
-          });
-    if (result.error) {
-      setError(result.error.message ?? 'Authentication failed');
-      return;
+    try {
+      const result =
+        mode === 'signup'
+          ? await authClient.signUp.email({
+              email: values.email,
+              password: values.password,
+              name: values.name,
+            })
+          : await authClient.signIn.email({
+              email: values.email,
+              password: values.password,
+            });
+      if (result.error) {
+        setError(result.error.message ?? 'Authentication failed');
+        return;
+      }
+      onSuccess();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Authentication failed'
+      );
     }
-    onSuccess();
   }
 
   return (
