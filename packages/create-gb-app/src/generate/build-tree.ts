@@ -5,6 +5,7 @@ import type {
   GenerateContext,
   PackageJsonShape,
 } from '../types/generate';
+import { emitTurborepo } from './addons/turborepo';
 import { GenerateError } from './errors';
 import { setFile, setFileIfAbsent, sortRecord } from './files';
 import { emitBetterAuth } from './layers/better-auth';
@@ -34,7 +35,7 @@ import { emitTrpc } from './layers/trpc';
 import { emitValidation } from './layers/validation';
 import { projectLayout } from './layout';
 import { generateReadme } from './readme';
-import { emitPlainWorkspace } from './workspace-tasks';
+import { emitPlainWorkspace, prepareWorkspaceTasks } from './workspace-tasks';
 import { finalizeWorkspaces } from './workspaces';
 
 function emitDatabase(
@@ -262,7 +263,12 @@ export function Providers({ children }: { children: ReactNode }) {
     finalizeDatabaseSetup(emitCtx);
   }
 
-  if (stack.structure === 'monorepo' && stack.addons.taskRunner === 'none') emitPlainWorkspace(emitCtx);
+  if (stack.structure === 'monorepo') {
+    const workspaces = prepareWorkspaceTasks(emitCtx);
+    if (stack.addons.taskRunner === 'turborepo')
+      emitTurborepo(emitCtx, workspaces);
+    else emitPlainWorkspace(emitCtx, workspaces);
+  }
 
   pkg.dependencies = sortRecord(pkg.dependencies);
   pkg.devDependencies = sortRecord(pkg.devDependencies);

@@ -1,7 +1,6 @@
 export const RULE_IDS = {
   backendRequiresMonorepo: 'backend-requires-monorepo',
   turboRequiresMonorepo: 'turbo-requires-monorepo',
-  optionalTurborepoUnavailable: 'optional-turborepo-unavailable',
   polarRequiresBetterAuth: 'polar-requires-better-auth',
   paymentsRequireAuth: 'payments-require-auth',
   convexDatabaseOff: 'convex-database-off',
@@ -26,8 +25,6 @@ export type RuleId = (typeof RULE_IDS)[keyof typeof RULE_IDS];
 const RULE_MESSAGES: Record<RuleId, string> = {
   'backend-requires-monorepo': 'Nest and Hono require a monorepo',
   'turbo-requires-monorepo': 'Choose a monorepo to use Turborepo',
-  'optional-turborepo-unavailable':
-    'Turborepo for this backend is not available yet',
   'polar-requires-better-auth': 'Polar requires Better Auth',
   'payments-require-auth': 'Payments require auth',
   'convex-database-off': 'Convex cannot use a database',

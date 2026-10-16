@@ -4,6 +4,7 @@ import { parseArgs } from '#/cli/parse-args';
 import {
   decodePreset,
   encodePreset,
+  parseConfiguration,
   resolveStack,
   YES_DEFAULTS,
 } from '#/generate/public';
@@ -29,6 +30,38 @@ test('new preset codes version the nested addon selections', () => {
   const code = encodePreset(YES_DEFAULTS);
   expect(code).toStartWith('gb-v2-');
   expect(decodePreset(code)).toEqual(YES_DEFAULTS);
+});
+test('nested addon choices round-trip without losing auto or none', () => {
+  for (const taskRunner of ['auto', 'none', 'turborepo'] as const) {
+    for (const linting of ['auto', 'eslint', 'biome', 'oxlint'] as const) {
+      for (const form of [
+        'none',
+        'react-hook-form',
+        'tanstack-form',
+      ] as const) {
+        const fields = {
+          ...YES_DEFAULTS,
+          structure: 'monorepo' as const,
+          addons: { toolchain: 'standard' as const, taskRunner, linting, form },
+        };
+        expect(decodePreset(encodePreset(fields))).toEqual(fields);
+      }
+    }
+  }
+});
+test('Configuration parsing rejects malformed and unsupported nested addons', () => {
+  for (const addons of [
+    null,
+    [],
+    'standard',
+    {},
+    { ...YES_DEFAULTS.addons, toolchain: 'vite-plus' },
+    { ...YES_DEFAULTS.addons, taskRunner: 'make' },
+    { ...YES_DEFAULTS.addons, linting: false },
+    { ...YES_DEFAULTS.addons, form: 'unknown' },
+  ]) {
+    expect(() => parseConfiguration({ ...YES_DEFAULTS, addons })).toThrow();
+  }
 });
 
 test('explicit nested addon values override legacy aliases', () => {
@@ -91,5 +124,8 @@ test('partial modern monorepo links use fresh backend defaults', () => {
   const fields = configurationFromQuery({ schema: '2', backend: 'nest' });
   expect(fields.structure).toBe('monorepo');
   expect(fields.addons.taskRunner).toBe('auto');
-  expect(configurationFromQuery({ backend: 'hono', 'task-runner': 'none' }).addons.taskRunner).toBe('none');
+  expect(
+    configurationFromQuery({ backend: 'hono', 'task-runner': 'none' }).addons
+      .taskRunner
+  ).toBe('none');
 });

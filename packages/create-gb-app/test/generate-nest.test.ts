@@ -63,7 +63,11 @@ test('npm workspaces use star protocol', () => {
   expect(files['apps/web/package.json']).not.toContain('workspace:');
 });
 test('nest plus start returns a FileMap with a Nest server and Start web', () => {
-  const stack = resolveStack({ ...NEST_FLAGS, frontend: 'tanstack-start', addons: { ...NEST_FLAGS.addons, taskRunner: 'turborepo' } });
+  const stack = resolveStack({
+    ...NEST_FLAGS,
+    frontend: 'tanstack-start',
+    addons: { ...NEST_FLAGS.addons, taskRunner: 'turborepo' },
+  });
   const files = buildTree(stack, {
     projectName: 'nest-start',
     packageManager: 'pnpm',
@@ -83,10 +87,13 @@ test('nest plus start returns a FileMap with a Nest server and Start web', () =>
   expect(files['src/routes/__root.tsx']).toBeUndefined();
   expect(files['package.json']).toContain('"dev": "turbo run dev"');
   expect(files['package.json']).not.toContain('vite dev');
-  expect(files['turbo.json']).toContain('.output/**');
-  expect(files['turbo.json']).toContain('.vinxi/**');
+  expect(JSON.parse(files['turbo.json']).tasks['web#build'].outputs).toContain(
+    'dist/**'
+  );
   expect(files['.gitignore']).toContain('.output');
-  expect(files['apps/web/.env']).toContain('VITE_SERVER_URL="http://localhost:3333"');
+  expect(files['apps/web/.env']).toContain(
+    'VITE_SERVER_URL="http://localhost:3333"'
+  );
   expect(previewTree(stack)).toContain('apps/web');
   expect(previewTree(stack)).toContain('apps/server');
   expect(previewTree(stack).split('\n')[0]).toBe('apps/web');

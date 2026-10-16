@@ -110,10 +110,13 @@ for (const packageManager of ['bun', 'npm', 'pnpm', 'yarn'] as const) {
       expect(web.dependencies['@repo/validation']).toBe(
         packageManager === 'npm' ? '*' : 'workspace:*'
       );
-      const tasks = JSON.parse(files['turbo.json']).tasks;
-      expect(tasks.build.env).toContain('BETTER_AUTH_SECRET');
-      expect(tasks.dev.env).toContain('BETTER_AUTH_URL');
-      expect(tasks['db:push'].env).toContain('DATABASE_URL');
+      const turbo = JSON.parse(files['turbo.json']);
+      expect(turbo.globalEnv).toContain('DATABASE_URL');
+      if (auth === 'better-auth') {
+        expect(turbo.globalEnv).toContain('BETTER_AUTH_SECRET');
+        expect(turbo.globalEnv).toContain('BETTER_AUTH_URL');
+      }
+      expect(turbo.tasks['db:push'].cache).toBe(false);
       if (packageManager === 'bun')
         expect(files['bunfig.toml']).toContain('linker = "hoisted"');
     });

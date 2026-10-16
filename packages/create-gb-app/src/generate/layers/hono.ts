@@ -29,48 +29,13 @@ export function emitHono(ctx: EmitCtx): void {
   const stack = ctx.stack;
   const dep = proto(ctx);
   ctx.pkg.private = true;
-  if (ctx.stack.addons.taskRunner === 'turborepo') {
-  ctx.pkg.scripts.dev = 'turbo dev';
-  ctx.pkg.scripts.build = 'turbo build';
-  ctx.pkg.scripts.lint = 'turbo lint';
-  ctx.pkg.devDependencies.turbo = DEPENDENCY_VERSIONS['turbo'];
-  }
   ctx.pkg.devDependencies.typescript = DEPENDENCY_VERSIONS['typescript'];
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
-
-  if (ctx.stack.addons.taskRunner === 'turborepo') {
-  setFile(
-    ctx.files,
-    'turbo.json',
-    JSON.stringify(
-      {
-        $schema: 'https://turborepo.dev/schema.json',
-        tasks: {
-          build: {
-            dependsOn: ['^build'],
-            outputs: [
-              'dist/**',
-              '.next/**',
-              '!.next/cache/**',
-              '.output/**',
-              '.vinxi/**',
-            ],
-          },
-          dev: { cache: false, persistent: true },
-          lint: { dependsOn: ['^lint'] },
-        },
-      },
-      null,
-      2
-    )
-  );
-  }
 
   setFile(
     ctx.files,
     '.gitignore',
     `node_modules
-${ctx.stack.addons.taskRunner === 'turborepo' ? '.turbo' : ''}
 .next
 .output
 .vinxi
@@ -866,7 +831,9 @@ function serverEntry(stack: HonoStack): string {
   }
 
   lines.push('');
-  lines.push(`serve({ fetch: app.fetch, port: Number(process.env.SERVER_PORT ?? process.env.PORT ?? 3333) });`);
+  lines.push(
+    `serve({ fetch: app.fetch, port: Number(process.env.SERVER_PORT ?? process.env.PORT ?? 3333) });`
+  );
   lines.push('');
   return lines.join('\n');
 }
@@ -970,7 +937,7 @@ function emitNextWeb(ctx: EmitCtx, stack: HonoStack, dep: string): void {
         private: true,
         type: 'module',
         scripts: {
-          dev: 'next dev --port 3000',
+          dev: 'next dev',
           build: 'next build',
           start: 'next start',
         },
@@ -1407,8 +1374,10 @@ import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   server: {
-    port: 3000,
+    port: Number(process.env.PORT ?? 3000),
+    host: process.env.HOST,
   },
+  preview: { port: Number(process.env.PORT ?? 4173), host: process.env.HOST },
   plugins: [
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tanstackStart(),

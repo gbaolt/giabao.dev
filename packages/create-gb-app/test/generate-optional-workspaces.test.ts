@@ -39,8 +39,8 @@ test('optional fullstack workspaces retain web-owned server actions and shared f
     expect(
       JSON.parse(files['apps/web/package.json']).scripts['db:generate']
     ).toBe('prisma generate');
-    expect(JSON.parse(files['package.json']).scripts['db:generate']).toContain(
-      '--filter web'
+    expect(JSON.parse(files['package.json']).scripts['db:generate']).toBe(
+      'turbo run db:generate'
     );
   }
 });

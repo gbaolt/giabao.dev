@@ -27,6 +27,7 @@ const LABELS: Record<string, string> = {
   polar: 'Polar',
   eslint: 'ESLint',
   oxlint: 'Oxlint',
+  turborepo: 'Turborepo',
   'react-hook-form': 'React Hook Form',
   'tanstack-form': 'TanStack Form',
 };
@@ -61,6 +62,7 @@ const SCRIPT_DESCRIPTIONS: Record<string, string> = {
   build: 'Build the project for production',
   start: 'Start the production build',
   lint: 'Check the code',
+  typecheck: 'Check TypeScript types across the project',
   'db:generate': 'Generate database client or migration files',
   'db:push': 'Apply the schema to the database',
   'db:migrate': 'Run database migrations',

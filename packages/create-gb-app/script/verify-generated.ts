@@ -15,6 +15,7 @@ import {
 } from '../src/generate/public';
 import { writeTree } from '../src/generate/write-tree';
 import type { RawFlags } from '../src/types/stack';
+import { verifyTurboCache } from './verify-turbo-cache';
 import { verifyWorkspaceLifecycle } from './verify-workspace-lifecycle';
 
 const cases = {
@@ -118,6 +119,13 @@ const cases = {
 } satisfies Record<string, RawFlags>;
 
 const caseName = process.argv[2];
+if (
+  process.argv.includes('--hold') &&
+  (process.argv.includes('--cache') || process.argv.includes('--lifecycle'))
+)
+  throw new Error(
+    '--hold cannot be combined with disposable cache/lifecycle mutation phases'
+  );
 if (!caseName || !(caseName in cases)) {
   throw new Error(`Choose a fixture: ${Object.keys(cases).join(', ')}`);
 }
@@ -203,14 +211,14 @@ const web = workspace ? join(app, 'apps/web') : app;
 const server = separate ? join(app, 'apps/server') : web;
 const serverPort = separate ? await availablePort() : port;
 const authOrigin = separate ? 'http://127.0.0.1:' + serverPort : origin;
-const env = {
+const env: NodeJS.ProcessEnv = {
   ...process.env,
   DATABASE_URL: databaseUrl.toString(),
   BETTER_AUTH_URL: authOrigin,
   BETTER_AUTH_SECRET: randomUUID() + randomUUID(),
   NEXT_TELEMETRY_DISABLED: '1',
   VITE_SERVER_URL: authOrigin,
-  PORT: separate ? undefined : String(port),
+  PORT: String(port),
   SERVER_PORT: String(serverPort),
   HOST: '127.0.0.1',
 };
@@ -227,6 +235,10 @@ const evidence = {
   runtime: Bun.version,
   packageManager,
   runner: stack.addons.taskRunner,
+  environmentSource: process.argv.includes('--local-env')
+    ? 'server-local-file'
+    : 'process',
+  checksPassed: false,
   nodeRuntime: Bun.spawnSync(['node', '--version']).stdout.toString().trim(),
   origin,
   databaseName,
@@ -236,6 +248,7 @@ const evidence = {
     pid: number;
     cwd: string;
     url: string;
+    ready: boolean;
   }[],
   backendChecks: [] as { stage: string; status: number }[],
   generatedFilesSha256: '',
@@ -358,7 +371,15 @@ async function start(
     stderr: Bun.file(join(artifacts, `${name}.stderr.log`)),
   });
   processes.add(child);
-  evidence.servers.push({ name, command, pid: child.pid, cwd, url });
+  const serverEvidence = {
+    name,
+    command,
+    pid: child.pid,
+    cwd,
+    url,
+    ready: false,
+  };
+  evidence.servers.push(serverEvidence);
   await record();
   for (let attempt = 0; attempt < 120; attempt++) {
     interruption.signal.throwIfAborted();
@@ -366,7 +387,11 @@ async function start(
       throw new Error(`${name} exited. See ${log.name}`);
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(1000) });
-      if (response.ok) return child;
+      if (response.ok) {
+        serverEvidence.ready = true;
+        await record();
+        return child;
+      }
     } catch {
       /* The owned server may still be starting. */
     }
@@ -409,6 +434,28 @@ try {
     .update(JSON.stringify(files))
     .digest('hex');
   await writeTree(app, files);
+  if (process.argv.includes('--local-env')) {
+    if (!separate || !needsDatabase)
+      throw new Error(
+        'Local environment verification requires a separate relational backend'
+      );
+    const path = join(server, '.env');
+    let source = await readFile(path, 'utf8');
+    for (const name of [
+      'DATABASE_URL',
+      'BETTER_AUTH_URL',
+      'BETTER_AUTH_SECRET',
+    ]) {
+      const value = env[name];
+      if (value === undefined) continue;
+      source = source.replace(
+        new RegExp('^' + name + '=.*$', 'm'),
+        name + '=' + JSON.stringify(value)
+      );
+      delete env[name];
+    }
+    await Bun.write(path, source);
+  }
   interruption.signal.throwIfAborted();
   if (admin) {
     await admin.unsafe(`CREATE DATABASE "${databaseName}"`);
@@ -418,12 +465,7 @@ try {
   await run('manager-version', [...managerPrefix, '--version']);
   await run('install', [...managerPrefix, 'install']);
   if (needsDatabase) {
-    const databaseCommandRoot =
-      workspace && stack.addons.taskRunner === 'none'
-        ? app
-        : separate
-          ? server
-          : app;
+    const databaseCommandRoot = workspace ? app : server;
     await run(
       'database-client',
       managerRun('db:generate'),
@@ -432,32 +474,32 @@ try {
     await run('database-schema', managerRun('db:push'), databaseCommandRoot);
   }
   await run('build', managerRun('build'));
+  if (workspace)
+    await run(
+      'workspace-import',
+      [
+        'node',
+        '--input-type=module',
+        '-e',
+        "import { noteInputSchema } from '@repo/validation'; if (noteInputSchema.safeParse({title: '', body: ''}).success) process.exit(1);",
+      ],
+      web
+    );
   await run(
     'typecheck',
-    workspace && stack.addons.taskRunner === 'none'
+    workspace
       ? managerRun('typecheck')
       : ['bun', 'x', '--no-install', 'tsc', '--noEmit'],
-    workspace && stack.addons.taskRunner === 'none' ? app : web
+    workspace ? app : web
   );
   const webArgs = [
     '--port',
     String(port),
     ...(stack.frontend === 'next' ? [] : ['--host', '127.0.0.1']),
   ];
-  if (workspace && stack.addons.taskRunner === 'none') {
-    await start(managerRun('start', webArgs), app, origin, 'root-start');
+  if (workspace) {
+    await start(managerRun('start'), app, origin, 'root-start');
   } else {
-    if (separate)
-      await start(
-        managerRun('start'),
-        server,
-        authOrigin +
-          (needsDatabase && stack.auth === 'better-auth'
-            ? '/api/auth/ok'
-            : '/'),
-        'server',
-        { ...env, PORT: String(serverPort) }
-      );
     await start(managerRun('start', webArgs), web, origin, 'web');
   }
   await verifyBackend('root-start');
@@ -474,11 +516,7 @@ try {
       stack.frontend,
     ]);
   }
-  await run(
-    'lint',
-    managerRun('lint'),
-    workspace && stack.addons.taskRunner === 'none' ? app : web
-  );
+  await run('lint', managerRun('lint'), workspace ? app : web);
   if (
     stack.backend === 'self' &&
     stack.frontend === 'tanstack-start' &&
@@ -495,7 +533,7 @@ try {
   if (packageManager === 'bun')
     await run('resolved-dependencies', ['bun', 'pm', 'ls', '--all']);
   if (workspace) {
-    if (stack.addons.taskRunner === 'none') {
+    {
       const production = evidence.servers.find(
         (entry) => entry.name === 'root-start'
       );
@@ -519,24 +557,11 @@ try {
     }
     const devPort = await availablePort();
     const devOrigin = `http://127.0.0.1:${devPort}`;
-    await start(
-      managerRun('dev', [
-        ...(stack.addons.taskRunner === 'turborepo'
-          ? ['--filter=web', '--']
-          : []),
-        '--port',
-        String(devPort),
-        ...(stack.frontend === 'next' ? [] : ['--host', '127.0.0.1']),
-      ]),
-      app,
-      devOrigin,
-      'root-dev',
-      {
-        ...env,
-        PORT: separate ? undefined : String(devPort),
-        BETTER_AUTH_URL: separate ? authOrigin : devOrigin,
-      }
-    );
+    await start(managerRun('dev'), app, devOrigin, 'root-dev', {
+      ...env,
+      PORT: String(devPort),
+      BETTER_AUTH_URL: separate ? authOrigin : devOrigin,
+    });
     await verifyBackend('root-dev');
     if (needsDatabase && !separate)
       await run('root-dev-http-notes', [
@@ -558,6 +583,26 @@ try {
     pnpm: 'pnpm-lock.yaml',
     yarn: 'yarn.lock',
   }[packageManager];
+  if (process.argv.includes('--cache')) {
+    if (
+      !workspace ||
+      stack.frontend !== 'next' ||
+      stack.addons.taskRunner !== 'turborepo'
+    )
+      throw new Error('Cache verification requires a Next Turbo workspace');
+    for (const child of processes) {
+      stop(child);
+      await child.exited;
+    }
+    processes.clear();
+    await verifyTurboCache({
+      app,
+      artifacts,
+      environment: env,
+      command: managerRun,
+      run,
+    });
+  }
   if (process.argv.includes('--lifecycle')) {
     if (!workspace || !separate || stack.addons.taskRunner !== 'none')
       throw new Error(
@@ -583,6 +628,8 @@ try {
     join(artifacts, lockfile),
     await readFile(join(app, lockfile))
   );
+  evidence.checksPassed = true;
+  await record();
   console.log(`Verification evidence: ${artifacts}`);
   if (process.argv.includes('--hold')) {
     console.log(

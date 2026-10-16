@@ -10,6 +10,18 @@ type WorkspaceManifest = {
   devDependencies?: Record<string, string>;
 };
 export function prepareWorkspaceTasks(ctx: EmitCtx) {
+  ctx.pkg.engines = { node: '>=22.12.0' };
+  if (!ctx.files['.gitignore'])
+    setFile(
+      ctx.files,
+      '.gitignore',
+      'node_modules\ndist\n.next\n.output\n.env*\n!.env.example\n*.log\n'
+    );
+  setFile(
+    ctx.files,
+    '.gitignore',
+    ctx.files['.gitignore'].trimEnd() + '\n.env*\n!.env.example\n.tanstack\n'
+  );
   const workspaces = Object.entries(ctx.files)
     .filter(([path]) => /^(apps|packages)\/[^/]+\/package.json$/.test(path))
     .map(([path, source]) => {
@@ -79,15 +91,10 @@ export function prepareWorkspaceTasks(ctx: EmitCtx) {
   for (const workspace of workspaces) visit(workspace);
   return ordered;
 }
-export function emitPlainWorkspace(ctx: EmitCtx): void {
-  const workspaces = prepareWorkspaceTasks(ctx);
-  ctx.pkg.engines = { node: '>=22.12.0' };
-  if (!ctx.files['.gitignore'])
-    setFile(
-      ctx.files,
-      '.gitignore',
-      'node_modules\ndist\n.next\n.output\n.env*\n!.env.example\n*.log\n'
-    );
+export function emitPlainWorkspace(
+  ctx: EmitCtx,
+  workspaces: ReturnType<typeof prepareWorkspaceTasks>
+): void {
   ctx.pkg.scripts = {};
   for (const task of new Set(
     workspaces.flatMap((workspace) => workspace.tasks)

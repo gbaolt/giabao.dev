@@ -21,7 +21,6 @@ export { YES_DEFAULTS };
 export const RULE_IDS = {
   backendRequiresMonorepo: 'backend-requires-monorepo',
   turboRequiresMonorepo: 'turbo-requires-monorepo',
-  optionalTurborepoUnavailable: 'optional-turborepo-unavailable',
   nestTrpc: 'nest-trpc',
   polarRequiresBetterAuth: 'polar-requires-better-auth',
   paymentsRequireAuth: 'payments-require-auth',
@@ -47,8 +46,6 @@ export type RuleId = (typeof RULE_IDS)[keyof typeof RULE_IDS];
 export const RULE_MESSAGES: Record<RuleId, string> = {
   'backend-requires-monorepo': 'Nest and Hono require a monorepo',
   'turbo-requires-monorepo': 'Choose a monorepo to use Turborepo',
-  'optional-turborepo-unavailable':
-    'Turborepo for this backend is not available yet',
   'nest-trpc': 'Nest tRPC generate is not implemented yet',
   'polar-requires-better-auth': 'Polar requires Better Auth',
   'payments-require-auth': 'Payments require auth',

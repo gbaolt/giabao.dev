@@ -11,6 +11,13 @@ test('isCreateFlags rejects incomplete payloads', () => {
   expect(isCreateFlags(YES_DEFAULTS)).toBe(true);
   expect(isCreateFlags({ frontend: 'next' })).toBe(false);
   expect(isCreateFlags(null)).toBe(false);
+  expect(isCreateFlags({ ...YES_DEFAULTS, addons: null })).toBe(false);
+  expect(
+    isCreateFlags({
+      ...YES_DEFAULTS,
+      addons: { ...YES_DEFAULTS.addons, toolchain: 'vite-plus' },
+    })
+  ).toBe(false);
 });
 test('public Start oRPC preview agrees with its native generated application', () => {
   const result = buildCreateFileMap(

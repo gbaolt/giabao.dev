@@ -29,12 +29,6 @@ export function emitNest(ctx: EmitCtx): void {
 
   const dep = proto(ctx);
   ctx.pkg.private = true;
-  if (ctx.stack.addons.taskRunner === 'turborepo') {
-  ctx.pkg.scripts.dev = 'turbo dev';
-  ctx.pkg.scripts.build = 'turbo build';
-  ctx.pkg.scripts.lint = 'turbo lint';
-  ctx.pkg.devDependencies.turbo = DEPENDENCY_VERSIONS['turbo'];
-  }
   ctx.pkg.devDependencies.typescript = DEPENDENCY_VERSIONS['typescript'];
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
 
@@ -57,34 +51,11 @@ export function emitNest(ctx: EmitCtx): void {
     emitDbSetup(ctx);
   }
 
-  if (ctx.stack.addons.taskRunner === 'turborepo') {
-  setFile(
-    ctx.files,
-    'turbo.json',
-    JSON.stringify(
-      {
-        $schema: 'https://turborepo.dev/schema.json',
-        tasks: {
-          build: {
-            dependsOn: ['^build'],
-            outputs: turboBuildOutputs(ctx.stack.frontend),
-          },
-          dev: { cache: false, persistent: true },
-          lint: { dependsOn: ['^lint'] },
-        },
-      },
-      null,
-      2
-    )
-  );
-  }
-
   if (ctx.stack.frontend === 'tanstack-start') {
     setFile(
       ctx.files,
       '.gitignore',
       `node_modules
-${ctx.stack.addons.taskRunner === 'turborepo' ? '.turbo' : ''}
 .next
 .output
 .vinxi
@@ -894,25 +865,6 @@ export class NotesController {
 
 const SERVER_URL = 'http://localhost:3333';
 
-function turboBuildOutputs(frontend: 'next' | 'tanstack-start'): string[] {
-  switch (frontend) {
-    case 'next':
-      return ['dist/**', '.next/**', '!.next/cache/**'];
-    case 'tanstack-start':
-      return [
-        'dist/**',
-        '.next/**',
-        '!.next/cache/**',
-        '.output/**',
-        '.vinxi/**',
-      ];
-    default: {
-      const _exhaustive: never = frontend;
-      throw new Error(`unhandled frontend: ${_exhaustive}`);
-    }
-  }
-}
-
 function emitNestStartWeb(ctx: EmitCtx, dep: string): void {
   if (ctx.stack.backend !== 'nest') {
     throw new Error('emitNestStartWeb requires nest');
@@ -1268,7 +1220,7 @@ function emitWebShell(ctx: EmitCtx, dep: string): void {
         private: true,
         type: 'module',
         scripts: {
-          dev: 'next dev --port 3000',
+          dev: 'next dev',
           build: 'next build',
           start: 'next start',
         },
@@ -1491,7 +1443,7 @@ function emitWeb(ctx: EmitCtx, dep: string): void {
         private: true,
         type: 'module',
         scripts: {
-          dev: 'next dev --port 3000',
+          dev: 'next dev',
           build: 'next build',
           start: 'next start',
         },

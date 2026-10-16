@@ -114,13 +114,17 @@ try {
     const ready = new Promise<void>((resolve) => {
       responseReady = resolve;
     });
-    await page.route('**/api/rpc/notes/list', async (route) => {
-      const response = await route.fetch();
-      assert.ok((await response.text()).includes('Fixture note updated'));
-      responseReady();
-      await release;
-      await route.fulfill({ response }).catch(() => {});
-    });
+    await page.route(
+      '**/api/rpc/notes/list',
+      async (route) => {
+        const response = await route.fetch();
+        assert.ok((await response.text()).includes('Fixture note updated'));
+        responseReady();
+        await release;
+        await route.fulfill({ response }).catch(() => {});
+      },
+      { times: 1 }
+    );
     await page
       .getByLabel('Title', { exact: true })
       .fill('Previous account late note');
