@@ -14,7 +14,7 @@ import {
 import { AdaptiveRing } from '@/components/ui/adaptive-ring';
 import { Tag } from '@/components/ui/tag';
 import { formatReadingTime } from '@/lib/reading-time';
-import type { Doc } from '@/types/document';
+import type { DocSummary } from '@/types/document';
 
 type Heading = 'h2' | 'h3' | 'h4';
 
@@ -23,7 +23,7 @@ export function BlogItem({
   heading,
   loading = 'lazy',
 }: {
-  blog: Doc;
+  blog: DocSummary;
   heading?: Heading;
   loading?: ImageProps['loading'];
 }) {

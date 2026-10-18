@@ -8,7 +8,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
-import type { Doc } from '@/types/document';
+import type { DocSummary } from '@/types/document';
 
 import { BlogItem } from './blog-item';
 
@@ -36,7 +36,7 @@ export function BlogList({
   blogs,
   empty = <BlogListEmpty />,
 }: {
-  blogs: Doc[];
+  blogs: DocSummary[];
   empty?: React.ReactNode;
 }) {
   const isEmpty = blogs.length === 0;

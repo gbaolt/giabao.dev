@@ -1,13 +1,13 @@
 'use client';
 
-import type { Doc } from '@/types/document';
+import type { DocSummary } from '@/types/document';
 
 import { useSearchQuery } from './use-search-query';
 import { useTagFilter } from './use-tag-filter';
 
 const normalize = (text: string) => text.toLowerCase().replaceAll(' ', '');
 
-const matchesQuery = (post: Doc, normalizedQuery: string) => {
+const matchesQuery = (post: DocSummary, normalizedQuery: string) => {
   const normalizedTitle = normalize(post.metadata.title);
   const normalizedDescription = normalize(post.metadata.description);
 
@@ -17,14 +17,14 @@ const matchesQuery = (post: Doc, normalizedQuery: string) => {
   );
 };
 
-const searchBlogs = (posts: Doc[], query: string | null) => {
+const searchBlogs = (posts: DocSummary[], query: string | null) => {
   if (!query) return posts;
 
   const normalizedQuery = normalize(query);
   return posts.filter((post) => matchesQuery(post, normalizedQuery));
 };
 
-export function useFilteredBlogs(posts: Doc[]) {
+export function useFilteredBlogs(posts: DocSummary[]) {
   const { query } = useSearchQuery();
   const { tags } = useTagFilter();
   const searchResults = searchBlogs(posts, query);
