@@ -53,6 +53,8 @@
     "test": "turbo run test",
     "capture": "bun run --filter web capture",
     "capture:sync": "bun run --filter web capture:sync",
+    "mascot:build": "bun run --filter web mascot:build",
+    "mascot:sync": "bun run --filter web mascot:sync",
     "render:resume": "bun run --filter web render:resume",
     "upgrade:next": "bun run --filter web upgrade:next",
     "upgrade:tailwind": "bun run --filter web upgrade:tailwind",

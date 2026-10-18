@@ -1,5 +1,3 @@
-import Image from 'next/image';
-
 import { PanelContent } from '@/components/app/panel';
 import { VerifiedIcon } from '@/components/icons/verified-icon';
 import { AdaptiveRing } from '@/components/ui/adaptive-ring';
@@ -7,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { USER } from '@/features/portfolio/data/user';
 
 import { FlipSentences } from './flip-sentences';
+import { ProfileMascot } from './profile-mascot';
 import { ProfileStatus } from './profile-status';
 
 export function ProfileInfo() {
@@ -14,15 +13,7 @@ export function ProfileInfo() {
     <PanelContent className="border-border decor-all flex border-x p-0">
       <PanelContent className="border-border shrink-0 border-r p-0">
         <div className="relative mx-0.5 my-0.75 size-32 sm:size-40">
-          <Image
-            className="ring-border ring-offset-background rounded-full object-cover ring-1 ring-offset-2 select-none"
-            alt="Avatar"
-            width={160}
-            height={160}
-            src={USER.avatar}
-            loading="eager"
-            fetchPriority="high"
-          />
+          <ProfileMascot />
           <AdaptiveRing className="rounded-full" />
         </div>
 
