@@ -63,6 +63,49 @@ try {
     return snapshot();
   };
 
+  await page.setViewport({ width: 1280, height: 900 });
+  for (const duration of [200, 500]) {
+    await scroll(0, false);
+    const override = await page.addStyleTag({
+      content: `.site-header, .site-header-flat, .site-header-floating, .site-header > nav > * { transition-duration: ${duration}ms !important; }`,
+    });
+    await page.evaluate(() => window.scrollTo(0, 11));
+    await page.waitForFunction(
+      () =>
+        document.querySelector('header')?.getAttribute('data-scrolled') ===
+        'true'
+    );
+    const frameMotion = await page.$eval('.site-header-floating', (frame) => {
+      const animation = frame
+        .getAnimations()
+        .find(
+          (item) =>
+            item instanceof CSSTransition &&
+            item.transitionProperty === 'transform'
+        );
+      if (!animation) return null;
+      animation.pause();
+      const duration = Number(animation.effect?.getTiming().duration);
+      animation.currentTime = duration / 2;
+      const width = frame.getBoundingClientRect().width;
+      animation.finish();
+      return {
+        duration,
+        width,
+        finalWidth: frame.getBoundingClientRect().width,
+      };
+    });
+    assert(
+      frameMotion,
+      'The visible header frame must have its own transform transition'
+    );
+    assert.equal(frameMotion.duration, duration);
+    assert(frameMotion.width > frameMotion.finalWidth);
+    assert(frameMotion.width < frameMotion.finalWidth + 16);
+    await override.evaluate((style) => style.remove());
+    await override.dispose();
+  }
+
   for (const width of [390, 767, 768, 896, 1280]) {
     await page.setViewport({ width, height: 900 });
     const top = await scroll(0, false);
@@ -81,8 +124,13 @@ try {
       assert.equal(state.frames[0].opacity, inset ? '0' : '1');
       if (width >= 768) {
         assert.equal(state.frames[1].opacity, active ? '1' : '0');
-        assert.equal(state.frames[1].left, state.left + 8);
-        assert.equal(state.frames[1].width, state.width - 16);
+        assert(
+          Math.abs(state.frames[1].left - state.left - (active ? 8 : 0)) < 0.1
+        );
+        assert(
+          Math.abs(state.frames[1].width - state.width + (active ? 16 : 0)) <
+            0.1
+        );
       } else {
         assert.equal(state.frames[1].display, 'none');
       }

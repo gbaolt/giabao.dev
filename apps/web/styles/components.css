@@ -61,6 +61,8 @@
     inset-block: -1px;
     inset-inline: calc(var(--spacing) * 2 - 1px);
     opacity: 0;
+    transform: scaleX(var(--site-header-rest-scale, 1));
+    transition-property: opacity, transform;
   }
 
   @media (width >= 48rem) {
@@ -77,6 +79,7 @@
 
       > .site-header-floating {
         opacity: 1;
+        transform: scaleX(1);
       }
 
       > nav > :first-child {
@@ -102,6 +105,10 @@
     .site-header-flat,
     .site-header-floating {
       transition-duration: 150ms;
+    }
+
+    .site-header-floating {
+      transition-property: opacity;
     }
   }
 
