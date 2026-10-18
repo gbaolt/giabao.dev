@@ -32,10 +32,6 @@
   .site-header-floating,
   .site-header > nav > * {
     @apply ease-out-cubic duration-200;
-  }
-
-  .site-header,
-  .site-header > nav > * {
     transition-property: transform;
   }
 

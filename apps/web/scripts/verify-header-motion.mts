@@ -69,32 +69,49 @@ try {
     const override = await page.addStyleTag({
       content: `.site-header, .site-header-flat, .site-header-floating, .site-header > nav > * { transition-duration: ${duration}ms !important; }`,
     });
-    await page.evaluate(() => window.scrollTo(0, 11));
-    await page.waitForFunction(
-      () =>
-        document.querySelector('header')?.getAttribute('data-scrolled') ===
-        'true'
-    );
-    const frameMotion = await page.$eval('.site-header-floating', (frame) => {
-      const animation = frame
-        .getAnimations()
-        .find(
-          (item) =>
-            item instanceof CSSTransition &&
-            item.transitionProperty === 'transform'
+    const frameMotion = await page.$eval(
+      '.site-header-floating',
+      async (frame) => {
+        const animation = await new Promise<Animation | undefined>(
+          (resolve) => {
+            const capture = (event: Event) => {
+              if (
+                !(event instanceof TransitionEvent) ||
+                event.propertyName !== 'transform'
+              )
+                return;
+              frame.removeEventListener('transitionrun', capture);
+              clearTimeout(timeout);
+              const animation = frame
+                .getAnimations()
+                .find(
+                  (item) =>
+                    item instanceof CSSTransition &&
+                    item.transitionProperty === 'transform'
+                );
+              animation?.pause();
+              resolve(animation);
+            };
+            const timeout = setTimeout(() => {
+              frame.removeEventListener('transitionrun', capture);
+              resolve(undefined);
+            }, 5000);
+            frame.addEventListener('transitionrun', capture);
+            window.scrollTo(0, 11);
+          }
         );
-      if (!animation) return null;
-      animation.pause();
-      const duration = Number(animation.effect?.getTiming().duration);
-      animation.currentTime = duration / 2;
-      const width = frame.getBoundingClientRect().width;
-      animation.finish();
-      return {
-        duration,
-        width,
-        finalWidth: frame.getBoundingClientRect().width,
-      };
-    });
+        if (!animation) return null;
+        const duration = Number(animation.effect?.getTiming().duration);
+        animation.currentTime = duration / 2;
+        const width = frame.getBoundingClientRect().width;
+        animation.finish();
+        return {
+          duration,
+          width,
+          finalWidth: frame.getBoundingClientRect().width,
+        };
+      }
+    );
     assert(
       frameMotion,
       'The visible header frame must have its own transform transition'

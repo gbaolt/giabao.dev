@@ -42,6 +42,7 @@ export function SiteHeader() {
         <Button
           size="icon"
           variant="ghost"
+          className="transition-[color,background-color,border-color,box-shadow,opacity,scale]"
           aria-label="Open GitHub repository"
           render={
             <a
