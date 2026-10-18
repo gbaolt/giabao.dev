@@ -1,11 +1,11 @@
 'use client';
 
-import type { Doc } from '@/types/document';
+import type { DocSummary } from '@/types/document';
 
 import { useFilteredBlogs } from '../hooks/use-filtered-blogs';
 import { BlogList, BlogListEmpty, BlogListNoResults } from './blog-list';
 
-export function BlogListFiltered({ blogs }: { blogs: Doc[] }) {
+export function BlogListFiltered({ blogs }: { blogs: DocSummary[] }) {
   const filteredBlogs = useFilteredBlogs(blogs);
 
   return (

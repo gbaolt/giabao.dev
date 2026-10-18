@@ -66,7 +66,10 @@ function getBlogJsonLd(
 }
 
 export default function BlogsPage() {
-  const blogPosts = getBlogPosts();
+  const blogPosts = getBlogPosts().map(({ slug, metadata }) => ({
+    slug,
+    metadata,
+  }));
   const tagCounts = new Map<string, number>();
 
   for (const post of blogPosts) {

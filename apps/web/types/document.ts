@@ -44,6 +44,8 @@ export type Doc = {
   content: string;
 };
 
+export type DocSummary = Pick<Doc, 'slug' | 'metadata'>;
+
 /** Contact links shown in the Resume header. */
 export type ResumeLinks = {
   website: string;
