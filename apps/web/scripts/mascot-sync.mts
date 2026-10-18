@@ -14,8 +14,15 @@ async function main() {
     extensions: ['.webp'],
   });
 
-  if (keys.length === 0) {
-    console.log('No mascot WebP files found to sync.');
+  const requiredKeys = [
+    'mascots/gbaolt-directions.webp',
+    'mascots/gbaolt-reactions.webp',
+  ];
+
+  const missingKeys = requiredKeys.filter((key) => !keys.includes(key));
+
+  if (missingKeys.length > 0) {
+    console.log(`Missing required mascot files: ${missingKeys.join(', ')}`);
     return;
   }
 
