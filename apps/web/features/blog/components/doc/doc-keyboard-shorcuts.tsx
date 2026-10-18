@@ -1,7 +1,7 @@
 'use client';
 
+import { useRouter } from '@bprogress/next/app';
 import type { Route } from 'next';
-import { useRouter } from 'next/navigation';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 export function DocKeyboardShortcuts({
