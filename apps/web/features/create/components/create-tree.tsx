@@ -1,5 +1,6 @@
 'use client';
 
+import { getIconExtension } from '@/components/doc/mdx/extensions/get-icon';
 import {
   TreeExpander,
   TreeIcon,
@@ -10,7 +11,6 @@ import {
   TreeProvider,
   TreeView,
 } from '@/components/kibo-ui/tree';
-import { getIconExtension } from '@/components/mdx/extensions/get-icon';
 
 import { languageFromPath } from '../lib/language-from-path';
 import {

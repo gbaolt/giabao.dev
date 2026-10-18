@@ -4,7 +4,7 @@ import { parseConfiguration } from 'create-gb-app/preset';
 import { BookOpenIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { MDXDocument } from '@/components/mdx/mdx-document';
+import { MDXDocument } from '@/components/doc/mdx/mdx-document';
 import { usePackageManager } from '@/components/ncdai/code-block-command';
 import { Button } from '@/components/ui/button';
 import {

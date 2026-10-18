@@ -63,7 +63,7 @@ adapter. Do not nest another pre/code pair or accept arbitrary untrusted HTML.
 Run the MDX integration fixtures with:
 
 ```sh
-bun run --filter web test components/mdx/mdx-code-block.test.tsx
+bun run --filter web test components/doc/mdx/mdx-code-block.test.tsx
 ```
 
 Check interactions on `https://gbaolt.localhost`: blog Docs, Create file previews,

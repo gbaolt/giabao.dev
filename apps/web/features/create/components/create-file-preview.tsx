@@ -8,7 +8,7 @@ import {
   type ShikiTransformer,
 } from 'shiki/bundle/web';
 
-import { MDXCodeBlock } from '@/components/mdx/mdx-code-block';
+import { MDXCodeBlock } from '@/components/doc/mdx/mdx-code-block';
 
 import { languageFromPath } from '../lib/language-from-path';
 
