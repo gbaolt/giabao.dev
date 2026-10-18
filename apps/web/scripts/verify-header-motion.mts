@@ -175,7 +175,40 @@ try {
     assert(state.frames.every((frame) => frame.duration === '0.15s'));
   }
 
-  console.log('Header geometry, scroll hysteresis and reduced motion passed.');
+  await page.goto('https://gbaolt.localhost/', { waitUntil: 'networkidle2' });
+  // Keep the content at its max width so CSS zoom only exercises border rounding.
+  await page.setViewport({ width: 1920, height: 900 });
+  for (const zoom of [1, 1.25, 1.5, 2]) {
+    await page.evaluate((value) => {
+      document.documentElement.style.zoom = String(value);
+      window.scrollTo(0, 0);
+    }, zoom);
+    const alignment = await page.$eval(
+      '[aria-label="Portfolio"]',
+      (content) => {
+        const frame = document.querySelector('.site-header-flat');
+        if (!frame) throw new Error('The flat header frame is missing');
+        const contentBounds = content.getBoundingClientRect();
+        const frameBounds = frame.getBoundingClientRect();
+        return {
+          left: frameBounds.left - contentBounds.left,
+          right: frameBounds.right - contentBounds.right,
+        };
+      }
+    );
+    assert(
+      Math.abs(alignment.left) < 0.05,
+      `Left border misaligned at ${zoom}x zoom`
+    );
+    assert(
+      Math.abs(alignment.right) < 0.05,
+      `Right border misaligned at ${zoom}x zoom`
+    );
+  }
+
+  console.log(
+    'Header geometry, scroll hysteresis, reduced motion and zoom alignment passed.'
+  );
 } finally {
   await browser.close();
 }
