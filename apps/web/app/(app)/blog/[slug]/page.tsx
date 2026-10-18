@@ -15,10 +15,19 @@ import { MDCopyButtonGroup } from '@/components/app/page-actions';
 import { Panel, PanelContent, PanelHeader } from '@/components/app/panel';
 import { ShareMenu } from '@/components/app/share-menu';
 import { StripeSeparator } from '@/components/app/stripe-separator';
+import { DocKeyboardShortcuts } from '@/components/doc/doc-keyboard-shorcuts';
+import {
+  DocContainer,
+  DocContentCol,
+  DocGrid,
+  DocLeftCol,
+  DocRightCol,
+} from '@/components/doc/doc-layout';
+import { DocPageRoot } from '@/components/doc/doc-page-root';
+import { MDX } from '@/components/doc/mdx';
+import { TOCInline } from '@/components/doc/toc/toc-inline';
+import { TOCMinimap } from '@/components/doc/toc/toc-minimap';
 import { jsonLdBreadcrumbList, JsonLdScript } from '@/components/json-ld';
-import { MDX } from '@/components/mdx';
-import { TOCInline } from '@/components/toc/toc-inline';
-import { TOCMinimap } from '@/components/toc/toc-minimap';
 import { AdaptiveRing } from '@/components/ui/adaptive-ring';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -31,15 +40,6 @@ import {
 import { Prose } from '@/components/ui/typography';
 import { JSON_LD_ID } from '@/config/json-ld';
 import { X_PROFILE } from '@/config/site';
-import { DocKeyboardShortcuts } from '@/features/blog/components/doc/doc-keyboard-shorcuts';
-import {
-  DocContainer,
-  DocContentCol,
-  DocGrid,
-  DocLeftCol,
-  DocRightCol,
-} from '@/features/blog/components/doc/doc-layout';
-import { DocPageRoot } from '@/features/blog/components/doc/doc-page-root';
 import { NextPosts } from '@/features/blog/components/next-posts';
 import { getNextPosts } from '@/features/blog/lib/next-posts';
 import {

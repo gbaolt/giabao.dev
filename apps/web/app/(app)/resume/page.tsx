@@ -5,20 +5,20 @@ import type { WebPage, WithContext } from 'schema-dts';
 import { simpleOgImageUrl } from '@/app/og/params';
 import { MDCopyButtonGroup } from '@/components/app/page-actions';
 import { ShareMenu } from '@/components/app/share-menu';
-import { PdfIcon } from '@/components/icons';
-import { jsonLdBreadcrumbList, JsonLdScript } from '@/components/json-ld';
-import { AppShell } from '@/components/layout/app-shell';
-import { JSON_LD_ID } from '@/config/json-ld';
-import { RESUME_MD_PATH, RESUME_PATH, RESUME_PDF_PATH } from '@/config/resume';
-import { X_PROFILE } from '@/config/site';
 import {
   DocContainer,
   DocContentCol,
   DocGrid,
   DocLeftCol,
   DocRightCol,
-} from '@/features/blog/components/doc/doc-layout';
-import { DocPageRoot } from '@/features/blog/components/doc/doc-page-root';
+} from '@/components/doc/doc-layout';
+import { DocPageRoot } from '@/components/doc/doc-page-root';
+import { PdfIcon } from '@/components/icons';
+import { jsonLdBreadcrumbList, JsonLdScript } from '@/components/json-ld';
+import { AppShell } from '@/components/layout/app-shell';
+import { JSON_LD_ID } from '@/config/json-ld';
+import { RESUME_MD_PATH, RESUME_PATH, RESUME_PDF_PATH } from '@/config/resume';
+import { X_PROFILE } from '@/config/site';
 import { DownloadResumeButton } from '@/features/resume/components/download-resume-button';
 import {
   ResumeViewer,

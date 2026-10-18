@@ -68,24 +68,29 @@ export function CopyButton({
   });
 
   return (
-    <Button
-      className={cn('text-muted-foreground will-change-transform', className)}
-      size={size}
-      onClick={(e) => {
-        copy(text);
-        onClick?.(e);
-      }}
-      aria-label="Copy"
-      {...props}
-    >
-      <CopyStateIcon
-        data-icon="inline-start"
-        state={state}
-        idleIcon={idleIcon}
-        doneIcon={doneIcon}
-        errorIcon={errorIcon}
-      />
-      {children}
-    </Button>
+    <>
+      <Button
+        className={cn('text-muted-foreground will-change-transform', className)}
+        size={size}
+        onClick={(e) => {
+          copy(text);
+          onClick?.(e);
+        }}
+        aria-label="Copy"
+        {...props}
+      >
+        <CopyStateIcon
+          data-icon="inline-start"
+          state={state}
+          idleIcon={idleIcon}
+          doneIcon={doneIcon}
+          errorIcon={errorIcon}
+        />
+        {children}
+      </Button>
+      <span className="sr-only" aria-live="polite" aria-atomic="true">
+        {state === 'done' ? 'Copied' : state === 'error' ? 'Copy failed' : ''}
+      </span>
+    </>
   );
 }
