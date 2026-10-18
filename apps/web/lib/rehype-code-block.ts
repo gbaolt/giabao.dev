@@ -18,6 +18,14 @@ export function rehypeCodeRawString() {
         }
 
         node.__rawString__ = codeEl.children?.[0]?.value;
+        const meta = codeEl.data?.meta ?? '';
+        node.__wrap__ = meta
+          .replace(
+            /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\/(?:\\.|[^/\\])*\//g,
+            ''
+          )
+          .split(/\s+/)
+          .includes('wrap');
       }
     });
   };
@@ -30,12 +38,39 @@ export function rehypeHighlightCode() {
       light: 'github-light',
     },
     keepBackground: false,
+    defaultLang: { block: 'plaintext' },
     onVisitLine(node: LineElement) {
       // Prevent lines from collapsing in `display: grid` mode, and allow empty
       // lines to be copy/pasted
       if (node.children.length === 0) {
         node.children = [{ type: 'text', value: ' ' }];
       }
+    },
+    onVisitHighlightedLine(node, id) {
+      if (id !== 'added' && id !== 'removed') return;
+      node.properties['data-variant'] = id;
+      node.children.unshift(
+        {
+          type: 'element',
+          tagName: 'span',
+          properties: {
+            className: ['code-block-diff-marker'],
+            ariaHidden: 'true',
+          },
+          children: [{ type: 'text', value: id === 'added' ? '+' : '−' }],
+        },
+        {
+          type: 'element',
+          tagName: 'span',
+          properties: { className: ['sr-only', 'select-none'] },
+          children: [
+            {
+              type: 'text',
+              value: id === 'added' ? 'Added line: ' : 'Removed line: ',
+            },
+          ],
+        }
+      );
     },
   });
 }
@@ -55,25 +90,28 @@ export function rehypeHighlightCodeRawString() {
           return;
         }
 
-        const firstChild = node.children.at(0);
-        const preElement = node.children.at(-1);
-        if (!preElement || preElement.tagName !== 'pre') {
+        const title = node.children.find(
+          (child) =>
+            child.properties &&
+            'data-rehype-pretty-code-title' in child.properties
+        );
+        const preElement = node.children.find(
+          (child) => child.tagName === 'pre'
+        );
+        if (!preElement) {
           return;
         }
 
-        const withMeta = firstChild?.tagName === 'figcaption';
-
-        preElement.properties = {
-          ...preElement.properties,
-          __withMeta__: withMeta,
-          ...(!withMeta && node.__rawString__
-            ? { __rawString__: node.__rawString__ }
-            : {}),
+        node.properties = {
+          ...node.properties,
+          __withMeta__: Boolean(title),
+          __rawString__: node.__rawString__,
+          __wrap__: node.__wrap__,
         };
 
-        if (withMeta && firstChild) {
-          firstChild.properties = {
-            ...firstChild.properties,
+        if (title) {
+          title.properties = {
+            ...title.properties,
             __rawString__: node.__rawString__,
           };
         }

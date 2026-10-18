@@ -86,6 +86,9 @@ export function CopyButton({
         errorIcon={errorIcon}
       />
       {children}
+      <span className="sr-only" aria-live="polite" aria-atomic="true">
+        {state === 'done' ? 'Copied' : state === 'error' ? 'Copy failed' : ''}
+      </span>
     </Button>
   );
 }

@@ -1,85 +1,100 @@
 import type { ComponentProps } from 'react';
 
-import { CopyButton } from '@/components/ncdai/copy-button';
+import {
+  CodeBlock,
+  CodeBlockActions,
+  CodeBlockContent,
+  CodeBlockCopyButton,
+  CodeBlockHeader,
+  CodeBlockPre,
+  CodeBlockTitle,
+  CodeBlockWrapButton,
+} from '@/components/ui/code-block';
 import { cn } from '@/lib/utils';
 
 import { getIconExtension } from './extensions/get-icon';
 
-const copyButtonClassName =
-  "text-muted-foreground z-10 rounded-sm border-none [&_svg:not([class*='size-'])]:size-4";
+function CodeActions({ raw }: { raw?: string }) {
+  return (
+    <CodeBlockActions>
+      <CodeBlockWrapButton />
+      {raw !== undefined && <CodeBlockCopyButton value={raw} />}
+    </CodeBlockActions>
+  );
+}
+
+function CodeHeader({
+  raw,
+  children,
+  ...props
+}: ComponentProps<typeof CodeBlockHeader> & {
+  raw?: string;
+}) {
+  const language =
+    'data-language' in props && typeof props['data-language'] === 'string'
+      ? props['data-language']
+      : undefined;
+  return (
+    <CodeBlockHeader {...props}>
+      {language && getIconExtension(language)}
+      <CodeBlockTitle>{children}</CodeBlockTitle>
+      <CodeActions raw={raw} />
+    </CodeBlockHeader>
+  );
+}
 
 export const mdxCodeBlockComponents = {
-  figure({ className, ...props }: ComponentProps<'figure'>) {
-    const hasPrettyCode = 'data-rehype-pretty-code-figure' in props;
-
+  figure({
+    __rawString__,
+    __wrap__,
+    __withMeta__,
+    children,
+    ...props
+  }: ComponentProps<'figure'> & {
+    __rawString__?: string;
+    __wrap__?: boolean;
+    __withMeta__?: boolean;
+  }) {
+    if (!('data-rehype-pretty-code-figure' in props)) {
+      return <figure {...props}>{children}</figure>;
+    }
     return (
-      <figure
-        className={cn(hasPrettyCode && 'not-typeset', className)}
-        {...props}
-      />
+      <CodeBlock {...props} defaultWrap={__wrap__}>
+        {!__withMeta__ && <CodeActions raw={__rawString__} />}
+        {children}
+      </CodeBlock>
     );
   },
-  figcaption: ({
+  figcaption({
     children,
     __rawString__,
     ...props
-  }: ComponentProps<'figcaption'> & {
-    __rawString__?: string;
-  }) => {
-    const iconExtension =
-      'data-language' in props && typeof props['data-language'] === 'string'
-        ? getIconExtension(props['data-language'])
-        : null;
-
-    const hasCodeTitle =
-      'data-rehype-pretty-code-title' in props && typeof children === 'string';
-
+  }: ComponentProps<'figcaption'> & { __rawString__?: string }) {
+    if (!('data-rehype-pretty-code-title' in props)) {
+      return <figcaption {...props}>{children}</figcaption>;
+    }
     return (
-      <figcaption {...props}>
-        {iconExtension}
-        {hasCodeTitle ? (
-          <span className="min-w-0 flex-1 truncate">{children}</span>
-        ) : (
-          children
-        )}
-        {__rawString__ && (
-          <CopyCodeButton className="rounded-md" text={__rawString__} />
-        )}
-      </figcaption>
+      <CodeHeader render={<figcaption />} {...props} raw={__rawString__}>
+        {children}
+      </CodeHeader>
     );
   },
-  pre({
-    __withMeta__,
+  div({
+    children,
     __rawString__,
-    className,
     ...props
-  }: ComponentProps<'pre'> & {
-    __withMeta__?: boolean;
-    __rawString__?: string;
-  }) {
+  }: ComponentProps<'div'> & { __rawString__?: string }) {
+    if (!('data-rehype-pretty-code-title' in props)) {
+      return <div {...props}>{children}</div>;
+    }
     return (
-      <div
-        className={cn(
-          'group/pre bg-code rounded-[10px] border',
-          !__withMeta__ && 'relative'
-        )}
-      >
-        <pre
-          className={cn(
-            __rawString__ && !__withMeta__ && '[--code-padding-right:6rem]',
-            className
-          )}
-          {...props}
-        />
-
-        {__rawString__ && !__withMeta__ ? (
-          <CopyCodeButton
-            className="absolute top-2 right-2 opacity-0 group-hover/pre:opacity-100"
-            text={__rawString__}
-          />
-        ) : null}
-      </div>
+      <CodeHeader {...props} raw={__rawString__}>
+        {children}
+      </CodeHeader>
     );
+  },
+  pre(props: ComponentProps<'pre'>) {
+    return <CodeBlockPre {...props} />;
   },
 };
 
@@ -96,64 +111,33 @@ export function MDXCodeBlock({
   raw: string;
   className?: string;
 }) {
-  const Figure = mdxCodeBlockComponents.figure;
-  const Figcaption = mdxCodeBlockComponents.figcaption;
-
   return (
-    <Figure
+    <CodeBlock
       className={cn(
         'my-0 flex h-full min-h-0 flex-1 flex-col overflow-hidden',
         className
       )}
-      data-rehype-pretty-code-figure=""
     >
-      {title && (
-        <Figcaption
-          data-rehype-pretty-code-title=""
-          data-language={language}
+      {title ? (
+        <CodeHeader
+          render={<figcaption />}
           className="h-10 shrink-0"
-          __rawString__={raw}
+          data-language={language}
+          raw={raw}
         >
           {title}
-        </Figcaption>
+        </CodeHeader>
+      ) : (
+        <CodeActions raw={raw} />
       )}
       {html ? (
-        <div className="group/pre relative min-h-0 flex-1 [--code-padding-right:6rem]">
-          <div
-            className="bg-code [&_pre]:no-scrollbar h-full overflow-hidden rounded-lg border [&_pre]:h-full [&_pre]:overflow-y-auto [&_pre]:bg-transparent"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-          {!title && (
-            <CopyCodeButton className="absolute top-2 right-2" text={raw} />
-          )}
-        </div>
+        <div
+          className="code-block-panel"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
       ) : (
-        <div className="group/pre bg-code relative min-h-0 flex-1 overflow-auto rounded-lg border">
-          <pre className="no-scrollbar h-full overflow-auto p-4 font-mono text-sm [--code-padding-right:6rem]">
-            <code>{raw}</code>
-          </pre>
-          {!title && (
-            <CopyCodeButton className="absolute top-2 right-2" text={raw} />
-          )}
-        </div>
+        <CodeBlockContent>{raw}</CodeBlockContent>
       )}
-    </Figure>
-  );
-}
-
-function CopyCodeButton({
-  className,
-  text,
-  ...props
-}: React.ComponentProps<typeof CopyButton>) {
-  return (
-    <CopyButton
-      {...props}
-      data-slot="copy-button"
-      className={cn(copyButtonClassName, className)}
-      variant="ghost"
-      size="icon-xs"
-      text={text}
-    />
+    </CodeBlock>
   );
 }

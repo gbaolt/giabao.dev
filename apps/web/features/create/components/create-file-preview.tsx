@@ -41,6 +41,10 @@ const highlightCache = new Map<string, string>();
 
 const dataLineTransformer: ShikiTransformer = {
   name: 'data-line',
+  pre(node) {
+    node.properties.tabIndex = 0;
+    node.properties.dir = 'ltr';
+  },
   line(node) {
     node.properties['data-line'] = '';
   },

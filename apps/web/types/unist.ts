@@ -5,6 +5,7 @@ export interface UnistNode extends Node {
   name?: string;
   tagName?: string;
   value?: string;
+  data?: { meta?: string };
   properties?: {
     __rawString__?: string;
     [key: string]: unknown;
@@ -16,6 +17,7 @@ export interface UnistNode extends Node {
   }[];
   children?: UnistNode[];
   __rawString__?: string;
+  __wrap__?: boolean;
 }
 
 export interface UnistTree extends Node {
