@@ -167,6 +167,7 @@ export function CommandMenuDialog({ blogs }: { blogs: DocPreview[] }) {
   useHotkeys(
     'mod+k',
     () => {
+      playTriggerSound();
       setOpen((current) => !current);
     },
     { preventDefault: true, enableOnFormTags: true }
