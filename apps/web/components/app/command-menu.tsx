@@ -45,6 +45,8 @@ import { useCommandMenu } from '@/context/command-menu-provider';
 import { SOCIAL_LINKS } from '@/features/portfolio/data/social-links';
 import { USER } from '@/features/portfolio/data/user';
 import { haptic } from '@/lib/haptic';
+import { clickSoftSound } from '@/lib/soundcn/click-soft';
+import { playSound } from '@/lib/soundcn/sound-engine';
 import type { DocPreview } from '@/types/document';
 import { copyText } from '@/utils/copy';
 import { decodeEmail, decodePhoneNumber } from '@/utils/string';
@@ -138,10 +140,15 @@ const SOCIAL_LINK_ITEMS: CommandLinkItem[] = SOCIAL_LINKS.map((item) => ({
   openInNewTab: true,
 }));
 
+function playTriggerSound() {
+  void playSound(clickSoftSound.dataUri, { volume: 0.3 }).catch(() => {});
+}
+
 export function CommandMenu() {
   const { setOpen } = useCommandMenu();
 
   const handleOpen = React.useCallback(() => {
+    playTriggerSound();
     setOpen(true);
     haptic();
   }, [setOpen]);

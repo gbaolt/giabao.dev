@@ -16,11 +16,11 @@ import { META_THEME_COLORS } from '@/config/site';
 import { useTheme } from '@/context/theme-provider';
 import { useMetaColor } from '@/hooks/use-meta-color';
 import { haptic } from '@/lib/haptic';
-import { clickSoftSound } from '@/lib/soundcn/click-soft';
 import { playSound } from '@/lib/soundcn/sound-engine';
+import { switch006Sound } from '@/lib/soundcn/switch-006';
 
 function playToggleSound() {
-  void playSound(clickSoftSound.dataUri, { volume: 0.3 }).catch(() => {});
+  void playSound(switch006Sound.dataUri, { volume: 0.3 }).catch(() => {});
 }
 
 export default function ThemeToggle() {
