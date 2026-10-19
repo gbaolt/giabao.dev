@@ -1,39 +1,22 @@
 'use client';
 
-import { useInView, usePageInView } from 'motion/react';
-import { Mascot } from 'page-mascot';
-import { useRef } from 'react';
+import { Mascot } from '@/components/app/mascot';
+import { drop004Sound } from '@/lib/soundcn/drop-004';
+import { playSound } from '@/lib/soundcn/sound-engine';
 
-const directions =
-  'https://assets.giabao.dev/mascots/gbaolt-directions.webp?t=1792338837';
-const className =
-  'ring-border ring-offset-background focus-visible:outline-ring/50 size-full! overflow-hidden rounded-full ring-1 ring-offset-2 [image-rendering:pixelated] focus-visible:outline-offset-2 [&>span]:origin-center! [&>span]:translate-y-[6%] [&>span]:scale-[1.12]';
+function playReactionSound() {
+  void playSound(drop004Sound.dataUri, { volume: 0.3 }).catch(() => {});
+}
 
 export function ProfileMascot() {
-  const ref = useRef<HTMLDivElement>(null);
-  const isPageInView = usePageInView();
-  const isInView = useInView(ref);
-
   return (
-    <div ref={ref} className="size-full">
-      {isPageInView && isInView ? (
-        <Mascot
-          directions={directions}
-          reactions="https://assets.giabao.dev/mascots/gbaolt-reactions.webp?t=1792338837"
-          label="Gia Bảo pixel avatar"
-          size={160}
-          className={className}
-        />
-      ) : (
-        <div role="img" aria-label="Gia Bảo pixel avatar" className={className}>
-          <span className="relative block size-full">
-            <span
-              className="absolute inset-0 bg-size-[300%_300%] bg-center bg-no-repeat"
-              style={{ backgroundImage: `url(${directions})` }}
-            />
-          </span>
-        </div>
-      )}
-    </div>
+    <Mascot
+      directions="https://assets.giabao.dev/mascots/gbaolt-directions.webp?t=1792381430"
+      reactions="https://assets.giabao.dev/mascots/gbaolt-reactions.webp?t=1792451700"
+      label="Gia Bảo pixel avatar"
+      size={160}
+      className="ring-border ring-offset-background focus-visible:outline-ring/50 size-full! overflow-hidden rounded-full ring-1 ring-offset-2 [image-rendering:pixelated] focus-visible:outline-offset-2 [&>span]:origin-center! [&>span]:translate-y-[6%] [&>span]:scale-[1.12]"
+      onClick={playReactionSound}
+    />
   );
 }

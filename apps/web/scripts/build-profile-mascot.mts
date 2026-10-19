@@ -10,9 +10,12 @@ await mkdir(outputDirectory, { recursive: true });
 for (const type of ['directions', 'reactions']) {
   const source = fileURLToPath(new URL(`${type}.png`, outputDirectory));
   const output = fileURLToPath(new URL(`gbaolt-${type}.webp`, outputDirectory));
-  const result = await sharp(source)
-    .resize(576, 576, { kernel: 'nearest' })
-    .webp({ nearLossless: true, quality: 90, effort: 6 })
+  const losslessSource = await sharp(source)
+    .webp({ lossless: true, effort: 0 })
+    .toBuffer();
+  const result = await sharp(losslessSource)
+    .resize(576, 576, { fastShrinkOnLoad: true })
+    .webp({ quality: 95, alphaQuality: 100, smartSubsample: true, effort: 6 })
     .toFile(output);
 
   assert.equal(result.width, 576);
