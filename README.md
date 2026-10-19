@@ -1,7 +1,7 @@
 <a href="https://giabao.dev">
   <picture width="100%">
-    <source media="(prefers-color-scheme: dark)" srcset="https://assets.giabao.dev/screenshot-desktop-dark.webp" />
-    <img src="https://assets.giabao.dev/screenshot-desktop-light.webp" alt="Banner image" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://assets.giabao.dev/screenshot-desktop-dark.webp?t=1792408759" />
+    <img src="https://assets.giabao.dev/screenshot-desktop-light.webp?t=1792408759" alt="Banner image" />
   </picture>
 </a>
 

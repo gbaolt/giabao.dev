@@ -28,25 +28,25 @@
   "scope": "/",
   "screenshots": [
     {
-      "src": "https://assets.giabao.dev/screenshot-mobile-dark.webp",
+      "src": "https://assets.giabao.dev/screenshot-mobile-dark.webp?t=1792408759",
       "type": "image/webp",
       "sizes": "440x956",
       "form_factor": "narrow"
     },
     {
-      "src": "https://assets.giabao.dev/screenshot-mobile-light.webp",
+      "src": "https://assets.giabao.dev/screenshot-mobile-light.webp?t=1792408759",
       "type": "image/webp",
       "sizes": "440x956",
       "form_factor": "narrow"
     },
     {
-      "src": "https://assets.giabao.dev/screenshot-desktop-dark.webp",
+      "src": "https://assets.giabao.dev/screenshot-desktop-dark.webp?t=1792408759",
       "type": "image/webp",
       "sizes": "1280x720",
       "form_factor": "wide"
     },
     {
-      "src": "https://assets.giabao.dev/screenshot-desktop-light.webp",
+      "src": "https://assets.giabao.dev/screenshot-desktop-light.webp?t=1792408759",
       "type": "image/webp",
       "sizes": "1280x720",
       "form_factor": "wide"
