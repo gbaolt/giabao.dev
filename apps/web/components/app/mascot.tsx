@@ -115,11 +115,15 @@ export function Mascot(props: MascotProps) {
   const timersRef = useRef<number[]>([]);
   const boopsRef = useRef({ count: 0, at: 0 });
   const payoffRef = useRef(0);
+  const [hasHovered, setHasHovered] = useState(false);
   const [direction, setDirection] = useState<Direction>('center');
   const [reaction, setReaction] = useState<Reaction | null>(null);
 
   useEffect(() => {
-    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    if (
+      !hasHovered ||
+      !window.matchMedia('(hover: hover) and (pointer: fine)').matches
+    ) {
       return;
     }
 
@@ -168,7 +172,7 @@ export function Mascot(props: MascotProps) {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('scroll', aim);
     };
-  }, []);
+  }, [hasHovered]);
 
   useEffect(() => {
     return () => {
@@ -219,6 +223,7 @@ export function Mascot(props: MascotProps) {
       ref={buttonRef}
       type="button"
       onClick={boop}
+      onPointerEnter={() => setHasHovered(true)}
       aria-label={`Boop the ${label}`}
       className={className}
       style={{
