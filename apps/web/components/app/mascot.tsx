@@ -95,6 +95,7 @@ export type MascotProps = {
   reactions: string;
   size?: number;
   className?: string;
+  onClick?: () => void;
   /** What a screen reader calls it. */
   label?: string;
 };
@@ -105,6 +106,7 @@ export function Mascot(props: MascotProps) {
     reactions,
     size = 140,
     className,
+    onClick,
     label = 'mascot',
   } = props;
 
@@ -175,6 +177,7 @@ export function Mascot(props: MascotProps) {
   }, []);
 
   const boop = () => {
+    onClick?.();
     timersRef.current.forEach(window.clearTimeout);
     timersRef.current = [];
 
