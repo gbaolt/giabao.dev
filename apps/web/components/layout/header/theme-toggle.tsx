@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import { MoonIcon } from '@/components/icons/moon';
@@ -26,6 +26,7 @@ function playToggleSound() {
 export default function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const { setMetaColor } = useMetaColor();
+  const hotkeyRef = useRef(-Infinity);
 
   const switchTheme = useCallback(() => {
     setTheme(resolvedTheme === 'light' ? 'dark' : 'light');
@@ -59,10 +60,14 @@ export default function ThemeToggle() {
   useHotkeys(
     'd',
     () => {
+      const now = performance.now();
+      if (now - hotkeyRef.current < 200) return;
+      hotkeyRef.current = now;
+
       playToggleSound();
       switchTheme();
     },
-    { preventDefault: true }
+    { preventDefault: true, ignoreEventWhen: (event) => event.repeat }
   );
 
   return (
