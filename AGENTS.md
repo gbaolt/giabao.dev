@@ -40,8 +40,10 @@ All content lives in `apps/web/docs/blog/` and `apps/web/docs/resume/` as MDX fi
 
 ### Writting React components
 
-- Leverage shadcn/ui components and composition rules for the baseline UI
-- Use the combo /vercel-react-best-practices + /vercel-composition-patterns to write new or refactor existing React components
+Apply the following rules in order:
+
+1. Leverage shadcn/ui components and composition rules for the baseline UI
+2. Use the combo /vercel-react-best-practices + /vercel-composition-patterns to write new or refactor existing React components
 
 ## Commands
 

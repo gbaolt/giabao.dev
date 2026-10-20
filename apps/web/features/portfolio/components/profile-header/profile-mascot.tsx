@@ -10,7 +10,7 @@ import { playSound } from '@/lib/soundcn/sound-engine';
 import styles from '../../styles/profile-mascot-background.module.css';
 
 function playReactionSound() {
-  void playSound(drop004Sound.dataUri, { volume: 0.3 }).catch(() => {});
+  void playSound(drop004Sound.dataUri, { volume: 0.2 }).catch(() => {});
 }
 
 export function ProfileMascot() {
