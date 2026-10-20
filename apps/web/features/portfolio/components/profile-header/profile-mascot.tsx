@@ -24,26 +24,15 @@ export function ProfileMascot() {
   return (
     <div ref={ref} className="relative size-full">
       <ProfileMascotBackground />
-
-      {isPageInView && isInView ? (
-        <Mascot
-          directions={directions}
-          reactions="https://assets.giabao.dev/mascots/gbaolt-reactions.webp"
-          label="Gia Bảo pixel avatar"
-          size={160}
-          className={className}
-          onClick={playReactionSound}
-        />
-      ) : (
-        <div role="img" aria-label="Gia Bảo pixel avatar" className={className}>
-          <span className="relative block size-full">
-            <span
-              className="absolute inset-0 bg-size-[300%_300%] bg-center bg-no-repeat"
-              style={{ backgroundImage: `url(${directions})` }}
-            />
-          </span>
-        </div>
-      )}
+      <Mascot
+        directions={directions}
+        reactions="https://assets.giabao.dev/mascots/gbaolt-reactions.webp"
+        active={isPageInView && isInView}
+        label="Gia Bảo pixel avatar"
+        size={160}
+        className={className}
+        onClick={playReactionSound}
+      />
     </div>
   );
 }

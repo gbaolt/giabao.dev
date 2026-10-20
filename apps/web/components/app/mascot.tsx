@@ -93,6 +93,7 @@ export type MascotProps = {
   directions: string;
   /** The 3x3 sheet of expressions. */
   reactions: string;
+  active?: boolean;
   size?: number;
   className?: string;
   onClick?: () => void;
@@ -104,6 +105,7 @@ export function Mascot(props: MascotProps) {
   const {
     directions,
     reactions,
+    active = true,
     size = 140,
     className,
     onClick,
@@ -121,6 +123,7 @@ export function Mascot(props: MascotProps) {
 
   useEffect(() => {
     if (
+      !active ||
       !hasHovered ||
       !window.matchMedia('(hover: hover) and (pointer: fine)').matches
     ) {
@@ -172,15 +175,25 @@ export function Mascot(props: MascotProps) {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('scroll', aim);
     };
-  }, [hasHovered]);
+  }, [active, hasHovered]);
 
   useEffect(() => {
+    if (!active) return;
+
+    const squash = squashRef.current;
+
     return () => {
       timersRef.current.forEach(window.clearTimeout);
+      timersRef.current = [];
+      squash?.getAnimations().forEach((animation) => animation.cancel());
+      setDirection('center');
+      setReaction(null);
     };
-  }, []);
+  }, [active]);
 
   const boop = () => {
+    if (!active) return;
+
     onClick?.();
     timersRef.current.forEach(window.clearTimeout);
     timersRef.current = [];
@@ -223,7 +236,7 @@ export function Mascot(props: MascotProps) {
       ref={buttonRef}
       type="button"
       onClick={boop}
-      onPointerEnter={() => setHasHovered(true)}
+      onPointerEnter={active ? () => setHasHovered(true) : undefined}
       aria-label={`Boop the ${label}`}
       className={className}
       style={{
@@ -237,6 +250,7 @@ export function Mascot(props: MascotProps) {
         background: 'transparent',
         appearance: 'none',
         cursor: 'pointer',
+        pointerEvents: active ? undefined : 'none',
         userSelect: 'none',
       }}
     >
