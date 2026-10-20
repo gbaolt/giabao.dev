@@ -1,9 +1,9 @@
 'use client';
 
-import { useInView, usePageInView } from 'motion/react';
 import { useRef } from 'react';
 
 import { TextFlip } from '@/components/ncdai/text-flip';
+import { useView } from '@/hooks/use-view';
 
 export function FlipSentences({
   children,
@@ -12,8 +12,7 @@ export function FlipSentences({
   children: string[];
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const isPageInView = usePageInView();
-  const isInView = useInView(ref);
+  const { isPageInView, isInView } = useView(ref);
 
   return (
     <div ref={ref} aria-label="Flip sentences" {...props}>

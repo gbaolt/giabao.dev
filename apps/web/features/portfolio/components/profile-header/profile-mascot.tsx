@@ -1,27 +1,49 @@
 'use client';
 
+import { useRef } from 'react';
+
 import { Mascot } from '@/components/app/mascot';
+import { useView } from '@/hooks/use-view';
 import { drop004Sound } from '@/lib/soundcn/drop-004';
 import { playSound } from '@/lib/soundcn/sound-engine';
 
 import styles from '../../styles/profile-mascot-background.module.css';
+
+const directions = 'https://assets.giabao.dev/mascots/gbaolt-directions.webp';
+const className =
+  'ring-border ring-offset-background focus-visible:outline-ring/50 size-full! overflow-hidden rounded-full ring-1 ring-offset-2 [image-rendering:pixelated] focus-visible:outline-offset-2 [&>span]:origin-center! [&>span]:translate-y-[6%] [&>span]:scale-[1.12]';
 
 function playReactionSound() {
   void playSound(drop004Sound.dataUri, { volume: 0.3 }).catch(() => {});
 }
 
 export function ProfileMascot() {
+  const ref = useRef<HTMLDivElement>(null);
+  const { isPageInView, isInView } = useView(ref);
+
   return (
-    <div className="relative size-full">
+    <div ref={ref} className="relative size-full">
       <ProfileMascotBackground />
-      <Mascot
-        directions="https://assets.giabao.dev/mascots/gbaolt-directions.webp"
-        reactions="https://assets.giabao.dev/mascots/gbaolt-reactions.webp"
-        label="Gia Bảo pixel avatar"
-        size={160}
-        className="ring-border ring-offset-background focus-visible:outline-ring/50 size-full! overflow-hidden rounded-full ring-1 ring-offset-2 [image-rendering:pixelated] focus-visible:outline-offset-2 [&>span]:origin-center! [&>span]:translate-y-[6%] [&>span]:scale-[1.12]"
-        onClick={playReactionSound}
-      />
+
+      {isPageInView && isInView ? (
+        <Mascot
+          directions={directions}
+          reactions="https://assets.giabao.dev/mascots/gbaolt-reactions.webp"
+          label="Gia Bảo pixel avatar"
+          size={160}
+          className={className}
+          onClick={playReactionSound}
+        />
+      ) : (
+        <div role="img" aria-label="Gia Bảo pixel avatar" className={className}>
+          <span className="relative block size-full">
+            <span
+              className="absolute inset-0 bg-size-[300%_300%] bg-center bg-no-repeat"
+              style={{ backgroundImage: `url(${directions})` }}
+            />
+          </span>
+        </div>
+      )}
     </div>
   );
 }
