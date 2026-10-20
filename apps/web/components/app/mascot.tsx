@@ -64,8 +64,8 @@ const DIZZY_END = 1100;
 
 const SQUASH: Keyframe[] = [
   { transform: 'scale(1, 1)', easing: 'ease-in' },
-  { transform: 'scale(1.10, 0.86)', offset: 0.18, easing: 'ease-out' },
-  { transform: 'scale(0.95, 1.08)', offset: 0.45, easing: 'ease-in-out' },
+  { transform: 'scale(1.05, 0.96)', offset: 0.18, easing: 'ease-out' },
+  { transform: 'scale(0.95, 1.04)', offset: 0.45, easing: 'ease-in-out' },
   { transform: 'scale(1.03, 0.97)', offset: 0.72, easing: 'ease-in-out' },
   { transform: 'scale(1, 1)' },
 ];
