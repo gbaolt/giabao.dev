@@ -1,0 +1,16 @@
+.scene {
+  --sky: #e7eeef;
+  --sun: #e8ce95;
+  --cloud: #fafcfb;
+  --cloud-shade: #d4dfdf;
+  --distant-hills: #b1c3bc;
+  --near-hills: #8fa99e;
+  --moon: #e0e6d8;
+  --star: #91a6ad;
+}
+
+:global(.dark) .scene {
+  --sky: #1b2428;
+  --distant-hills: #2c3b3b;
+  --near-hills: #3a4c46;
+}
