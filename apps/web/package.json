@@ -16,7 +16,6 @@
     "test": "bun test",
     "capture": "bun run --bun ./scripts/capture.mts",
     "capture:sync": "bun run --bun ./scripts/capture-sync.mts",
-    "mascot:build": "bun run --bun ./scripts/build-profile-mascot.mts",
     "mascot:sync": "bun run --bun ./scripts/mascot-sync.mts",
     "render:resume": "bun run --bun ./scripts/render-resume-pdf.ts",
     "upgrade:next": "npm exec @next/codemod@latest upgrade latest",

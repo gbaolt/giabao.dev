@@ -55,9 +55,8 @@ bun run typecheck           # Type checking (bun check)
 bun run upgrade:next        # Upgrade Next.js
 bun run upgrade:tailwind    # Upgrade Tailwind CSS
 bun run capture             # Capture screenshots of components
-bun run capture:sync        # Capture screenshots of components and sync to R2
-bun run mascot:build        # Build profile mascot
-bun run mascot:sync         # Build profile mascot and sync to R2
+bun run capture:sync        # Sync captured screenshots to Cloudflare R2
+bun run mascot:sync         # Sync profile mascot to Cloudflare R2
 bun run render:resume       # Render resume PDF
 ```
 
