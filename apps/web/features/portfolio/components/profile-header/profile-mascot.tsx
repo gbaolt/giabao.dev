@@ -9,10 +9,6 @@ import { playSound } from '@/lib/soundcn/sound-engine';
 
 import styles from '../../styles/profile-mascot-background.module.css';
 
-const directions = 'https://assets.giabao.dev/mascots/gbaolt-directions.webp';
-const className =
-  'ring-border ring-offset-background focus-visible:outline-ring/50 size-full! overflow-hidden rounded-full ring-1 ring-offset-2 [image-rendering:pixelated] focus-visible:outline-offset-2 [&>span]:origin-center! [&>span]:translate-y-[6%] [&>span]:scale-[1.12]';
-
 function playReactionSound() {
   void playSound(drop004Sound.dataUri, { volume: 0.3 }).catch(() => {});
 }
@@ -25,12 +21,12 @@ export function ProfileMascot() {
     <div ref={ref} className="relative size-full">
       <ProfileMascotBackground />
       <Mascot
-        directions={directions}
+        directions="https://assets.giabao.dev/mascots/gbaolt-directions.webp"
         reactions="https://assets.giabao.dev/mascots/gbaolt-reactions.webp"
         active={isPageInView && isInView}
         label="Gia Bảo pixel avatar"
         size={160}
-        className={className}
+        className="ring-border ring-offset-background focus-visible:outline-ring/50 size-full! overflow-hidden rounded-full ring-1 ring-offset-2 [image-rendering:pixelated] focus-visible:outline-offset-2 [&>span]:origin-center! [&>span]:translate-y-[6%] [&>span]:scale-[1.12]"
         onClick={playReactionSound}
       />
     </div>
