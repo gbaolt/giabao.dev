@@ -141,7 +141,7 @@ const SOCIAL_LINK_ITEMS: CommandLinkItem[] = SOCIAL_LINKS.map((item) => ({
 }));
 
 function playTriggerSound() {
-  void playSound(clickSoftSound.dataUri, { volume: 0.5 }).catch(() => {});
+  void playSound(clickSoftSound.dataUri, { volume: 0.3 }).catch(() => {});
 }
 
 export function CommandMenu() {
