@@ -8,13 +8,11 @@ import {
   StatusLabel,
 } from '@/components/kibo-ui/status';
 import {
+  Collapsible,
+  CollapsibleChevronsIcon,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import {
-  Collapsible,
-  CollapsibleChevronsIcon,
-} from '@/components/ui/collapsible-animated';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tag } from '@/components/ui/tag';
@@ -63,7 +61,7 @@ export function ExperiencePositionItem({
           </div>
 
           <div className="text-muted-foreground mx-1 ml-auto shrink-0 group-data-disabled:hidden [&_svg]:size-4">
-            <CollapsibleChevronsIcon duration={0.15} />
+            <CollapsibleChevronsIcon />
           </div>
         </div>
 

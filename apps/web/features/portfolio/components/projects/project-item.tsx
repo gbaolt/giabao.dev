@@ -5,13 +5,11 @@ import { GridPattern } from '@/components/app/grid-pattern';
 import { IntroItemIcon } from '@/components/app/intro-item';
 import { Markdown } from '@/components/app/markdown';
 import {
+  Collapsible,
+  CollapsibleChevronsIcon,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import {
-  Collapsible,
-  CollapsibleChevronsIcon,
-} from '@/components/ui/collapsible-animated';
 import { Tag } from '@/components/ui/tag';
 import { UTM_PARAMS } from '@/config/site';
 import type { Project } from '@/features/portfolio/types/projects';
@@ -89,7 +87,7 @@ export function ProjectItem({
             <ProjectLink href={addQueryParams(project.link, UTM_PARAMS)} />
 
             <div className="text-muted-foreground z-1 shrink-0 [&_svg]:size-4">
-              <CollapsibleChevronsIcon duration={0.15} />
+              <CollapsibleChevronsIcon />
             </div>
           </CollapsibleTrigger>
 

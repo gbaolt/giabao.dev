@@ -5,13 +5,11 @@ import { TextIcon } from 'lucide-react';
 import Link from 'next/link';
 
 import {
+  Collapsible,
+  CollapsibleChevronDownIcon,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import {
-  Collapsible,
-  CollapsibleChevronDownIcon,
-} from '@/components/ui/collapsible-animated';
 import { cn } from '@/lib/utils';
 
 export function TOCInline({
@@ -43,7 +41,7 @@ export function TOCInline({
         <TextIcon className="-translate-x-0.5" />
         {children ?? 'On this page'}
         <div className="text-muted-foreground ml-auto shrink-0">
-          <CollapsibleChevronDownIcon duration={0.15} />
+          <CollapsibleChevronDownIcon />
         </div>
       </CollapsibleTrigger>
 

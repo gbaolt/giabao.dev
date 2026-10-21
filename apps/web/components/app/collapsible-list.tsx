@@ -1,9 +1,9 @@
-import { ChevronDownIcon } from 'lucide-react';
 import React from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
   Collapsible,
+  CollapsibleChevronDownIcon,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
@@ -79,7 +79,7 @@ export function CollapsibleList<T>({
             <span className="hidden group-data-open/collapsible:block">
               Show Less
             </span>
-            <ChevronDownIcon className="group-data-open/collapsible:rotate-180" />
+            <CollapsibleChevronDownIcon />
           </CollapsibleTrigger>
         </div>
       )}
