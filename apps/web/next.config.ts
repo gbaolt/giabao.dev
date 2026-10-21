@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
     instantInsights: {
       validationLevel: 'manual-warning',
     },
-    optimizePackageImports: ['lucide-react'],
   },
   transpilePackages: ['next-mdx-remote', 'create-gb-app'],
   async headers() {

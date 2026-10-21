@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useAnimation } from 'motion/react';
+import { motion, useAnimation, useReducedMotion } from 'motion/react';
 import { forwardRef, useImperativeHandle } from 'react';
 
 export type ChevronsDownUpIconHandle = {
@@ -15,8 +15,9 @@ export type ChevronsDownUpIconProps = React.ComponentProps<'svg'> & {
 const ChevronsDownUpIcon = forwardRef<
   ChevronsDownUpIconHandle,
   ChevronsDownUpIconProps
->(({ duration = 0.3, ...props }, ref) => {
+>(({ duration = 0.15, ...props }, ref) => {
   const controls = useAnimation();
+  const shouldReduceMotion = useReducedMotion();
 
   useImperativeHandle(ref, () => {
     return {
@@ -52,7 +53,7 @@ const ChevronsDownUpIcon = forwardRef<
         initial="normal"
         animate={controls}
         transition={{
-          duration,
+          duration: shouldReduceMotion ? 0 : duration,
         }}
       />
       <motion.path
@@ -68,7 +69,7 @@ const ChevronsDownUpIcon = forwardRef<
         initial="normal"
         animate={controls}
         transition={{
-          duration,
+          duration: shouldReduceMotion ? 0 : duration,
         }}
       />
     </svg>

@@ -1,6 +1,5 @@
 export * from './better-auth';
 export * from './biome';
-export * from './chevron-down-icon';
 export * from './chevrons-down-up-icon';
 export * from './claude';
 export * from './clerk';
