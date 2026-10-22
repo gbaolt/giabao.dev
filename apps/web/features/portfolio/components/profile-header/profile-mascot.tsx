@@ -10,8 +10,8 @@ import { playSound } from '@/lib/soundcn/sound-engine';
 
 import styles from '../../styles/profile-mascot-background.module.css';
 
-const DIRECTIONS_URL =
-  'https://assets.giabao.dev/mascots/gbaolt-directions.webp';
+const MASCOT_UPDATED_AT = 1792463485;
+const DIRECTIONS_URL = `https://assets.giabao.dev/mascots/gbaolt-directions.webp?t=${MASCOT_UPDATED_AT}`;
 
 function playReactionSound() {
   void playSound(drop004Sound.dataUri, { volume: 0.2 }).catch(() => {});
@@ -28,7 +28,7 @@ export function ProfileMascot() {
       <ProfileMascotBackground />
       <Mascot
         directions={DIRECTIONS_URL}
-        reactions="https://assets.giabao.dev/mascots/gbaolt-reactions.webp"
+        reactions={`https://assets.giabao.dev/mascots/gbaolt-reactions.webp?t=${MASCOT_UPDATED_AT}`}
         active={isPageInView && isInView}
         label="Gia Bảo pixel avatar"
         size={160}
