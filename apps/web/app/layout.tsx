@@ -3,7 +3,6 @@ import '@/styles/globals.css';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
-import Script from 'next/script';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import type { WebSite, WithContext } from 'schema-dts';
 
@@ -142,7 +141,6 @@ export default function RootLayout({
           type="text/javascript"
           dangerouslySetInnerHTML={{ __html: darkModeScript }}
         />
-        <Script src={`data:text/javascript;base64,${btoa(darkModeScript)}`} />
         <JsonLdScript data={getWebSiteJsonLd()} />
       </head>
       <body>
