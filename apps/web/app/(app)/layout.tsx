@@ -1,18 +1,14 @@
-import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 
 import { CommandMenuDialog } from '@/components/app/command-menu';
 import { FadeOverlay } from '@/components/app/fade-overlay';
+import { ScrollToTop } from '@/components/app/scroll-to-top';
 import { SiteFooter } from '@/components/layout/footer';
 import { SiteHeader } from '@/components/layout/header';
 import { LayoutState } from '@/components/layout/layout-state';
 import { SiteFooterNav } from '@/components/layout/navigation/site-footer-nav';
 import { getBlogPosts } from '@/lib/document';
 import type { DocPreview } from '@/types/document';
-
-const ScrollToTop = dynamic(() =>
-  import('@/components/app/scroll-to-top').then((mod) => mod.ScrollToTop)
-);
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const blogs = getBlogPosts();
