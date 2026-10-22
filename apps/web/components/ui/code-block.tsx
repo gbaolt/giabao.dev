@@ -1,5 +1,7 @@
 'use client';
 
+import './code-block.css';
+
 import { useRender } from '@base-ui/react/use-render';
 import { WrapTextIcon } from 'lucide-react';
 import {

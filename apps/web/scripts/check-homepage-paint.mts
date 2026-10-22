@@ -53,6 +53,12 @@ try {
 
   for (const interaction of ['keyboard', 'pointer']) {
     const page = await browser.newPage();
+    await page.emulateMediaFeatures([
+      {
+        name: 'prefers-color-scheme',
+        value: interaction === 'keyboard' ? 'light' : 'dark',
+      },
+    ]);
     await page.setViewport({ width: 1366, height: 900 });
     await page.setCacheEnabled(false);
     const errors: string[] = [];
@@ -87,6 +93,29 @@ try {
     console.log(
       JSON.stringify({ interaction, titleRotatesAfterInteraction: true })
     );
+    await page.close();
+  }
+
+  for (const path of [
+    '/blog/nextjs-16-3-instant-navigation',
+    '/blog/resume-with-mdx-and-react',
+  ]) {
+    const page = await browser.newPage();
+    await page.goto(`https://gbaolt.localhost${path}`, {
+      waitUntil: 'networkidle2',
+    });
+    await page.waitForSelector('figure.code-block pre', { visible: true });
+    const styles = await page.$eval('figure.code-block pre', (pre) => ({
+      padding: getComputedStyle(pre).paddingTop,
+      fontSize: getComputedStyle(pre.querySelector('code')!).fontSize,
+      panelBorder: getComputedStyle(pre.parentElement!).borderTopWidth,
+    }));
+    assert.deepEqual(styles, {
+      padding: '16px',
+      fontSize: '14px',
+      panelBorder: '1px',
+    });
+    console.log(JSON.stringify({ path, codeBlocksStyled: true }));
     await page.close();
   }
 } finally {

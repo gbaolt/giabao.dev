@@ -1,11 +1,30 @@
-import { GeistMono } from 'geist/font/mono';
-import { GeistSans } from 'geist/font/sans';
 import localFont from 'next/font/local';
 
 import { cn } from '@/lib/utils';
 
-const fontSans = GeistSans;
-const fontMono = GeistMono;
+const fontSans = localFont({
+  src: '../assets/fonts/Geist-Variable.woff2',
+  weight: '100 900',
+  variable: '--font-geist-sans',
+});
+
+const fontMono = localFont({
+  src: '../assets/fonts/GeistMono-Variable.woff2',
+  weight: '100 900',
+  variable: '--font-geist-mono',
+  adjustFontFallback: false,
+  fallback: [
+    'ui-monospace',
+    'SFMono-Regular',
+    'Roboto Mono',
+    'Menlo',
+    'Monaco',
+    'Liberation Mono',
+    'DejaVu Sans Mono',
+    'Courier New',
+    'monospace',
+  ],
+});
 
 export const fontPixel = localFont({
   src: '../assets/fonts/DepartureMono-Regular.woff2',
