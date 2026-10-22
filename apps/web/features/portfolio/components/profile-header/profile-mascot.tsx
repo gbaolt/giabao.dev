@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
+import { preload } from 'react-dom';
 
 import { Mascot } from '@/components/app/mascot';
 import { useView } from '@/hooks/use-view';
@@ -9,11 +10,16 @@ import { playSound } from '@/lib/soundcn/sound-engine';
 
 import styles from '../../styles/profile-mascot-background.module.css';
 
+const DIRECTIONS_URL =
+  'https://assets.giabao.dev/mascots/gbaolt-directions.webp';
+
 function playReactionSound() {
   void playSound(drop004Sound.dataUri, { volume: 0.2 }).catch(() => {});
 }
 
 export function ProfileMascot() {
+  preload(DIRECTIONS_URL, { as: 'image', fetchPriority: 'high' });
+
   const ref = useRef<HTMLDivElement>(null);
   const { isPageInView, isInView } = useView(ref);
 
@@ -21,7 +27,7 @@ export function ProfileMascot() {
     <div ref={ref} className="relative size-full">
       <ProfileMascotBackground />
       <Mascot
-        directions="https://assets.giabao.dev/mascots/gbaolt-directions.webp"
+        directions={DIRECTIONS_URL}
         reactions="https://assets.giabao.dev/mascots/gbaolt-reactions.webp"
         active={isPageInView && isInView}
         label="Gia Bảo pixel avatar"
