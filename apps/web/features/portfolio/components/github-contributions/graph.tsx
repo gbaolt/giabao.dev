@@ -1,7 +1,7 @@
 'use client';
 
 import { format } from 'date-fns';
-import { use } from 'react';
+import { use, useState } from 'react';
 
 import type { Activity } from '@/components/kibo-ui/contribution-graph';
 import {
@@ -14,6 +14,7 @@ import {
 } from '@/components/kibo-ui/contribution-graph';
 import { Spinner } from '@/components/ui/spinner';
 import {
+  createTooltipHandle,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -36,6 +37,7 @@ export function GitHubContributionGraph({
     : [];
   const { xs, sm, md, lg, xl } = useBreakpoints(['xs', 'sm', 'md', 'lg', 'xl']);
   const mounted = useMounted();
+  const [tooltipHandle] = useState(() => createTooltipHandle<Activity>());
 
   const sizes: [boolean, number][] = [
     [xs, 8],
@@ -64,21 +66,30 @@ export function GitHubContributionGraph({
       <TooltipProvider delay={300}>
         <ContributionGraphCalendar className="no-scrollbar px-2">
           {({ activity, dayIndex, weekIndex }) => (
-            <Tooltip>
-              <TooltipTrigger render={<g />}>
-                <ContributionGraphBlock
-                  activity={activity}
-                  dayIndex={dayIndex}
-                  weekIndex={weekIndex}
-                  className={cn(
-                    'data-[level="0"]:fill-[#ebedf0] dark:data-[level="0"]:fill-[#161b22]',
-                    'data-[level="1"]:fill-[#9be9a8] dark:data-[level="1"]:fill-[#0e4429]',
-                    'data-[level="2"]:fill-[#40c463] dark:data-[level="2"]:fill-[#006d32]',
-                    'data-[level="3"]:fill-[#30a14e] dark:data-[level="3"]:fill-[#26a641]',
-                    'data-[level="4"]:fill-[#216e39] dark:data-[level="4"]:fill-[#39d353]'
-                  )}
-                />
-              </TooltipTrigger>
+            <TooltipTrigger
+              handle={tooltipHandle}
+              payload={activity}
+              render={<g role="img" tabIndex={0} />}
+              aria-label={`${activity.count} contributions on ${format(new Date(activity.date), 'dd.MM.yyyy')}`}
+            >
+              <ContributionGraphBlock
+                activity={activity}
+                dayIndex={dayIndex}
+                weekIndex={weekIndex}
+                className={cn(
+                  'data-[level="0"]:fill-[#ebedf0] dark:data-[level="0"]:fill-[#161b22]',
+                  'data-[level="1"]:fill-[#9be9a8] dark:data-[level="1"]:fill-[#0e4429]',
+                  'data-[level="2"]:fill-[#40c463] dark:data-[level="2"]:fill-[#006d32]',
+                  'data-[level="3"]:fill-[#30a14e] dark:data-[level="3"]:fill-[#26a641]',
+                  'data-[level="4"]:fill-[#216e39] dark:data-[level="4"]:fill-[#39d353]'
+                )}
+              />
+            </TooltipTrigger>
+          )}
+        </ContributionGraphCalendar>
+        <Tooltip handle={tooltipHandle}>
+          {({ payload: activity }) =>
+            activity && (
               <TooltipContent className="font-sans">
                 <p>
                   {activity.count} contribution
@@ -86,9 +97,9 @@ export function GitHubContributionGraph({
                   {format(new Date(activity.date), 'dd.MM.yyyy')}
                 </p>
               </TooltipContent>
-            </Tooltip>
-          )}
-        </ContributionGraphCalendar>
+            )
+          }
+        </Tooltip>
       </TooltipProvider>
 
       <ContributionGraphFooter className="px-2">
