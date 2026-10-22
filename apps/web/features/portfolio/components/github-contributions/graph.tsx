@@ -65,11 +65,28 @@ export function GitHubContributionGraph({
     >
       <TooltipProvider delay={300}>
         <ContributionGraphCalendar className="no-scrollbar px-2">
-          {({ activity, dayIndex, weekIndex }) => (
+          {({
+            activity,
+            dayIndex,
+            weekIndex,
+            tabIndex,
+            onFocus,
+            onKeyDown,
+          }) => (
             <TooltipTrigger
               handle={tooltipHandle}
               payload={activity}
-              render={<g role="img" tabIndex={0} />}
+              render={
+                <g
+                  role="gridcell"
+                  aria-colindex={weekIndex + 1}
+                  tabIndex={tabIndex}
+                  onFocus={onFocus}
+                  onKeyDown={onKeyDown}
+                  data-date={activity.date}
+                  className="focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-2"
+                />
+              }
               aria-label={`${activity.count} contributions on ${format(new Date(activity.date), 'dd.MM.yyyy')}`}
             >
               <ContributionGraphBlock
