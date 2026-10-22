@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { TextFlip } from '@/components/ncdai/text-flip';
 import { useView } from '@/hooks/use-view';
@@ -13,13 +13,29 @@ export function FlipSentences({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const { isPageInView, isInView } = useView(ref);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  useEffect(() => {
+    function startRotation() {
+      setHasInteracted(true);
+      window.removeEventListener('pointerdown', startRotation);
+      window.removeEventListener('keydown', startRotation);
+    }
+
+    window.addEventListener('pointerdown', startRotation, { passive: true });
+    window.addEventListener('keydown', startRotation);
+    return () => {
+      window.removeEventListener('pointerdown', startRotation);
+      window.removeEventListener('keydown', startRotation);
+    };
+  }, []);
 
   return (
     <div ref={ref} aria-label="Flip sentences" {...props}>
       <TextFlip
-        className="font-pixel-square shimmer shimmer-once shimmer-duration-2000 not-dark:shimmer-color-foreground text-muted-foreground text-sm text-balance"
+        className="font-pixel-square text-muted-foreground text-sm text-balance"
         interval={3}
-        play={isPageInView && isInView}
+        play={hasInteracted && isPageInView && isInView}
       >
         {children}
       </TextFlip>

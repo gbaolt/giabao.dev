@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+
 import puppeteer from 'puppeteer';
 
 const browser = await puppeteer.launch({
@@ -47,6 +48,45 @@ try {
       shell.socialIcons.every((icon) => icon.loading === 'eager' && icon.loaded)
     );
     console.log(JSON.stringify({ width, staticPortfolioVisible: true }));
+    await page.close();
+  }
+
+  for (const interaction of ['keyboard', 'pointer']) {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1366, height: 900 });
+    await page.setCacheEnabled(false);
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(String(error)));
+    await page.goto('https://gbaolt.localhost', { waitUntil: 'networkidle2' });
+    const selector = '[aria-label="Flip sentences"]';
+    const initialTitle = await page.$eval(
+      selector,
+      (element) => element.textContent
+    );
+    await new Promise((resolve) => setTimeout(resolve, 4000));
+    assert.equal(
+      await page.$eval(selector, (element) => element.textContent),
+      initialTitle
+    );
+    assert.equal(await page.$(`${selector} .shimmer`), null);
+    if (interaction === 'keyboard') {
+      await page.keyboard.press('Tab');
+    } else {
+      await page.mouse.click(5, 400);
+    }
+    await page.waitForFunction(
+      (selector, initialTitle) => {
+        const title = document.querySelector(selector)?.textContent;
+        return !!title && title !== initialTitle;
+      },
+      { timeout: 7000 },
+      selector,
+      initialTitle
+    );
+    assert.deepEqual(errors, []);
+    console.log(
+      JSON.stringify({ interaction, titleRotatesAfterInteraction: true })
+    );
     await page.close();
   }
 } finally {
