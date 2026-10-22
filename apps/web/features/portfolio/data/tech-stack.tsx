@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 import {
   ClaudeIcon,
   DockerIcon,
@@ -16,7 +18,6 @@ import {
   TanStackStartIcon,
   TsIcon,
   TurborepoIcon,
-  ZustandIcon,
 } from '@/components/icons';
 
 import type { TechStack } from '../types/tech-stack';
@@ -244,7 +245,17 @@ export const TECH_STACK: TechStack[] = [
     key: 'zustand',
     title: 'Zustand',
     href: 'https://zustand.docs.pmnd.rs',
-    icon: <ZustandIcon />,
+    icon: (
+      <Image
+        src="/icons/zustand.webp"
+        alt=""
+        width={16}
+        height={16}
+        className="pointer-events-none size-4 shrink-0"
+        loading="lazy"
+        unoptimized
+      />
+    ),
     categories: ['Frontend'],
   },
   {

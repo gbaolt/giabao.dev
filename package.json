@@ -26,8 +26,8 @@
       "packages/*"
     ],
     "catalog": {
-      "react": "19.3.0",
-      "react-dom": "19.3.0",
+      "react": "19.3.1",
+      "react-dom": "19.3.1",
       "@types/node": "26.6.2",
       "@types/react": "19.3.0",
       "@types/react-dom": "19.3.0",
@@ -68,7 +68,7 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.1",
-    "turbo": "^2.11.2",
+    "turbo": "^2.11.10",
     "typescript": "catalog:",
     "typescript-7": "catalog:"
   }

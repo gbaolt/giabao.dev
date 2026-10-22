@@ -17,9 +17,11 @@ import {
   type CSSProperties,
   Fragment,
   type HTMLAttributes,
+  type KeyboardEvent,
   type ReactNode,
   useContext,
   useMemo,
+  useState,
 } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -360,6 +362,9 @@ export type ContributionGraphCalendarProps = Omit<
     activity: Activity;
     dayIndex: number;
     weekIndex: number;
+    tabIndex: 0 | -1;
+    onFocus: () => void;
+    onKeyDown: (event: KeyboardEvent<SVGGElement>) => void;
   }) => ReactNode;
 };
 
@@ -371,6 +376,54 @@ export const ContributionGraphCalendar = ({
 }: ContributionGraphCalendarProps) => {
   const { weeks, width, height, blockSize, blockMargin, labels } =
     useContributionGraph();
+  const [activeDate, setActiveDate] = useState<string | null>(null);
+  const tabStopDate = weeks.some((week) =>
+    week.some((activity) => activity?.date === activeDate)
+  )
+    ? activeDate
+    : weeks[0]?.find((activity) => activity)?.date;
+
+  function handleKeyDown(
+    event: KeyboardEvent<SVGGElement>,
+    weekIndex: number,
+    dayIndex: number
+  ) {
+    let next: Activity | undefined;
+    switch (event.key) {
+      case 'ArrowUp':
+        next = weeks[weekIndex]?.[dayIndex - 1];
+        break;
+      case 'ArrowDown':
+        next = weeks[weekIndex]?.[dayIndex + 1];
+        break;
+      case 'ArrowLeft':
+        next = weeks[weekIndex - 1]?.[dayIndex];
+        break;
+      case 'ArrowRight':
+        next = weeks[weekIndex + 1]?.[dayIndex];
+        break;
+      case 'Home':
+        next = event.ctrlKey
+          ? weeks[0]?.find((activity) => activity)
+          : weeks.find((week) => week[dayIndex])?.[dayIndex];
+        break;
+      case 'End':
+        next = event.ctrlKey
+          ? weeks.at(-1)?.findLast((activity) => activity)
+          : weeks.findLast((week) => week[dayIndex])?.[dayIndex];
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    if (next) {
+      event.currentTarget.ownerSVGElement
+        ?.querySelector<SVGGElement>(
+          `[role="gridcell"][data-date="${next.date}"]`
+        )
+        ?.focus();
+    }
+  }
 
   const monthLabels = useMemo(
     () => getMonthLabels(weeks, labels.months),
@@ -386,6 +439,10 @@ export const ContributionGraphCalendar = ({
       {...props}
     >
       <svg
+        role="grid"
+        aria-label="Contribution calendar. Use arrow keys to explore days."
+        aria-rowcount={7}
+        aria-colcount={weeks.length}
         className="block overflow-visible"
         height={height}
         viewBox={`0 0 ${width} ${height}`}
@@ -404,19 +461,30 @@ export const ContributionGraphCalendar = ({
             ))}
           </g>
         )}
-        {weeks.map((week, weekIndex) =>
-          week.map((activity, dayIndex) => {
-            if (!activity) {
-              return null;
-            }
+        {Array.from({ length: 7 }, (_, dayIndex) => (
+          <g role="row" aria-rowindex={dayIndex + 1} key={dayIndex}>
+            {weeks.map((week, weekIndex) => {
+              const activity = week[dayIndex];
+              if (!activity) {
+                return null;
+              }
 
-            return (
-              <Fragment key={`${weekIndex}-${dayIndex}`}>
-                {children({ activity, dayIndex, weekIndex })}
-              </Fragment>
-            );
-          })
-        )}
+              return (
+                <Fragment key={weekIndex}>
+                  {children({
+                    activity,
+                    dayIndex,
+                    weekIndex,
+                    tabIndex: activity.date === tabStopDate ? 0 : -1,
+                    onFocus: () => setActiveDate(activity.date),
+                    onKeyDown: (event) =>
+                      handleKeyDown(event, weekIndex, dayIndex),
+                  })}
+                </Fragment>
+              );
+            })}
+          </g>
+        ))}
       </svg>
     </div>
   );

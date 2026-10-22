@@ -1,14 +1,22 @@
 'use client';
 
 import { AnimatePresence, motion } from 'motion/react';
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 
-import { CanvasReveal } from '@/components/aceternity/canvas-reveal';
 import { BrandMark } from '@/components/app/brand';
 import { PanelContent } from '@/components/app/panel';
 import { Label } from '@/components/ui/label';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/utils';
+
+const CanvasReveal = dynamic(
+  () =>
+    import('@/components/aceternity/canvas-reveal').then(
+      (mod) => mod.CanvasReveal
+    ),
+  { ssr: false }
+);
 
 export function ProfileCover() {
   return (

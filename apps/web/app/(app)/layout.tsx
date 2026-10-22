@@ -1,6 +1,7 @@
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 
+import { CommandMenuDialog } from '@/components/app/command-menu';
 import { FadeOverlay } from '@/components/app/fade-overlay';
 import { SiteFooter } from '@/components/layout/footer';
 import { SiteHeader } from '@/components/layout/header';
@@ -11,9 +12,6 @@ import type { DocPreview } from '@/types/document';
 
 const ScrollToTop = dynamic(() =>
   import('@/components/app/scroll-to-top').then((mod) => mod.ScrollToTop)
-);
-const CommandMenuDialog = dynamic(() =>
-  import('@/components/app/command-menu').then((mod) => mod.CommandMenuDialog)
 );
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

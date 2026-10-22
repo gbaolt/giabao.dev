@@ -38,4 +38,3 @@ export * from './turborepo';
 export * from './typescript';
 export * from './verified-icon';
 export * from './x';
-export * from './zustand';
