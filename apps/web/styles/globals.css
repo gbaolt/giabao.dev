@@ -2,7 +2,7 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
-@import './components.css';
+@import './code.css';
 @import './typeset.css';
 @import './view-transitions.css';
 
@@ -472,6 +472,87 @@
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
     @apply border-border outline-ring/50;
+  }
+
+  .site-header,
+  .site-header-flat,
+  .site-header-floating,
+  .site-header > nav > * {
+    @apply ease-out-cubic duration-200;
+    transition-property: transform;
+  }
+
+  .site-header-flat,
+  .site-header-floating {
+    pointer-events: none;
+    position: absolute;
+    z-index: 0;
+    transition-property: opacity;
+  }
+
+  .site-header-flat {
+    @apply border-x-border screen-line-top screen-line-bottom md:bg-background border border-y-transparent before:z-0 after:z-0;
+
+    position: absolute;
+    inset: 0;
+  }
+
+  .site-header-floating {
+    @apply border-border bg-background supports-backdrop-filter:bg-background/50 rounded-lg border shadow-sm backdrop-blur-lg;
+
+    display: none;
+    inset-block: 0;
+    inset-inline: calc(var(--spacing) * 2);
+    opacity: 0;
+    transform: scaleX(var(--site-header-rest-scale, 1));
+    transition-property: opacity, transform;
+  }
+
+  @media (width >= 48rem) {
+    .site-header-floating {
+      display: block;
+    }
+
+    .site-header[data-scrolled='true'] {
+      transform: translateY(calc(var(--spacing) * 2));
+
+      > .site-header-flat {
+        opacity: 0;
+      }
+
+      > .site-header-floating {
+        opacity: 1;
+        transform: scaleX(1);
+      }
+
+      > nav > :first-child {
+        transform: translateX(calc(var(--spacing) * 2));
+      }
+
+      > nav > :last-child {
+        transform: translateX(calc(var(--spacing) * -2));
+      }
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-header[data-scrolled='true'] {
+      transform: none;
+    }
+
+    .site-header,
+    .site-header > nav > * {
+      transition-duration: 0ms;
+    }
+
+    .site-header-flat,
+    .site-header-floating {
+      transition-duration: 150ms;
+    }
+
+    .site-header-floating {
+      transition-property: opacity;
+    }
   }
 
   ::view-transition-group(root) {

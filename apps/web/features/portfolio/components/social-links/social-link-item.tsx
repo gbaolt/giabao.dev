@@ -36,6 +36,7 @@ export function SocialLinkItem({
           width={32}
           height={32}
           quality={100}
+          loading="eager"
         />
         <AdaptiveRing className="corner-squircle rounded-lg supports-corner-shape:rounded-[50%]" />
       </div>
