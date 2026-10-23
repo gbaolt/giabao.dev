@@ -53,32 +53,6 @@ The application should now be available at `https://gbaolt.localhost`.
 
 In development, `/resume.pdf` renders from the current MDX and PDF components on each request. Refresh `/resume` after editing content or PDF styles. Production continues serving the static PDF generated before `next build`.
 
-## Production delivery
-
-Cloudflare hosts DNS. The apex `giabao.dev` A record points to Vercel at
-`216.198.79.1` with the proxy disabled (DNS only). Vercel handles HTTPS and the
-Next.js CDN cache, including HTML/RSC variants and invalidation. Keep the
-framework's `Cache-Control` and `Vary` headers; do not add a Cloudflare HTML cache
-rule or replace them with a shared `s-maxage`.
-
-On October 22, 2026, five interleaved homepage GETs had median TTFB of 660 ms
-through Cloudflare and 116 ms directly to Vercel. All returned 200 and a Vercel
-cache hit. The direct range was 104–1,422 ms, so this is a local comparison,
-not a guaranteed saving for every visitor. This follows
-[Vercel's Cloudflare guidance](https://vercel.com/kb/guide/cloudflare-with-vercel).
-
-`www.giabao.dev` remains proxied: its direct Vercel certificate failed validation
-as expired during the check. Renew and validate that certificate before changing
-its proxy setting. `assets.giabao.dev` remains proxied for its R2 custom domain.
-The apex uses Vercel's edge protection; Cloudflare WAF rules no longer apply to
-that hostname.
-
-After changing DNS, verify HTTPS, the homepage, `/blog`, and an RSC request
-(`RSC: 1` with a fresh `_rsc` query). HTML must return `text/html`; RSC must return
-`text/x-component`, with its framework cache policy intact. To roll back, enable
-the Cloudflare proxy on the existing apex A record without changing its address,
-MX or TXT records. A Git revert alone does not change DNS.
-
 ## Building for Production
 
 ```bash
