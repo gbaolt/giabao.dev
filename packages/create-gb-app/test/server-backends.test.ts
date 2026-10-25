@@ -29,6 +29,8 @@ describe('server module format', () => {
   test.each([
     ['nest', 'postgres'],
     ['hono', 'sqlite'],
+    ['nest', 'none'],
+    ['hono', 'none'],
   ] as const)(
     '%s with database %s gives every relative specifier a .js extension',
     (backend, database) => {

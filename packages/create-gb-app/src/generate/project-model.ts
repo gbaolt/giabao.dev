@@ -205,9 +205,7 @@ export function applyServerModuleFormat(
   stack: Stack,
   layout: ProjectLayout
 ): void {
-  // Server backends without a database keep bare specifiers (#251 story 2).
   if (stack.backend !== 'nest' && stack.backend !== 'hono') return;
-  if (stack.database === 'none') return;
   for (const [path, source] of Object.entries(files)) {
     if (!path.startsWith(`${layout.serverSourceRoot}/`) || !path.endsWith('.ts'))
       continue;
