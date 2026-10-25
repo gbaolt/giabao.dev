@@ -2,6 +2,7 @@ import type { EmitCtx } from '../../types/generate';
 import loginSource from '../assets/login/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { fillTemplate } from '../template-tokens';
 import { startOrpcLoginRoute } from './start-orpc-auth';
 
 export function emitLogin(ctx: EmitCtx): void {
@@ -32,7 +33,7 @@ export function emitLogin(ctx: EmitCtx): void {
   setFile(
     ctx.files,
     `${sourceRoot}components/login-form.tsx`,
-    loginSource.forms[ctx.stack.addons.form].replaceAll('__UI_PREFIX__', ui)
+    fillTemplate(loginSource.forms[ctx.stack.addons.form], { UI_PREFIX: ui })
   );
 
   const page = isNext
@@ -49,6 +50,6 @@ export function emitLogin(ctx: EmitCtx): void {
       ctx.stack.frontend === 'tanstack-start' &&
       ctx.stack.api === 'orpc'
       ? startOrpcLoginRoute(projectNameLiteral)
-      : page.replaceAll('__PROJECT_NAME__', projectNameLiteral)
+      : fillTemplate(page, { PROJECT_NAME: projectNameLiteral })
   );
 }

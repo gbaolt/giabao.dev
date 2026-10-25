@@ -1,6 +1,6 @@
 'use client';
 import type { ComponentProps } from 'react';
-import { Input } from '@/components/ui/input';
+import { Input } from '__UI_PREFIX__input';
 import { useFieldContext } from './contexts';
 import { FormBase, type FormControlProps } from './form-base';
 

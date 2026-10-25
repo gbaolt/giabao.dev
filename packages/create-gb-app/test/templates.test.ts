@@ -29,6 +29,7 @@ async function withTemplates(run: (root: string) => Promise<void>) {
       'login/forms/none.tsx': "const prefix = '__UI_PREFIX__';\n",
       'login/pages/next.tsx': 'const name = __PROJECT_NAME__;\n',
       'next/next-env.template.d.ts': '/// <reference types="next" />\n',
+      'styles/globals.css': '@import "tailwindcss";\n',
     })) {
       const target = join(root, 'templates', path);
       await mkdir(dirname(target), { recursive: true });
@@ -66,6 +67,9 @@ test('template generation preserves source text and existing asset shapes', asyn
     expect(await asset('next/source.json')).toEqual({
       'next-env.d.ts': '/// <reference types="next" />\n',
     });
+    expect(await asset('styles/source.json')).toEqual({
+      'globals.css': '@import "tailwindcss";\n',
+    });
   });
 });
 
@@ -100,6 +104,7 @@ const assetPaths = [
   'forms/formatted-source.json',
   'login/source.json',
   'next/source.json',
+  'styles/source.json',
 ];
 
 async function assetState(root: string) {

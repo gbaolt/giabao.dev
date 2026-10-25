@@ -6,6 +6,7 @@ import {
 } from '../assets/forms/source';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { fillTemplate } from '../template-tokens';
 
 export function emitForms(ctx: EmitCtx): void {
   if (ctx.stack.addons.form === 'none') return;
@@ -34,12 +35,14 @@ export function emitForms(ctx: EmitCtx): void {
       JSON.stringify(manifest, null, 2)
     );
 
-  const adapt = (source: string) =>
+  const tokens =
     ctx.layout.structure === 'single'
-      ? source
-      : source
-          .replaceAll('@/components/ui/', '@repo/ui/')
-          .replaceAll('@/lib/note-validation', '@repo/validation');
+      ? {
+          UI_PREFIX: '@/components/ui/',
+          NOTE_VALIDATION: '@/lib/note-validation',
+        }
+      : { UI_PREFIX: '@repo/ui/', NOTE_VALIDATION: '@repo/validation' };
+  const adapt = (source: string) => fillTemplate(source, tokens);
   for (const [name, source] of Object.entries(assets))
     setFile(ctx.files, sourceRoot + 'components/form/' + name, adapt(source));
   setFile(
