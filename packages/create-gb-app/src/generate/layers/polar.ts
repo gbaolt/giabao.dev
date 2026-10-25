@@ -1,5 +1,6 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
+import { addDependencies } from '../project-model';
 import { emitPortalPage } from './portal';
 
 const POLAR_PLUGIN = `polar({
@@ -8,8 +9,10 @@ const POLAR_PLUGIN = `polar({
     })`;
 
 export function emitPolar(ctx: EmitCtx): void {
-  ctx.pkg.dependencies['@polar-sh/better-auth'] =
-    DEPENDENCY_VERSIONS['@polar-sh/better-auth'];
+  // The plugin belongs with the auth file: the server workspace or the app.
+  addDependencies(ctx.project, ctx.layout.backendManifest ?? 'package.json', {
+    '@polar-sh/better-auth': DEPENDENCY_VERSIONS['@polar-sh/better-auth'],
+  });
   emitPortalPage(
     ctx,
     `    <main>

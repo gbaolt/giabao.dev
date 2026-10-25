@@ -11,6 +11,26 @@ function build(flags: RawFlags) {
   });
 }
 
+for (const [flags, manifest] of [
+  [{}, 'package.json'],
+  [{ backend: 'nest' }, 'apps/server/package.json'],
+  [{ backend: 'hono', frontend: 'tanstack-start' }, 'apps/server/package.json'],
+  [{ structure: 'monorepo', backend: 'self' }, 'apps/web/package.json'],
+] satisfies [RawFlags, string][]) {
+  test(`Polar depends on its Better Auth plugin in ${manifest} for ${JSON.stringify(flags)}`, () => {
+    const files = build({ ...flags, auth: 'better-auth', payments: 'polar' });
+    const owners = Object.entries(files)
+      .filter(([path]) => path.endsWith('package.json'))
+      .filter(
+        ([, source]) =>
+          '@polar-sh/better-auth' in (JSON.parse(source).dependencies ?? {})
+      )
+      .map(([path]) => path);
+
+    expect(owners).toEqual([manifest]);
+  });
+}
+
 for (const payments of ['stripe', 'polar'] as const)
   for (const [flags, path] of [
     [{ frontend: 'tanstack-start', api: 'trpc' }, 'src/routes/portal.tsx'],
