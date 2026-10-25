@@ -1,6 +1,5 @@
 import type { EmitCtx } from '../../types/generate';
 import nextSource from '../assets/next/source.json';
-import stylesSource from '../assets/styles/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 import { joinPath } from '../layout';
@@ -52,8 +51,6 @@ export function emitNext(ctx: EmitCtx): void {
 
   setFile(ctx.files, web('next-env.d.ts'), nextSource['next-env.d.ts']);
   setFile(ctx.files, web('global.d.ts'), nextSource['global.d.ts']);
-
-  setFile(ctx.files, layout.stylesFile, stylesSource['globals.css']);
 
   const rootLayout = fillTemplate(nextSource['app/layout.tsx'], {
     PROJECT_NAME: ctx.projectName,

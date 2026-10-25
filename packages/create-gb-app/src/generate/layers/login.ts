@@ -15,9 +15,12 @@ export function emitLogin(ctx: EmitCtx): void {
   const pagePath = isNext
     ? `${webRoot}app/login/page.tsx`
     : `${sourceRoot}routes/login.tsx`;
-  // A separate server never renders pages, so the web app always owns login.
-  if (!(pagePath in ctx.files) && ctx.layout.backendRoot !== 'apps/server')
-    return;
+  // A separate server never renders pages, so its web app always owns login;
+  // a Self Start app only signs in through its oRPC routes.
+  const ownsPage =
+    ctx.layout.backendRoot === 'apps/server' ||
+    (ctx.stack.backend === 'self' && (isNext || ctx.stack.api === 'orpc'));
+  if (!ownsPage) return;
 
   addDependencies(ctx.project, ctx.layout.frontendManifest, {
     'lucide-react': DEPENDENCY_VERSIONS['lucide-react'],

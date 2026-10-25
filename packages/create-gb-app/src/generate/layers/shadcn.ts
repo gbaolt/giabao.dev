@@ -1,7 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import shadcnSource from '../assets/shadcn/formatted-source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
-import { setFile, setFileIfAbsent } from '../files';
+import { setFile } from '../files';
 import { type DocumentWrapper, manifestSections } from '../project-model';
 
 export function emitShadcn(ctx: EmitCtx): void {
@@ -35,7 +35,7 @@ export function emitShadcn(ctx: EmitCtx): void {
   config.tailwind.css = css;
   setFile(ctx.files, 'components.json', JSON.stringify(config, null, 2));
 
-  setFile(ctx.files, css, shadcnSource['app/globals.css']);
+  setFile(ctx.files, css, appStyles(ctx, shadcnSource['app/globals.css']));
 
   setFile(
     ctx.files,
@@ -67,16 +67,14 @@ export function emitShadcn(ctx: EmitCtx): void {
     setFile(ctx.files, `${root}${path}`, shadcnSource[path]);
   }
 
-  if (ctx.stack.frontend === 'next') {
-    setFile(
-      ctx.files,
-      `${root}components/theme-provider.tsx`,
-      shadcnSource['components/theme-provider.tsx']
-    );
+  setFile(
+    ctx.files,
+    `${root}components/theme-provider.tsx`,
+    shadcnSource['components/theme-provider.tsx']
+  );
+  if (ctx.stack.frontend === 'next')
     ctx.project.documentWrappers.push(nextThemeWrapper('@/lib/utils'));
-  } else {
-    emitStartTheme(ctx, root, ctx.pkg.dependencies);
-  }
+  else emitStartTheme(ctx, ctx.pkg.dependencies);
 }
 
 function emitSharedShadcn(ctx: EmitCtx): void {
@@ -145,7 +143,7 @@ function emitSharedShadcn(ctx: EmitCtx): void {
     '@custom-variant dark (&:is(.dark *));\n@source "../../../../apps/**/*.{ts,tsx}";\n@source "../**/*.{ts,tsx}";'
   );
   setFile(ctx.files, sharedCss, css);
-  setFile(ctx.files, webCss, '@import "@repo/ui/globals.css";\n');
+  setFile(ctx.files, webCss, appStyles(ctx, '@import "@repo/ui/globals.css";\n'));
 
   const appConfig = JSON.parse(shadcnSource['components.json']) as {
     rsc: boolean;
@@ -217,72 +215,34 @@ function emitSharedShadcn(ctx: EmitCtx): void {
     shadcnSource['components/theme-provider.tsx']
   );
   if (isNext) {
-    setFileIfAbsent(
-      ctx.files,
-      `${webRoot}tsconfig.json`,
-      JSON.stringify(
-        {
-          compilerOptions: {
-            target: 'ES2017',
-            lib: ['DOM', 'DOM.Iterable', 'ESNext'],
-            allowJs: true,
-            skipLibCheck: true,
-            strict: true,
-            noEmit: true,
-            esModuleInterop: true,
-            module: 'ESNext',
-            moduleResolution: 'Bundler',
-            resolveJsonModule: true,
-            isolatedModules: true,
-            jsx: 'preserve',
-            incremental: true,
-            plugins: [{ name: 'next' }],
-            paths: { '@/*': ['./*'] },
-          },
-          include: [
-            'next-env.d.ts',
-            '**/*.ts',
-            '**/*.tsx',
-            '.next/types/**/*.ts',
-          ],
-          exclude: ['node_modules'],
-        },
-        null,
-        2
-      )
-    );
     ctx.project.documentWrappers.push(nextThemeWrapper('@repo/ui/utils'));
   } else {
-    emitStartTheme(ctx, webSourceRoot, webPackage.dependencies);
+    emitStartTheme(ctx, webPackage.dependencies);
   }
 }
 
 function emitStartTheme(
   ctx: EmitCtx,
-  root: string,
   dependencies: Record<string, string>
 ): void {
   dependencies['@fontsource-variable/geist'] =
     DEPENDENCY_VERSIONS['@fontsource-variable/geist'];
   dependencies['@fontsource-variable/geist-mono'] =
     DEPENDENCY_VERSIONS['@fontsource-variable/geist-mono'];
-  setFile(
-    ctx.files,
-    `${root}components/theme-provider.tsx`,
-    shadcnSource['components/theme-provider.tsx']
-  );
   ctx.project.documentWrappers.push({
     imports: 'import { ThemeProvider } from "../components/theme-provider";\n',
     component: 'ThemeProvider',
     htmlAttributes: ['className="font-sans antialiased"', 'suppressHydrationWarning'],
   });
-  const cssPath = ctx.layout.stylesFile;
-  setFile(
-    ctx.files,
-    cssPath,
+}
+
+/** The app stylesheet; Start loads the Geist fonts that Next gets from next/font. */
+function appStyles(ctx: EmitCtx, css: string): string {
+  if (ctx.stack.frontend === 'next') return css;
+  return (
     '@import "@fontsource-variable/geist";\n@import "@fontsource-variable/geist-mono";\n' +
-      ctx.files[cssPath] +
-      '\n@theme inline {\n  --font-sans: "Geist Variable", sans-serif;\n  --font-mono: "Geist Mono Variable", monospace;\n}\n'
+    (css.endsWith('\n') ? css : `${css}\n`) +
+    '\n@theme inline {\n  --font-sans: "Geist Variable", sans-serif;\n  --font-mono: "Geist Mono Variable", monospace;\n}\n'
   );
 }
 

@@ -71,7 +71,11 @@ function emitServer(ctx: EmitCtx, stack: HonoStack, dep: string): void {
     devDependencies,
   });
 
-  setFile(ctx.files, 'apps/server/src/index.ts', serverEntry(stack));
+  setFile(
+    ctx.files,
+    'apps/server/src/index.ts',
+    'import "./env.js";\n' + serverEntry(stack)
+  );
 }
 
 function serverEntry(stack: HonoStack): string {

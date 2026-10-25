@@ -261,7 +261,17 @@ export function writeServerManifest(
     private: true,
     type: 'module',
     ...manifest,
+    dependencies: {
+      ...manifest.dependencies,
+      dotenv: DEPENDENCY_VERSIONS.dotenv,
+    },
   };
+  // Each entry imports this first, so env files load before any module reads them.
+  setFile(
+    ctx.files,
+    'apps/server/src/env.ts',
+    "import { config } from 'dotenv';\n\nconfig({ path: ['.env.local', '.env'] });\n"
+  );
 }
 
 function emitLinter(ctx: EmitCtx): void {

@@ -14,19 +14,6 @@ export function prepareWorkspaceTasks(ctx: EmitCtx) {
       const dir = path.slice(0, -'/package.json'.length);
       manifest.scripts ??= {};
       manifest.devDependencies ??= {};
-      if (dir === 'apps/server') {
-        manifest.dependencies ??= {};
-        manifest.dependencies.dotenv = DEPENDENCY_VERSIONS.dotenv;
-        setFile(
-          ctx.files,
-          dir + '/src/env.ts',
-          "import { config } from 'dotenv';\n\nconfig({ path: ['.env.local', '.env'] });\n"
-        );
-        const entry =
-          dir +
-          (ctx.stack.backend === 'nest' ? '/src/main.ts' : '/src/index.ts');
-        setFile(ctx.files, entry, 'import "./env.js";\n' + ctx.files[entry]);
-      }
       const typed = ctx.files[dir + '/tsconfig.json'] !== undefined;
       const hasSource = Object.keys(ctx.files).some(
         (file) => file.startsWith(dir + '/') && /\.[jt]sx?$/.test(file)

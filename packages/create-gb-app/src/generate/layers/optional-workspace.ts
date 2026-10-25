@@ -28,18 +28,13 @@ export function emitOptionalWorkspace(
   });
   (web.devDependencies ??= {})['@repo/typescript-config'] = protocol;
 
-  for (const [path, contents] of Object.entries(single)) {
-    const source = contents.replace(
-      /(["'])(?:@\/|(?:\.\.\/)+)components\/ui\/([^"']+)\1/g,
-      '"@repo/ui/$2"'
+  for (const [path, contents] of Object.entries(single))
+    setFile(
+      ctx.files,
+      `${ctx.layout.frontendRoot}/${path}`,
+      toWorkspaceSource(path, contents)
     );
-    setFile(ctx.files, `${ctx.layout.frontendRoot}/${path}`, source);
-  }
   ctx.project.manifests[ctx.layout.frontendManifest] = web;
-  const tsconfigPath = `${ctx.layout.frontendRoot}/tsconfig.json`;
-  const tsconfig = JSON.parse(ctx.files[tsconfigPath]);
-  tsconfig.extends = '@repo/typescript-config/base.json';
-  setFile(ctx.files, tsconfigPath, JSON.stringify(tsconfig, null, 2));
 
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
   ctx.project.manifests['packages/typescript-config/package.json'] = {
@@ -81,18 +76,6 @@ export function emitOptionalWorkspace(
     `${ctx.layout.libDir}/note-validation.ts`,
     'export { noteInputSchema, type NoteInput } from "@repo/validation";\n'
   );
-  if (ctx.stack.backend === 'convex') {
-    const convexNotes = `${ctx.layout.backendRoot}/notes.ts`;
-    const notes = ctx.files[convexNotes];
-    setFile(
-      ctx.files,
-      convexNotes,
-      notes.replace(
-        /from "\.\.\/(?:src\/)?lib\/note-validation"/,
-        'from "@repo/validation"'
-      )
-    );
-  }
   const convexSetup =
     ctx.stack.backend === 'convex'
       ? '\n\nRun the root convex:dev task first to configure a deployment, generate apps/web/convex/_generated, and write apps/web/.env.local. Set NEXT_PUBLIC_CONVEX_URL for Next.js or VITE_CONVEX_URL for Start to the deployment URL. Keep convex:dev running alongside the root dev task. Run convex:codegen after function changes when needed. The app cannot typecheck before codegen. If Clerk is selected, configure its convex JWT template and set CLERK_JWT_ISSUER_DOMAIN in the Convex deployment environment. Live deployment setup requires your own Convex account.'
@@ -102,4 +85,24 @@ export function emitOptionalWorkspace(
     'configuration-notes',
     `The fullstack web application lives in apps/web. Shared UI, domain validation, and TypeScript configuration live in packages. Run the root dev task to start the app; shared validation builds first. Database tasks delegate to the web application and use its local environment and schema.${convexSetup}`
   );
+}
+
+/** Rewrites one file of the inner single app for its place in apps/web. */
+function toWorkspaceSource(path: string, contents: string): string {
+  if (path === 'tsconfig.json')
+    return JSON.stringify(
+      { ...JSON.parse(contents), extends: '@repo/typescript-config/base.json' },
+      null,
+      2
+    );
+  const source = contents.replace(
+    /(["'])(?:@\/|(?:\.\.\/)+)components\/ui\/([^"']+)\1/g,
+    '"@repo/ui/$2"'
+  );
+  return path === 'convex/notes.ts'
+    ? source.replace(
+        /from "\.\.\/(?:src\/)?lib\/note-validation"/,
+        'from "@repo/validation"'
+      )
+    : source;
 }

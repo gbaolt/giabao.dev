@@ -1,7 +1,6 @@
 import type { Stack } from '#/types/stack';
 
 import type { EmitCtx } from '../../types/generate';
-import stylesSource from '../assets/styles/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 import { joinPath } from '../layout';
@@ -52,12 +51,11 @@ export function emitStart(ctx: EmitCtx): void {
         )
   );
   setFile(ctx.files, web('vite.config.ts'), startViteConfig());
-  setFile(ctx.files, layout.stylesFile, stylesSource['globals.css']);
-  setFile(ctx.files, joinPath(layout.sourceRoot, 'router.tsx'), startRouter());
-  const rootRoute = startRootRoute(
-    ctx.projectName,
-    ctx.stack.backend === 'self' && ctx.stack.api === 'orpc'
-  );
+  const orpc = ctx.stack.backend === 'self' && ctx.stack.api === 'orpc';
+  // The Start oRPC module writes a router with its query client instead.
+  if (!orpc)
+    setFile(ctx.files, joinPath(layout.sourceRoot, 'router.tsx'), startRouter());
+  const rootRoute = startRootRoute(ctx.projectName, orpc);
   setRootDocument(ctx.project, (wrappers) => {
     const attributes = wrappers.flatMap((wrapper) => wrapper.htmlAttributes);
     let source =

@@ -1,13 +1,14 @@
 import type { Stack } from '#/types/stack';
 
 import type {
+  EmitCtx,
   FileMap,
   GenerateContext,
   PackageJsonShape,
 } from '../types/generate';
 import { emitTurborepo } from './addons/turborepo';
 import { GenerateError } from './errors';
-import { setFile } from './files';
+import { setFile, writeOnceFiles } from './files';
 import { emitBetterAuth } from './layers/better-auth';
 import { emitClerk } from './layers/clerk';
 import { emitConvex } from './layers/convex';
@@ -140,7 +141,8 @@ function buildProject(
   stack: Stack,
   ctx: GenerateContext,
   foundations: boolean,
-  project: ProjectModel
+  project: ProjectModel,
+  arrange: ArrangeFeatures
 ): FileMap {
   const files: FileMap = {};
   const pkg: PackageJsonShape = {
@@ -153,7 +155,14 @@ function buildProject(
   };
   const layout = projectLayout(stack);
   project.manifests['package.json'] = pkg;
-  const emitCtx = { ...ctx, files, pkg, stack, layout, project };
+  const emitCtx: EmitCtx = {
+    ...ctx,
+    files: writeOnceFiles(files),
+    pkg,
+    stack,
+    layout,
+    project,
+  };
 
   if (stack.structure === 'single') {
     switch (stack.backend) {
@@ -191,7 +200,13 @@ function buildProject(
           // The monorepo writes its own README notes over the inner app's,
           // and the inner app's manifest becomes the web workspace's.
           const inner = { ...project, ...appCollections() };
-          const innerFiles = buildProject(singleStack, context, false, inner);
+          const innerFiles = buildProject(
+            singleStack,
+            context,
+            false,
+            inner,
+            arrange
+          );
           // Its providers and root document render with the web app's wrappers.
           project.providers = inner.providers;
           project.rootDocument = inner.rootDocument;
@@ -208,28 +223,35 @@ function buildProject(
     }
   }
 
+  const features: EmitModule[] = [];
   // Self and Convex monorepos ran these inside their single-app build.
   if (stack.structure === 'single' || layout.backendRoot === 'apps/server') {
-    emitAuth(stack, emitCtx);
-    emitPayments(stack, emitCtx);
+    features.push(
+      (feature) => emitAuth(stack, feature),
+      (feature) => emitPayments(stack, feature)
+    );
     // The server workspace already chose the linter for every server backend.
-    if (stack.structure === 'single') emitLinter(stack, emitCtx);
-    emitNotes(emitCtx);
+    if (stack.structure === 'single')
+      features.push((feature) => emitLinter(stack, feature));
+    features.push(emitNotes);
   }
-
-  if (foundations) {
-    emitUi(stack, emitCtx);
-    emitValidation(emitCtx);
-    emitForms(emitCtx);
-    emitLogin(emitCtx);
-    finalizeDatabaseSetup(emitCtx);
-  }
+  if (foundations)
+    features.push(
+      (feature) => emitUi(stack, feature),
+      emitValidation,
+      emitForms,
+      emitLogin,
+      finalizeDatabaseSetup
+    );
+  for (const emit of arrange(features)) emit(emitCtx);
 
   if (stack.structure === 'monorepo') {
-    const workspaces = prepareWorkspaceTasks(emitCtx);
+    // Workspace tasks read the whole tree, so they run once every module wrote.
+    const treeCtx = { ...emitCtx, files };
+    const workspaces = prepareWorkspaceTasks(treeCtx);
     if (stack.addons.taskRunner === 'turborepo')
-      emitTurborepo(emitCtx, workspaces);
-    else emitPlainWorkspace(emitCtx, workspaces);
+      emitTurborepo(treeCtx, workspaces);
+    else emitPlainWorkspace(treeCtx, workspaces);
   }
 
   if (!foundations) {
@@ -259,7 +281,20 @@ function buildProject(
   return files;
 }
 
+type EmitModule = (ctx: EmitCtx) => void;
+
+/** Orders the feature emit modules; tests shuffle them to prove order does not matter. */
+export type ArrangeFeatures = (modules: EmitModule[]) => EmitModule[];
+
 export function buildTree(stack: Stack, ctx: GenerateContext): FileMap {
+  return buildTreeArranged(stack, ctx, (modules) => modules);
+}
+
+export function buildTreeArranged(
+  stack: Stack,
+  ctx: GenerateContext,
+  arrange: ArrangeFeatures
+): FileMap {
   validateStartOrpc(stack);
-  return buildProject(stack, ctx, true, createProjectModel());
+  return buildProject(stack, ctx, true, createProjectModel(), arrange);
 }

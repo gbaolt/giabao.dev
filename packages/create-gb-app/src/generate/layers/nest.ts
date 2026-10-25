@@ -84,7 +84,8 @@ function emitServer(ctx: EmitCtx, stack: NestStack, dep: string): void {
   setFile(
     ctx.files,
     'apps/server/src/main.ts',
-    `import "reflect-metadata";
+    `import "./env.js";
+import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 ${clerk ? 'import { clerkMiddleware } from "@clerk/express";\n' : ''}import { AppModule } from "./app.module.js";
 
