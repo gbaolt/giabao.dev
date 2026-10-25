@@ -1,6 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { addReadmeSection } from '../project-model';
 
 export function emitConvex(ctx: EmitCtx): void {
   const isNext = ctx.stack.frontend === 'next';
@@ -63,9 +64,9 @@ export function Providers({ children }: { children: ReactNode }) {
 }
 `
     );
-  setFile(
-    ctx.files,
-    'README.md',
-    `# ${ctx.projectName}\n\nRun convex:dev to configure your own deployment and generate convex/_generated before typechecking or starting the frontend. Keep convex:dev running alongside dev. Set ${isNext ? 'NEXT_PUBLIC_CONVEX_URL' : 'VITE_CONVEX_URL'} in .env.local to your deployment URL. Run convex:codegen when generated APIs need refreshing. ${authed ? 'Configure the Clerk convex JWT template and set CLERK_JWT_ISSUER_DOMAIN in the Convex deployment environment.' : 'Without authentication, Notes are shared by all users.'}\n`
+  addReadmeSection(
+    ctx.project,
+    'configuration-notes',
+    `Run convex:dev to configure your own deployment and generate convex/_generated before typechecking or starting the frontend. Keep convex:dev running alongside dev. Set ${isNext ? 'NEXT_PUBLIC_CONVEX_URL' : 'VITE_CONVEX_URL'} in .env.local to your deployment URL. Run convex:codegen when generated APIs need refreshing. ${authed ? 'Configure the Clerk convex JWT template and set CLERK_JWT_ISSUER_DOMAIN in the Convex deployment environment.' : 'Without authentication, Notes are shared by all users.'}`
   );
 }

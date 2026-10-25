@@ -184,7 +184,11 @@ function buildProject(
       case 'self':
       case 'convex':
         emitOptionalWorkspace(emitCtx, (singleStack, context) =>
-          buildProject(singleStack, context, false, project)
+          // The monorepo writes its own README notes over the inner app's.
+          buildProject(singleStack, context, false, {
+            ...project,
+            readmeSections: {},
+          })
         );
         break;
       default:
@@ -235,7 +239,8 @@ export function Providers({ children }: { children: ReactNode }) {
   finalizeWorkspaces(files, ctx.packageManager);
   if (foundations) {
     Object.assign(files, renderProject(project));
-    setFile(files, 'README.md', generateReadme(stack, ctx, files, pkg));
+    setFile(files, 'README.md', generateReadme(stack, ctx, files, pkg, project.readmeSections)
+    );
   }
   return files;
 }

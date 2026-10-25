@@ -2,6 +2,7 @@ import type { EmitCtx, FileMap, GenerateContext } from '../../types/generate';
 import type { Stack } from '../../types/stack';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { addReadmeSection } from '../project-model';
 import { workspaceProtocol } from '../workspace-protocol';
 
 export function emitOptionalWorkspace(
@@ -24,7 +25,7 @@ export function emitOptionalWorkspace(
   web.devDependencies['@repo/typescript-config'] = protocol;
 
   for (const [path, contents] of Object.entries(single)) {
-    if (path === 'package.json' || path === 'README.md') continue;
+    if (path === 'package.json') continue;
     const source = contents.replace(
       /(["'])(?:@\/|(?:\.\.\/)+)components\/ui\/([^"']+)\1/g,
       '"@repo/ui/$2"'
@@ -107,11 +108,11 @@ export function emitOptionalWorkspace(
   }
   const convexSetup =
     ctx.stack.backend === 'convex'
-      ? '\nRun the root convex:dev task first to configure a deployment, generate apps/web/convex/_generated, and write apps/web/.env.local. Set NEXT_PUBLIC_CONVEX_URL for Next.js or VITE_CONVEX_URL for Start to the deployment URL. Keep convex:dev running alongside the root dev task. Run convex:codegen after function changes when needed. The app cannot typecheck before codegen. If Clerk is selected, configure its convex JWT template and set CLERK_JWT_ISSUER_DOMAIN in the Convex deployment environment. Live deployment setup requires your own Convex account.\n'
+      ? '\n\nRun the root convex:dev task first to configure a deployment, generate apps/web/convex/_generated, and write apps/web/.env.local. Set NEXT_PUBLIC_CONVEX_URL for Next.js or VITE_CONVEX_URL for Start to the deployment URL. Keep convex:dev running alongside the root dev task. Run convex:codegen after function changes when needed. The app cannot typecheck before codegen. If Clerk is selected, configure its convex JWT template and set CLERK_JWT_ISSUER_DOMAIN in the Convex deployment environment. Live deployment setup requires your own Convex account.'
       : '';
-  setFile(
-    ctx.files,
-    'README.md',
-    `# ${ctx.projectName}\n\nThe fullstack web application lives in apps/web. Shared UI, domain validation, and TypeScript configuration live in packages. Run the root dev task to start the app; shared validation builds first. Database tasks delegate to the web application and use its local environment and schema.\n${convexSetup}`
+  addReadmeSection(
+    ctx.project,
+    'configuration-notes',
+    `The fullstack web application lives in apps/web. Shared UI, domain validation, and TypeScript configuration live in packages. Run the root dev task to start the app; shared validation builds first. Database tasks delegate to the web application and use its local environment and schema.${convexSetup}`
   );
 }
