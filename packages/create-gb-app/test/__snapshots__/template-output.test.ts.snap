@@ -1067,7 +1067,7 @@ exports[`template migration preserves nest-orpc-clerk output 1`] = `
   "apps/server/src/db.ts": "20b9c868e29dcdfddc9b849612a93980eecd1f2278060fb63c2368c05e7ea02d",
   "apps/server/src/env.ts": "6565d91183cee64fa82b06c469050b30ca9fed9053ae4870c601eee1d3e29e07",
   "apps/server/src/main.ts": "3446dc4615520d19daae24d2a39df0fd2af66a03b5f91d9b27167c98a4368309",
-  "apps/server/src/notes.controller.ts": "1949c6cbd3737d71f4849372a768a12be8a40c00e47cbe4f5143151fc95b12ab",
+  "apps/server/src/notes.controller.ts": "d354e38ce7156c017f3dc14a4b4ee85a6fb17197597082c43331a3625e84fdd0",
   "apps/server/tsconfig.json": "d241593794a0cc618cd59406f5460497426bb020a149ee18d095e4f3e1d093c1",
   "apps/web/.env": "7d24a924c1df54613f6f74be256a8c6b22fdfa0c4ce050bf1c6373bea93a3808",
   "apps/web/.env.example": "7d24a924c1df54613f6f74be256a8c6b22fdfa0c4ce050bf1c6373bea93a3808",

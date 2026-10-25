@@ -54,6 +54,21 @@ describe('server module format', () => {
 });
 
 describe('server backend regressions', () => {
+  test.each(['nest', 'hono'] as const)(
+    '%s Clerk oRPC me returns every contract user field',
+    (backend) => {
+      const files = build({ backend, api: 'orpc', auth: 'clerk' });
+      const server =
+        files['apps/server/src/notes.controller.ts'] ??
+        files['apps/server/src/orpc.ts'];
+
+      expect(files['packages/contract/src/contract.ts']).toContain(
+        'const UserSchema = z.object({\n  id: z.string(),\n  email: z.string(),\n  name: z.string(),\n});'
+      );
+      expect(server).toContain('email: "user@example.com", name: "User" }');
+    }
+  );
+
   test.each(['sqlite', 'mysql'] as const)(
     'Nest Better Auth uses the %s Prisma provider',
     (database) => {

@@ -234,7 +234,7 @@ export class NotesController {
     return implement(contract.me)
       .$context<{ request: Request }>()
       .handler(async ({ context }) => {
-        return { id: requireUserId(context.request) };
+        return { id: requireUserId(context.request), email: "user@example.com", name: "User" };
       });
   }
 
