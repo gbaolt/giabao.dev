@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 
+import { buildTree } from '#/generate/build-tree';
 import { DEPENDENCY_VERSIONS } from '#/generate/dependency-versions';
 import { emitBetterAuth } from '#/generate/layers/better-auth';
 import { emitNext } from '#/generate/layers/next';
@@ -234,6 +235,29 @@ test('renders the generated database setup without hosted guidance', () => {
   expect(readme).toContain('## Database setup\n\nSet the database connection');
   expect(readme).not.toContain('## Configuration notes');
 });
+
+function build(flags: RawFlags) {
+  return buildTree(resolveStack(flags), {
+    projectName: 'model-app',
+    packageManager: 'bun',
+  });
+}
+
+for (const flags of [
+  {},
+  { backend: 'nest' },
+  { structure: 'monorepo', backend: 'self' },
+] satisfies RawFlags[]) {
+  test(`ends every manifest with a newline for ${JSON.stringify(flags)}`, () => {
+    const manifests = Object.entries(build(flags)).filter(([path]) =>
+      path.endsWith('package.json')
+    );
+
+    expect(manifests.length).toBeGreaterThan(0);
+    for (const [path, source] of manifests)
+      expect([path, source.endsWith('}\n')]).toEqual([path, true]);
+  });
+}
 
 test('rejects a second writer of one README section', () => {
   const project = createProjectModel();

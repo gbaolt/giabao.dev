@@ -229,10 +229,8 @@ function renderManifests(
     for (const section of ['scripts', 'dependencies', 'devDependencies'] as const)
       if (manifest[section]) manifest[section] = sortRecord(manifest[section]);
   Object.assign(files, finalizeWorkspaces(manifests, packageManager));
-  // Workspace manifests have always shipped without a final newline.
-  const ending = manifests['package.json']?.workspaces ? '' : '\n';
   for (const [path, manifest] of Object.entries(manifests))
-    files[path] = JSON.stringify(manifest, null, 2) + ending;
+    files[path] = JSON.stringify(manifest, null, 2) + '\n';
 }
 
 function renderEnv(
