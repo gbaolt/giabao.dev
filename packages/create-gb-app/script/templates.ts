@@ -52,11 +52,6 @@ const FAMILIES: Readonly<Record<string, TemplateFamily>> = {
     // The authored name avoids the repository's ignore rule for Next's generated declaration file.
     rename: { 'next-env.template.d.ts': 'next-env.d.ts' },
   },
-  styles: {
-    asset: 'styles/source.json',
-    extensions: ['.css'],
-    directories: { '': {} },
-  },
 };
 
 async function readSources(root: string, prefix = '') {

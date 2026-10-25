@@ -38,8 +38,6 @@ path, allowed extensions and directories. Add a family or directory there.
 - `next/` preserves file paths in `src/generate/assets/next/source.json`, except
   `next-env.template.d.ts` becomes `next-env.d.ts`. Its authored name avoids the
   repository's ignore rule for Next's generated declaration file.
-- `styles/` preserves filenames in `src/generate/assets/styles/source.json`.
-  Next and TanStack Start share its global stylesheet.
 
 Unexpected files, directories and symlinks fail generation.
 
