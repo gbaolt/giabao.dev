@@ -2,12 +2,15 @@ import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 import { joinPath } from '../layout';
+import { manifestSections } from '../project-model';
 
 export function emitDrizzle(ctx: EmitCtx): void {
-  ctx.pkg.dependencies['drizzle-orm'] = DEPENDENCY_VERSIONS['drizzle-orm'];
-  ctx.pkg.devDependencies['drizzle-kit'] = DEPENDENCY_VERSIONS['drizzle-kit'];
-  ctx.pkg.scripts['db:generate'] = 'drizzle-kit generate';
-  ctx.pkg.scripts['db:push'] = 'drizzle-kit push';
+  // A server backend's database packages live in the server workspace.
+  const pkg = manifestSections(ctx.project, ctx.layout.backendManifest!);
+  pkg.dependencies['drizzle-orm'] = DEPENDENCY_VERSIONS['drizzle-orm'];
+  pkg.devDependencies['drizzle-kit'] = DEPENDENCY_VERSIONS['drizzle-kit'];
+  pkg.scripts['db:generate'] = 'drizzle-kit generate';
+  pkg.scripts['db:push'] = 'drizzle-kit push';
   const turso = ctx.stack.backend !== 'convex' && ctx.stack.dbSetup === 'turso';
   const planetscaleMysql =
     ctx.stack.backend !== 'convex' &&
@@ -18,8 +21,8 @@ export function emitDrizzle(ctx: EmitCtx): void {
     ctx.stack.database === 'postgres' &&
     (ctx.stack.dbSetup === 'planetscale' ||
       ctx.stack.dbSetup === 'prisma-postgres');
-  ctx.pkg.devDependencies.dotenv = DEPENDENCY_VERSIONS.dotenv;
-  if (turso) ctx.pkg.scripts['db:migrate'] = 'drizzle-kit migrate';
+  pkg.devDependencies.dotenv = DEPENDENCY_VERSIONS.dotenv;
+  if (turso) pkg.scripts['db:migrate'] = 'drizzle-kit migrate';
 
   const {
     envOwner,
@@ -36,15 +39,15 @@ export function emitDrizzle(ctx: EmitCtx): void {
         : 'postgres';
 
   if (turso) {
-    ctx.pkg.dependencies['@libsql/client'] =
+    pkg.dependencies['@libsql/client'] =
       DEPENDENCY_VERSIONS['@libsql/client'];
   } else if (driver === 'sqlite') {
-    ctx.pkg.dependencies['better-sqlite3'] =
+    pkg.dependencies['better-sqlite3'] =
       DEPENDENCY_VERSIONS['better-sqlite3'];
   } else if (driver === 'mysql') {
-    ctx.pkg.dependencies.mysql2 = DEPENDENCY_VERSIONS['mysql2'];
+    pkg.dependencies.mysql2 = DEPENDENCY_VERSIONS['mysql2'];
   } else {
-    ctx.pkg.dependencies.pg = DEPENDENCY_VERSIONS['pg'];
+    pkg.dependencies.pg = DEPENDENCY_VERSIONS['pg'];
   }
 
   const table =

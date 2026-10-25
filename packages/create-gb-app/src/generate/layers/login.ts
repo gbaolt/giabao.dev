@@ -2,6 +2,7 @@ import type { EmitCtx } from '../../types/generate';
 import loginSource from '../assets/login/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { addDependencies } from '../project-model';
 import { fillTemplate } from '../template-tokens';
 import { startOrpcLoginRoute } from './start-orpc-auth';
 
@@ -18,17 +19,9 @@ export function emitLogin(ctx: EmitCtx): void {
   if (!(pagePath in ctx.files) && ctx.layout.backendRoot !== 'apps/server')
     return;
 
-  if (ctx.layout.structure === 'single') {
-    ctx.pkg.dependencies['lucide-react'] = DEPENDENCY_VERSIONS['lucide-react'];
-  } else {
-    const manifest = JSON.parse(ctx.files[ctx.layout.frontendManifest]!);
-    manifest.dependencies['lucide-react'] = DEPENDENCY_VERSIONS['lucide-react'];
-    setFile(
-      ctx.files,
-      ctx.layout.frontendManifest,
-      JSON.stringify(manifest, null, 2)
-    );
-  }
+  addDependencies(ctx.project, ctx.layout.frontendManifest, {
+    'lucide-react': DEPENDENCY_VERSIONS['lucide-react'],
+  });
 
   const ui =
     ctx.layout.structure === 'single' ? '@/components/ui/' : '@repo/ui/';

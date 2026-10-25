@@ -1,6 +1,7 @@
-import type { EmitCtx, PackageJsonShape } from '../../types/generate';
+import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { addDependencies } from '../project-model';
 import { workspaceProtocol } from '../workspace-protocol';
 
 const noteValidationSource = `import { z } from 'zod';
@@ -14,13 +15,10 @@ export type NoteInput = z.infer<typeof noteInputSchema>;
 `;
 
 function addWorkspaceDependency(ctx: EmitCtx, path: string): void {
-  const source = ctx.files[path];
-  if (!source) {
-    return;
-  }
-  const pkg = JSON.parse(source) as PackageJsonShape;
-  pkg.dependencies['@repo/validation'] = workspaceProtocol(ctx.packageManager);
-  setFile(ctx.files, path, JSON.stringify(pkg, null, 2));
+  if (!ctx.project.manifests[path]) return;
+  addDependencies(ctx.project, path, {
+    '@repo/validation': workspaceProtocol(ctx.packageManager),
+  });
 }
 
 export function emitValidation(ctx: EmitCtx): void {
@@ -35,29 +33,21 @@ export function emitValidation(ctx: EmitCtx): void {
   }
 
   setFile(ctx.files, 'packages/validation/src/index.ts', noteValidationSource);
-  setFile(
-    ctx.files,
-    'packages/validation/package.json',
-    JSON.stringify(
-      {
-        name: '@repo/validation',
-        version: '0.0.0',
-        private: true,
-        type: 'module',
-        exports: {
-          '.': {
-            types: './dist/index.d.ts',
-            default: './dist/index.js',
-          },
-        },
-        scripts: { build: 'tsc -p tsconfig.json' },
-        dependencies: { zod: DEPENDENCY_VERSIONS['zod'] },
-        devDependencies: { typescript: DEPENDENCY_VERSIONS['typescript'] },
+  ctx.project.manifests['packages/validation/package.json'] = {
+    name: '@repo/validation',
+    version: '0.0.0',
+    private: true,
+    type: 'module',
+    exports: {
+      '.': {
+        types: './dist/index.d.ts',
+        default: './dist/index.js',
       },
-      null,
-      2
-    )
-  );
+    },
+    scripts: { build: 'tsc -p tsconfig.json' },
+    dependencies: { zod: DEPENDENCY_VERSIONS['zod'] },
+    devDependencies: { typescript: DEPENDENCY_VERSIONS['typescript'] },
+  };
   setFile(
     ctx.files,
     'packages/validation/tsconfig.json',

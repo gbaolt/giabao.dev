@@ -1,6 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
-import { addDependencies, setFile } from '../files';
+import { setFile } from '../files';
+import { addDependencies } from '../project-model';
 
 export function emitClerk(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex') {
@@ -22,10 +23,10 @@ export function emitClerk(ctx: EmitCtx): void {
       ctx.stack.frontend === 'next'
         ? '@clerk/nextjs'
         : '@clerk/tanstack-react-start';
-    addDependencies(ctx.files, ctx.layout.backendManifest!, {
+    addDependencies(ctx.project, ctx.layout.backendManifest!, {
       [serverSdk]: DEPENDENCY_VERSIONS[serverSdk],
     });
-    addDependencies(ctx.files, ctx.layout.frontendManifest, {
+    addDependencies(ctx.project, ctx.layout.frontendManifest, {
       [webSdk]: DEPENDENCY_VERSIONS[webSdk],
     });
     return;

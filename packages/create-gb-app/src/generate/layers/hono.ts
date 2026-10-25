@@ -49,14 +49,6 @@ function emitServer(ctx: EmitCtx, stack: HonoStack, dep: string): void {
     typescript: DEPENDENCY_VERSIONS['typescript'],
   };
 
-  if (stack.database !== 'none' && stack.orm === 'prisma') {
-    dependencies['@prisma/client'] = DEPENDENCY_VERSIONS['@prisma/client'];
-    devDependencies.prisma = DEPENDENCY_VERSIONS['prisma'];
-  }
-  if (stack.database !== 'none' && stack.orm === 'drizzle') {
-    dependencies['drizzle-orm'] = DEPENDENCY_VERSIONS['drizzle-orm'];
-    devDependencies['drizzle-kit'] = DEPENDENCY_VERSIONS['drizzle-kit'];
-  }
   if (stack.database !== 'none' && stack.api === 'orpc') {
     dependencies['@orpc/openapi'] = DEPENDENCY_VERSIONS['@orpc/openapi'];
     dependencies['@orpc/server'] = DEPENDENCY_VERSIONS['@orpc/server'];

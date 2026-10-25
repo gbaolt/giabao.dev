@@ -1,6 +1,6 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
-import { setFile, sortRecord } from '../files';
+import { setFile } from '../files';
 import { joinPath } from '../layout';
 import { workspaceProtocol } from '../workspace-protocol';
 import { emitBiome } from './biome';
@@ -47,7 +47,6 @@ export function emitServerWorkspace(
     '*.log'
   );
   emitTypescriptConfig(ctx);
-  emitDatabase(ctx);
   setFile(
     ctx.files,
     'apps/server/tsconfig.json',
@@ -64,6 +63,8 @@ export function emitServerWorkspace(
   }
   emitUiPackage(ctx, dep);
   adapter.emit(ctx, dep);
+  // The database adds its packages to the manifest the adapter registers.
+  emitDatabase(ctx);
   emitLinter(ctx);
 }
 
@@ -89,19 +90,7 @@ export function emitServerWebApp(
   const webCtx = { ...ctx, pkg };
   emitFrontend(webCtx);
   emitServerClient(webCtx, dep);
-  setFile(
-    ctx.files,
-    ctx.layout.frontendManifest,
-    JSON.stringify(
-      {
-        ...pkg,
-        dependencies: sortRecord(pkg.dependencies),
-        devDependencies: sortRecord(pkg.devDependencies),
-      },
-      null,
-      2
-    )
-  );
+  ctx.project.manifests[ctx.layout.frontendManifest] = pkg;
 }
 
 function emitServerClient(ctx: EmitCtx, dep: string): void {
@@ -266,21 +255,13 @@ export function writeServerManifest(
   ctx: EmitCtx,
   manifest: ServerManifest
 ): void {
-  setFile(
-    ctx.files,
-    'apps/server/package.json',
-    JSON.stringify(
-      {
-        name: 'server',
-        version: '0.0.0',
-        private: true,
-        type: 'module',
-        ...manifest,
-      },
-      null,
-      2
-    )
-  );
+  ctx.project.manifests['apps/server/package.json'] = {
+    name: 'server',
+    version: '0.0.0',
+    private: true,
+    type: 'module',
+    ...manifest,
+  };
 }
 
 function emitLinter(ctx: EmitCtx): void {
@@ -302,20 +283,12 @@ function emitLinter(ctx: EmitCtx): void {
 }
 
 function emitTypescriptConfig(ctx: EmitCtx): void {
-  setFile(
-    ctx.files,
-    'packages/typescript-config/package.json',
-    JSON.stringify(
-      {
-        name: '@repo/typescript-config',
-        version: '0.0.0',
-        private: true,
-        files: ['base.json'],
-      },
-      null,
-      2
-    )
-  );
+  ctx.project.manifests['packages/typescript-config/package.json'] = {
+    name: '@repo/typescript-config',
+    version: '0.0.0',
+    private: true,
+    files: ['base.json'],
+  };
   setFile(
     ctx.files,
     'packages/typescript-config/base.json',
@@ -341,35 +314,25 @@ function emitContractPackage(
   compiled: boolean,
   dependencies: Record<string, string>
 ): void {
-  setFile(
-    ctx.files,
-    'packages/contract/package.json',
-    JSON.stringify(
-      {
-        name: '@repo/contract',
-        version: '0.0.0',
-        private: true,
-        type: 'module',
-        ...(compiled
-          ? {
-              exports: {
-                '.': { types: './dist/index.d.ts', default: './dist/index.js' },
-              },
-              scripts: { build: 'tsc -p tsconfig.json' },
-            }
-          : { exports: { '.': './src/index.ts' } }),
-        dependencies,
-        devDependencies: {
-          '@repo/typescript-config': dep,
-          ...(compiled
-            ? { typescript: DEPENDENCY_VERSIONS['typescript'] }
-            : {}),
-        },
-      },
-      null,
-      2
-    )
-  );
+  ctx.project.manifests['packages/contract/package.json'] = {
+    name: '@repo/contract',
+    version: '0.0.0',
+    private: true,
+    type: 'module',
+    ...(compiled
+      ? {
+          exports: {
+            '.': { types: './dist/index.d.ts', default: './dist/index.js' },
+          },
+          scripts: { build: 'tsc -p tsconfig.json' },
+        }
+      : { exports: { '.': './src/index.ts' } }),
+    dependencies,
+    devDependencies: {
+      '@repo/typescript-config': dep,
+      ...(compiled ? { typescript: DEPENDENCY_VERSIONS['typescript'] } : {}),
+    },
+  };
   if (!compiled) return;
   setFile(
     ctx.files,
@@ -517,31 +480,23 @@ export type AppRouter = typeof appRouter;
 }
 
 function emitUiPackage(ctx: EmitCtx, dep: string): void {
-  setFile(
-    ctx.files,
-    'packages/ui/package.json',
-    JSON.stringify(
-      {
-        name: '@repo/ui',
-        version: '0.0.0',
-        private: true,
-        type: 'module',
-        exports: {
-          './button': './src/button.tsx',
-          './input': './src/input.tsx',
-          './card': './src/card.tsx',
-          './utils': './src/utils.ts',
-        },
-        dependencies: {
-          react: DEPENDENCY_VERSIONS['react'],
-        },
-        devDependencies: {
-          '@repo/typescript-config': dep,
-          '@types/react': DEPENDENCY_VERSIONS['@types/react'],
-        },
-      },
-      null,
-      2
-    )
-  );
+  ctx.project.manifests['packages/ui/package.json'] = {
+    name: '@repo/ui',
+    version: '0.0.0',
+    private: true,
+    type: 'module',
+    exports: {
+      './button': './src/button.tsx',
+      './input': './src/input.tsx',
+      './card': './src/card.tsx',
+      './utils': './src/utils.ts',
+    },
+    dependencies: {
+      react: DEPENDENCY_VERSIONS['react'],
+    },
+    devDependencies: {
+      '@repo/typescript-config': dep,
+      '@types/react': DEPENDENCY_VERSIONS['@types/react'],
+    },
+  };
 }

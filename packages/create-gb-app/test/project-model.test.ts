@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
 
+import { DEPENDENCY_VERSIONS } from '#/generate/dependency-versions';
 import { projectLayout } from '#/generate/layout';
 import {
+  addDependencies,
   addEnv,
   addReadmeSection,
   createProjectModel,
@@ -14,7 +16,11 @@ import type { RawFlags } from '#/types/stack';
 
 function render(project: ProjectModel, flags: RawFlags = {}) {
   const stack = resolveStack(flags);
-  return renderProject(project, { stack, layout: projectLayout(stack) });
+  return renderProject(project, {
+    stack,
+    layout: projectLayout(stack),
+    packageManager: 'bun',
+  });
 }
 
 test('renders ignore lines once each, in first-contributed order', () => {
@@ -57,6 +63,39 @@ test('splits public env entries into the web workspace of a server backend', () 
     'NEXT_PUBLIC_SERVER_URL="http://localhost:3333"\nVITE_SERVER_URL="http://localhost:3333"\n'
   );
   expect(files['.env']).toBeUndefined();
+});
+
+test('renders manifests sorted, with workspace links and a shared catalog', () => {
+  const project = createProjectModel();
+  project.manifests['package.json'] = {
+    name: 'model-app',
+    private: true,
+    type: 'module',
+    scripts: { lint: 'turbo run lint', dev: 'turbo run dev' },
+    dependencies: {},
+    devDependencies: { turbo: DEPENDENCY_VERSIONS.turbo },
+    workspaces: ['apps/*', 'packages/*'],
+  };
+  project.manifests['apps/web/package.json'] = { name: 'web' };
+  addDependencies(project, 'apps/web/package.json', {
+    react: DEPENDENCY_VERSIONS.react,
+    '@repo/ui': 'workspace:*',
+  });
+  project.manifests['packages/ui/package.json'] = { name: '@repo/ui' };
+  const files = render(project, { backend: 'nest' });
+
+  expect(JSON.parse(files['apps/web/package.json'])).toEqual({
+    name: 'web',
+    dependencies: { '@repo/ui': 'workspace:*', react: 'catalog:' },
+  });
+  expect(Object.keys(JSON.parse(files['package.json']).scripts)).toEqual([
+    'dev',
+    'lint',
+  ]);
+  expect(JSON.parse(files['package.json']).workspaces.catalog).toEqual({
+    react: DEPENDENCY_VERSIONS.react,
+    turbo: DEPENDENCY_VERSIONS.turbo,
+  });
 });
 
 test('rejects a second writer of one env entry', () => {

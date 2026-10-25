@@ -3,19 +3,14 @@ import { WORKSPACE_DRIVER } from './assets/workspace-driver';
 import { DEPENDENCY_VERSIONS } from './dependency-versions';
 import { setFile } from './files';
 
-type WorkspaceManifest = {
-  name: string;
-  scripts?: Record<string, string>;
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-};
+const byName = (left: string, right: string) => left.localeCompare(right);
+
 export function prepareWorkspaceTasks(ctx: EmitCtx) {
   ctx.pkg.engines = { node: '>=22.12.0' };
   ctx.project.ignoreLines.push('.env*', '!.env.example', '.tanstack');
-  const workspaces = Object.entries(ctx.files)
+  const workspaces = Object.entries(ctx.project.manifests)
     .filter(([path]) => /^(apps|packages)\/[^/]+\/package.json$/.test(path))
-    .map(([path, source]) => {
-      const manifest: WorkspaceManifest = JSON.parse(source);
+    .map(([path, manifest]) => {
       const dir = path.slice(0, -'/package.json'.length);
       manifest.scripts ??= {};
       manifest.devDependencies ??= {};
@@ -48,15 +43,15 @@ export function prepareWorkspaceTasks(ctx: EmitCtx) {
         manifest.devDependencies[dependency] ??=
           DEPENDENCY_VERSIONS[dependency];
       }
-      setFile(ctx.files, path, JSON.stringify(manifest, null, 2));
       return {
         name: manifest.name,
         dir,
-        tasks: Object.keys(manifest.scripts),
-        dependencies: Object.keys({
-          ...manifest.dependencies,
-          ...manifest.devDependencies,
-        }),
+        // Sorted like the rendered manifests, so emit order cannot leak in.
+        tasks: Object.keys(manifest.scripts).sort(byName),
+        dependencies: [
+          ...Object.keys(manifest.dependencies ?? {}).sort(byName),
+          ...Object.keys(manifest.devDependencies).sort(byName),
+        ].filter((name, index, all) => all.indexOf(name) === index),
         ...(ctx.files[dir + '/src/router.tsx']
           ? { routeTree: 'src/routeTree.gen.ts' }
           : {}),

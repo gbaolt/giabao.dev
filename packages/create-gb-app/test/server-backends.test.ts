@@ -4,7 +4,7 @@ import { buildTree } from '#/generate/build-tree';
 import { emitHono } from '#/generate/layers/hono';
 import { emitNest } from '#/generate/layers/nest';
 import { projectLayout } from '#/generate/layout';
-import { createProjectModel } from '#/generate/project-model';
+import { createProjectModel, renderProject } from '#/generate/project-model';
 import { resolveStack } from '#/stack/resolve';
 import type { RawFlags } from '#/types/stack';
 
@@ -173,12 +173,14 @@ describe('server adapters', () => {
   function emit(adapter: typeof emitNest, flags: RawFlags) {
     const stack = resolveStack(flags);
     const files: Record<string, string> = {};
+    const layout = projectLayout(stack);
+    const project = createProjectModel();
     adapter({
       ...ctx,
       files,
       stack,
-      layout: projectLayout(stack),
-      project: createProjectModel(),
+      layout,
+      project,
       pkg: {
         name: ctx.projectName,
         private: true,
@@ -188,7 +190,14 @@ describe('server adapters', () => {
         devDependencies: {},
       },
     });
-    return files;
+    return {
+      ...files,
+      ...renderProject(project, {
+        stack,
+        layout,
+        packageManager: ctx.packageManager,
+      }),
+    };
   }
 
   test.each(['orpc', 'none'] as const)('Nest mounts the %s API', (api) => {

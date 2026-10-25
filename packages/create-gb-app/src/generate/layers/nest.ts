@@ -59,11 +59,6 @@ function emitServer(ctx: EmitCtx, stack: NestStack, dep: string): void {
     tsx: DEPENDENCY_VERSIONS['tsx'],
     typescript: DEPENDENCY_VERSIONS['typescript'],
   };
-  if (notes) {
-    // The database layer swaps these for Drizzle when it is chosen.
-    dependencies['@prisma/client'] = DEPENDENCY_VERSIONS['@prisma/client'];
-    devDependencies.prisma = DEPENDENCY_VERSIONS['prisma'];
-  }
   if (orpc) {
     dependencies['@orpc/nest'] = DEPENDENCY_VERSIONS['@orpc/nest'];
     dependencies['@orpc/openapi'] = DEPENDENCY_VERSIONS['@orpc/openapi'];

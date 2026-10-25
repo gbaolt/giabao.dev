@@ -2,12 +2,15 @@ import type { EmitCtx, FileMap, GenerateContext } from '../../types/generate';
 import type { Stack } from '../../types/stack';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { addReadmeSection } from '../project-model';
+import { addReadmeSection, type Manifest } from '../project-model';
 import { workspaceProtocol } from '../workspace-protocol';
 
 export function emitOptionalWorkspace(
   ctx: EmitCtx,
-  generateSingle: (stack: Stack, context: GenerateContext) => FileMap
+  generateSingle: (
+    stack: Stack,
+    context: GenerateContext
+  ) => { files: FileMap; manifest: Manifest }
 ): void {
   if (ctx.stack.backend !== 'self' && ctx.stack.backend !== 'convex') {
     throw new Error(
@@ -15,44 +18,36 @@ export function emitOptionalWorkspace(
     );
   }
   const singleStack = { ...ctx.stack, structure: 'single' as const };
-  const single = generateSingle(singleStack, ctx);
-  const web = JSON.parse(single['package.json']);
+  const { files: single, manifest: web } = generateSingle(singleStack, ctx);
   web.name = 'web';
   web.version = '0.0.0';
   const protocol = workspaceProtocol(ctx.packageManager);
-  web.dependencies['@repo/ui'] = protocol;
-  web.dependencies['@repo/validation'] = protocol;
-  web.devDependencies['@repo/typescript-config'] = protocol;
+  Object.assign((web.dependencies ??= {}), {
+    '@repo/ui': protocol,
+    '@repo/validation': protocol,
+  });
+  (web.devDependencies ??= {})['@repo/typescript-config'] = protocol;
 
   for (const [path, contents] of Object.entries(single)) {
-    if (path === 'package.json') continue;
     const source = contents.replace(
       /(["'])(?:@\/|(?:\.\.\/)+)components\/ui\/([^"']+)\1/g,
       '"@repo/ui/$2"'
     );
     setFile(ctx.files, `${ctx.layout.frontendRoot}/${path}`, source);
   }
-  setFile(ctx.files, ctx.layout.frontendManifest, JSON.stringify(web, null, 2));
+  ctx.project.manifests[ctx.layout.frontendManifest] = web;
   const tsconfigPath = `${ctx.layout.frontendRoot}/tsconfig.json`;
   const tsconfig = JSON.parse(ctx.files[tsconfigPath]);
   tsconfig.extends = '@repo/typescript-config/base.json';
   setFile(ctx.files, tsconfigPath, JSON.stringify(tsconfig, null, 2));
 
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
-  setFile(
-    ctx.files,
-    'packages/typescript-config/package.json',
-    JSON.stringify(
-      {
-        name: '@repo/typescript-config',
-        version: '0.0.0',
-        private: true,
-        files: ['base.json'],
-      },
-      null,
-      2
-    )
-  );
+  ctx.project.manifests['packages/typescript-config/package.json'] = {
+    name: '@repo/typescript-config',
+    version: '0.0.0',
+    private: true,
+    files: ['base.json'],
+  };
   setFile(
     ctx.files,
     'packages/typescript-config/base.json',
@@ -69,26 +64,18 @@ export function emitOptionalWorkspace(
       2
     )
   );
-  setFile(
-    ctx.files,
-    'packages/ui/package.json',
-    JSON.stringify(
-      {
-        name: '@repo/ui',
-        version: '0.0.0',
-        private: true,
-        type: 'module',
-        exports: {},
-        dependencies: { react: DEPENDENCY_VERSIONS.react },
-        devDependencies: {
-          '@types/react': DEPENDENCY_VERSIONS['@types/react'],
-          '@repo/typescript-config': protocol,
-        },
-      },
-      null,
-      2
-    )
-  );
+  ctx.project.manifests['packages/ui/package.json'] = {
+    name: '@repo/ui',
+    version: '0.0.0',
+    private: true,
+    type: 'module',
+    exports: {},
+    dependencies: { react: DEPENDENCY_VERSIONS.react },
+    devDependencies: {
+      '@types/react': DEPENDENCY_VERSIONS['@types/react'],
+      '@repo/typescript-config': protocol,
+    },
+  };
   setFile(
     ctx.files,
     `${ctx.layout.libDir}/note-validation.ts`,

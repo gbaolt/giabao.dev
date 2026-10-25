@@ -2,12 +2,15 @@ import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 import { joinPath } from '../layout';
+import { manifestSections } from '../project-model';
 
 export function emitPrisma(ctx: EmitCtx): void {
-  ctx.pkg.dependencies['@prisma/client'] =
+  // A server backend's database packages live in the server workspace.
+  const pkg = manifestSections(ctx.project, ctx.layout.backendManifest!);
+  pkg.dependencies['@prisma/client'] =
     DEPENDENCY_VERSIONS['@prisma/client'];
-  ctx.pkg.devDependencies.prisma = DEPENDENCY_VERSIONS['prisma'];
-  ctx.pkg.scripts['db:generate'] = 'prisma generate';
+  pkg.devDependencies.prisma = DEPENDENCY_VERSIONS['prisma'];
+  pkg.scripts['db:generate'] = 'prisma generate';
   const turso = ctx.stack.backend !== 'convex' && ctx.stack.dbSetup === 'turso';
   const direct =
     ctx.stack.backend !== 'convex' &&
@@ -15,11 +18,11 @@ export function emitPrisma(ctx: EmitCtx): void {
     (ctx.stack.dbSetup === 'planetscale' ||
       ctx.stack.dbSetup === 'prisma-postgres');
   if (turso) {
-    ctx.pkg.dependencies['@prisma/adapter-libsql'] =
+    pkg.dependencies['@prisma/adapter-libsql'] =
       DEPENDENCY_VERSIONS['@prisma/adapter-libsql'];
-    ctx.pkg.scripts['db:migrate'] = 'prisma migrate dev';
+    pkg.scripts['db:migrate'] = 'prisma migrate dev';
   } else {
-    ctx.pkg.scripts['db:push'] = 'prisma db push';
+    pkg.scripts['db:push'] = 'prisma db push';
   }
 
   const dbPath = ctx.layout.dbFile;

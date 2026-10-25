@@ -2,6 +2,7 @@ import type { EmitCtx } from '../../types/generate';
 import shadcnSource from '../assets/shadcn/formatted-source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile, setFileIfAbsent } from '../files';
+import { manifestSections } from '../project-model';
 
 export function emitShadcn(ctx: EmitCtx): void {
   if (ctx.layout.structure === 'monorepo') {
@@ -90,19 +91,13 @@ function emitSharedShadcn(ctx: EmitCtx): void {
   const webCss = ctx.layout.stylesFile;
   const sharedCss = 'packages/ui/src/styles/globals.css';
 
-  const uiManifest = ctx.files['packages/ui/package.json'];
-  const webManifest = ctx.files[ctx.layout.frontendManifest];
-  if (uiManifest === undefined || webManifest === undefined) {
-    throw new Error('missing generated workspace manifests for shadcn');
-  }
-  const uiPackage = JSON.parse(uiManifest) as {
+  const uiPackage = manifestSections(
+    ctx.project,
+    'packages/ui/package.json'
+  ) as ReturnType<typeof manifestSections> & {
     exports: Record<string, string>;
-    dependencies: Record<string, string>;
-    devDependencies: Record<string, string>;
   };
-  const webPackage = JSON.parse(webManifest) as {
-    dependencies: Record<string, string>;
-  };
+  const webPackage = manifestSections(ctx.project, ctx.layout.frontendManifest);
 
   for (const dependency of [
     '@base-ui/react',
@@ -223,17 +218,6 @@ function emitSharedShadcn(ctx: EmitCtx): void {
   );
   setFile(
     ctx.files,
-    'packages/ui/package.json',
-    JSON.stringify(uiPackage, null, 2)
-  );
-  setFile(
-    ctx.files,
-    ctx.layout.frontendManifest,
-    JSON.stringify(webPackage, null, 2)
-  );
-
-  setFile(
-    ctx.files,
     `${webSourceRoot}components/theme-provider.tsx`,
     shadcnSource['components/theme-provider.tsx']
   );
@@ -280,11 +264,6 @@ function emitSharedShadcn(ctx: EmitCtx): void {
     setFile(ctx.files, layoutPath, withNextTheme(layout, '@repo/ui/utils'));
   } else {
     emitStartTheme(ctx, webSourceRoot, webPackage.dependencies);
-    setFile(
-      ctx.files,
-      ctx.layout.frontendManifest,
-      JSON.stringify(webPackage, null, 2)
-    );
   }
 }
 

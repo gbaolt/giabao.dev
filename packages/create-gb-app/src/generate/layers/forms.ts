@@ -6,6 +6,7 @@ import {
 } from '../assets/forms/source';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { addDependencies } from '../project-model';
 import { fillTemplate } from '../template-tokens';
 
 export function emitForms(ctx: EmitCtx): void {
@@ -21,19 +22,16 @@ export function emitForms(ctx: EmitCtx): void {
     ctx.stack.addons.form === 'react-hook-form'
       ? ['react-hook-form', '@hookform/resolvers']
       : ['@tanstack/react-form'];
-  const manifest =
-    ctx.layout.structure === 'single'
-      ? ctx.pkg
-      : JSON.parse(ctx.files[ctx.layout.frontendManifest]!);
-  for (const dependency of deps)
-    manifest.dependencies[dependency] =
-      DEPENDENCY_VERSIONS[dependency as keyof typeof DEPENDENCY_VERSIONS];
-  if (ctx.layout.structure === 'monorepo')
-    setFile(
-      ctx.files,
-      ctx.layout.frontendManifest,
-      JSON.stringify(manifest, null, 2)
-    );
+  addDependencies(
+    ctx.project,
+    ctx.layout.frontendManifest,
+    Object.fromEntries(
+      deps.map((dependency) => [
+        dependency,
+        DEPENDENCY_VERSIONS[dependency as keyof typeof DEPENDENCY_VERSIONS],
+      ])
+    )
+  );
 
   const tokens =
     ctx.layout.structure === 'single'

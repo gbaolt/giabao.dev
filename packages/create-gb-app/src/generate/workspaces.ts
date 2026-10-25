@@ -2,19 +2,7 @@ import type { FileMap, PackageManager } from '#/types/generate';
 
 import { DEPENDENCY_VERSIONS } from './dependency-versions';
 import { PACKAGE_MANAGER_METADATA } from './package-managers';
-
-type Manifest = {
-  name: string;
-  version?: string;
-  scripts?: Record<string, string>;
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-  optionalDependencies?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
-  workspaces?:
-    string[] | { packages: string[]; catalog: Record<string, string> };
-  packageManager?: string;
-};
+import type { Manifest } from './project-model';
 
 const DEPENDENCY_SECTIONS = [
   'dependencies',
@@ -24,20 +12,21 @@ const DEPENDENCY_SECTIONS = [
 ] as const;
 const WORKSPACE_PATTERNS = ['apps/*', 'packages/*'];
 
+/**
+ * Folds workspace links and the shared catalog into the manifests, in place,
+ * and returns the package manager's workspace files.
+ */
 export function finalizeWorkspaces(
-  files: FileMap,
+  byPath: Record<string, Manifest>,
   packageManager: PackageManager
-): void {
-  const manifests = Object.entries(files)
-    .filter(
-      ([path]) => path.endsWith('/package.json') || path === 'package.json'
-    )
-    .map(([path, contents]) => ({
-      path,
-      manifest: JSON.parse(contents) as Manifest,
-    }));
-  const root = manifests.find(({ path }) => path === 'package.json')?.manifest;
-  if (!root?.workspaces) return;
+): FileMap {
+  const files: FileMap = {};
+  const manifests = Object.entries(byPath).map(([path, manifest]) => ({
+    path,
+    manifest,
+  }));
+  const root = byPath['package.json'];
+  if (!root?.workspaces) return files;
 
   const internal = new Map(
     manifests
@@ -114,7 +103,6 @@ export function finalizeWorkspaces(
           ? { packages: WORKSPACE_PATTERNS, catalog }
           : WORKSPACE_PATTERNS;
     }
-    files[path] = JSON.stringify(manifest, null, 2);
   }
 
   const yamlCatalog = Object.entries(catalog)
@@ -132,4 +120,5 @@ export function finalizeWorkspaces(
   // Start's dev middleware needs Vite to have one module identity across plugins.
   if (packageManager === 'bun' && requirements.has('@tanstack/react-start'))
     files['bunfig.toml'] = '[install]\nlinker = "hoisted"\n';
+  return files;
 }

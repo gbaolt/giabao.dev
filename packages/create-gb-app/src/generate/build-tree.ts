@@ -7,7 +7,7 @@ import type {
 } from '../types/generate';
 import { emitTurborepo } from './addons/turborepo';
 import { GenerateError } from './errors';
-import { setFile, setFileIfAbsent, sortRecord } from './files';
+import { setFile, setFileIfAbsent } from './files';
 import { emitBetterAuth } from './layers/better-auth';
 import { emitClerk } from './layers/clerk';
 import { emitConvex } from './layers/convex';
@@ -35,12 +35,12 @@ import { projectLayout } from './layout';
 import { emitNotes } from './notes';
 import {
   createProjectModel,
+  manifestAt,
   type ProjectModel,
   renderProject,
 } from './project-model';
 import { generateReadme } from './readme';
 import { emitPlainWorkspace, prepareWorkspaceTasks } from './workspace-tasks';
-import { finalizeWorkspaces } from './workspaces';
 
 function emitAuth(stack: Stack, ctx: Parameters<typeof emitNext>[0]) {
   switch (stack.auth) {
@@ -149,6 +149,7 @@ function buildProject(
     devDependencies: {},
   };
   const layout = projectLayout(stack);
+  project.manifests['package.json'] = pkg;
   const emitCtx = { ...ctx, files, pkg, stack, layout, project };
 
   if (stack.structure === 'single') {
@@ -183,13 +184,16 @@ function buildProject(
         break;
       case 'self':
       case 'convex':
-        emitOptionalWorkspace(emitCtx, (singleStack, context) =>
-          // The monorepo writes its own README notes over the inner app's.
-          buildProject(singleStack, context, false, {
-            ...project,
-            readmeSections: {},
-          })
-        );
+        emitOptionalWorkspace(emitCtx, (singleStack, context) => {
+          // The monorepo writes its own README notes over the inner app's,
+          // and the inner app's manifest becomes the web workspace's.
+          const inner = { ...project, readmeSections: {}, manifests: {} };
+          const innerFiles = buildProject(singleStack, context, false, inner);
+          return {
+            files: innerFiles,
+            manifest: manifestAt(inner, 'package.json'),
+          };
+        });
         break;
       default:
         throw new Error(
@@ -232,14 +236,25 @@ export function Providers({ children }: { children: ReactNode }) {
     else emitPlainWorkspace(emitCtx, workspaces);
   }
 
-  pkg.dependencies = sortRecord(pkg.dependencies);
-  pkg.devDependencies = sortRecord(pkg.devDependencies);
-  pkg.scripts = sortRecord(pkg.scripts);
-  setFile(files, 'package.json', JSON.stringify(pkg, null, 2));
-  finalizeWorkspaces(files, ctx.packageManager);
   if (foundations) {
-    Object.assign(files, renderProject(project, { stack, layout }));
-    setFile(files, 'README.md', generateReadme(stack, ctx, files, pkg, project.readmeSections)
+    Object.assign(
+      files,
+      renderProject(project, {
+        stack,
+        layout,
+        packageManager: ctx.packageManager,
+      })
+    );
+    setFile(
+      files,
+      'README.md',
+      generateReadme(
+        stack,
+        ctx,
+        files,
+        JSON.parse(files['package.json']!) as PackageJsonShape,
+        project.readmeSections
+      )
     );
   }
   return files;

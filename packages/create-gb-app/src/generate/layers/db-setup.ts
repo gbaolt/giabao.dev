@@ -124,45 +124,10 @@ export function finalizeDatabaseSetup(ctx: EmitCtx): void {
 
 function finalizeServerDatabase(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex' || ctx.stack.database === 'none') return;
-  const { dbSetup, orm, database, backend } = ctx.stack;
-  const owner = envOwnerPrefix(ctx);
+  const { orm, database, backend } = ctx.stack;
   if (backend !== 'nest' && backend !== 'hono') return;
 
-  const manifest = JSON.parse(ctx.files[owner + 'package.json']);
-  manifest.scripts ??= {};
-  manifest.dependencies ??= {};
-  manifest.devDependencies ??= {};
-  for (const section of ['dependencies', 'devDependencies'] as const) {
-    for (const name of [
-      '@prisma/client',
-      '@prisma/adapter-libsql',
-      '@libsql/client',
-      'prisma',
-      'drizzle-orm',
-      'drizzle-kit',
-      'dotenv',
-      'pg',
-      'mysql2',
-      'better-sqlite3',
-    ]) {
-      const version = ctx.pkg[section][name];
-      if (version) {
-        manifest[section][name] = version;
-        delete ctx.pkg[section][name];
-      }
-    }
-  }
-
-  for (const [name, command] of Object.entries(ctx.pkg.scripts)) {
-    if (!name.startsWith('db:')) continue;
-    manifest.scripts[name] = command;
-    delete ctx.pkg.scripts[name];
-  }
-  if (dbSetup === 'turso' && orm === 'prisma')
-    delete manifest.scripts['db:push'];
   if (orm === 'drizzle') {
-    delete manifest.dependencies['@prisma/client'];
-    delete manifest.devDependencies.prisma;
     const authPath = ctx.layout.authFile;
     const source = ctx.files[authPath];
     if (source) {
@@ -193,7 +158,6 @@ function finalizeServerDatabase(ctx: EmitCtx): void {
       );
     }
   }
-  setFile(ctx.files, owner + 'package.json', JSON.stringify(manifest, null, 2));
   for (const [path, source] of Object.entries(ctx.files)) {
     if (
       !path.startsWith(`${ctx.layout.serverSourceRoot}/`) ||

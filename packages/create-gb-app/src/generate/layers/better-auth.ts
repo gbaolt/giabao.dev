@@ -1,7 +1,8 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
-import { addDependencies, setFile } from '../files';
+import { setFile } from '../files';
 import { joinPath } from '../layout';
+import { addDependencies } from '../project-model';
 import { SERVER_URL, WEB_ORIGIN } from './server-workspace';
 import { emitStartOrpcAuth } from './start-orpc-auth';
 
@@ -17,7 +18,7 @@ function adapterProvider(ctx: EmitCtx): string {
 function emitServerAuth(ctx: EmitCtx): void {
   const drizzle = ctx.stack.backend !== 'convex' && ctx.stack.orm === 'drizzle';
   const provider = adapterProvider(ctx);
-  addDependencies(ctx.files, ctx.layout.backendManifest!, {
+  addDependencies(ctx.project, ctx.layout.backendManifest!, {
     'better-auth': DEPENDENCY_VERSIONS['better-auth'],
   });
   setFile(
@@ -46,7 +47,7 @@ export const auth = betterAuth({
     ctx.stack.frontend === 'next'
       ? 'process.env.NEXT_PUBLIC_SERVER_URL'
       : 'import.meta.env.VITE_SERVER_URL';
-  addDependencies(ctx.files, ctx.layout.frontendManifest, {
+  addDependencies(ctx.project, ctx.layout.frontendManifest, {
     'better-auth': DEPENDENCY_VERSIONS['better-auth'],
   });
   setFile(
