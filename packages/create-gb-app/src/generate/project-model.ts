@@ -163,14 +163,13 @@ export function addEnv(
 }
 
 export type RenderTarget = {
-  stack: Stack;
   layout: ProjectLayout;
   packageManager: PackageManager;
 };
 
 export function renderProject(
   project: ProjectModel,
-  { stack, layout, packageManager }: RenderTarget
+  { layout, packageManager }: RenderTarget
 ): FileMap {
   const files: FileMap = renderAppFiles(project);
   files[layout.providersFile] = withNewline(
@@ -182,7 +181,7 @@ export function renderProject(
     );
   if (project.ignoreLines.length > 0)
     files['.gitignore'] = [...new Set(project.ignoreLines)].join('\n') + '\n';
-  renderEnv(project.env, stack, layout, files);
+  renderEnv(project.env, layout, files);
   renderManifests(project.manifests, packageManager, files);
   return files;
 }
@@ -238,19 +237,12 @@ function renderManifests(
 
 function renderEnv(
   env: ProjectModel['env'],
-  stack: Stack,
   layout: ProjectLayout,
   files: FileMap
 ): void {
   const lines = Object.entries(env).map(([key, value]) => `${key}="${value}"`);
   if (lines.length === 0) return;
-  // Server backends without a database keep env at the root (#251 story 2).
-  const owner =
-    layout.envOwner === 'apps/server' &&
-    'database' in stack &&
-    stack.database === 'none'
-      ? ''
-      : layout.envOwner;
+  const owner = layout.envOwner;
   const publicLines =
     owner === 'apps/server'
       ? lines.filter((line) => /^(NEXT_PUBLIC_|VITE_)/.test(line))

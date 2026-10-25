@@ -1,7 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { addDependencies, setProviders } from '../project-model';
+import { addDependencies, addEnv, setProviders } from '../project-model';
 
 export function emitClerk(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex') {
@@ -14,6 +14,13 @@ export function emitClerk(ctx: EmitCtx): void {
     emitStartClerkConvexProviders(ctx);
     return;
   }
+
+  // With a database, the database module writes these beside its URL.
+  if (ctx.stack.database === 'none')
+    addEnv(ctx.project, {
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_replace_me',
+      CLERK_SECRET_KEY: 'sk_test_replace_me',
+    });
 
   if (ctx.layout.backendRoot === 'apps/server') {
     // The server adapters mount the middleware these SDKs provide.

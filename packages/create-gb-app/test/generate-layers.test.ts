@@ -147,3 +147,22 @@ test('Better Auth plugin last on Start', () => {
     auth.slice(pluginsIdx, closeIdx + 1).endsWith('tanstackStartCookies()]')
   ).toBe(true);
 });
+
+for (const backend of ['self', 'nest', 'hono'] as const) {
+  test(`Clerk without a database still writes its env keys for ${backend}`, () => {
+    const files = buildTree(
+      resolveStack({ backend, database: 'none', api: 'none', auth: 'clerk' }),
+      { projectName: 'clerk-app', packageManager: 'bun' }
+    );
+    const [serverEnv, webEnv] =
+      backend === 'self'
+        ? ['.env', '.env']
+        : ['apps/server/.env', 'apps/web/.env'];
+
+    expect(files[serverEnv]).toContain('CLERK_SECRET_KEY=');
+    expect(files[webEnv]).toContain('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=');
+    expect(files[serverEnv.replace('.env', '.env.example')]).toBe(
+      files[serverEnv]!
+    );
+  });
+}

@@ -261,7 +261,6 @@ function buildProject(
   Object.assign(
     files,
     renderProject(project, {
-      stack,
       layout,
       packageManager: ctx.packageManager,
     })

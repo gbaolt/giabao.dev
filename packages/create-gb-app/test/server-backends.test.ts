@@ -193,7 +193,6 @@ describe('server adapters', () => {
     return {
       ...files,
       ...renderProject(project, {
-        stack,
         layout,
         packageManager: ctx.packageManager,
       }),

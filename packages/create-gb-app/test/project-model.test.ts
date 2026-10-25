@@ -24,7 +24,6 @@ import type { RawFlags } from '#/types/stack';
 function render(project: ProjectModel, flags: RawFlags = {}) {
   const stack = resolveStack(flags);
   return renderProject(project, {
-    stack,
     layout: projectLayout(stack),
     packageManager: 'bun',
   });
@@ -135,7 +134,7 @@ function emitInOrder(flags: RawFlags, modules: ((ctx: EmitCtx) => void)[]) {
   for (const emit of modules) emit(ctx);
   return {
     ...files,
-    ...renderProject(project, { stack, layout, packageManager: 'bun' }),
+    ...renderProject(project, { layout, packageManager: 'bun' }),
   };
 }
 
