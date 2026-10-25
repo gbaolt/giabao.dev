@@ -170,11 +170,9 @@ function buildProject(
   } else {
     switch (stack.backend) {
       case 'nest':
-        emitNest(emitCtx);
-        emitServerWebApp(emitCtx, (webCtx) => emitFrontend(stack, webCtx));
-        break;
       case 'hono':
-        emitHono(emitCtx);
+        if (stack.backend === 'nest') emitNest(emitCtx);
+        else emitHono(emitCtx);
         emitServerWebApp(emitCtx, (webCtx) => emitFrontend(stack, webCtx));
         break;
       case 'self':
@@ -190,22 +188,13 @@ function buildProject(
     }
   }
 
-  if (stack.backend === 'nest') {
-    emitAuth(stack, emitCtx);
-    emitPayments(stack, emitCtx);
-    emitNotes(emitCtx);
-  } else if (stack.backend === 'hono') {
-    emitAuth(stack, emitCtx);
-    emitNotes(emitCtx);
-  }
-
-  if (stack.structure === 'single') {
-    emitAuth(stack, emitCtx);
-    emitPayments(stack, emitCtx);
-    emitLinter(stack, emitCtx);
-    emitNotes(emitCtx);
-  }
+  // Self and Convex monorepos ran these inside their single-app build.
   if (stack.structure === 'single' || layout.backendRoot === 'apps/server') {
+    emitAuth(stack, emitCtx);
+    emitPayments(stack, emitCtx);
+    // The server workspace already chose the linter for every server backend.
+    if (stack.structure === 'single') emitLinter(stack, emitCtx);
+    emitNotes(emitCtx);
     setFileIfAbsent(
       files,
       layout.providersFile,

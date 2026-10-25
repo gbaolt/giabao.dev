@@ -3,15 +3,12 @@ import type { HonoStack } from '#/types/stack';
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { emitPolar } from './polar';
 import {
   emitServerWorkspace,
   SERVER_LISTEN_PORT,
-  SERVER_URL,
   WEB_ORIGIN,
   writeServerManifest,
 } from './server-workspace';
-import { emitStripe } from './stripe';
 
 export function emitHono(ctx: EmitCtx): void {
   if (ctx.stack.backend !== 'hono') {
@@ -30,7 +27,6 @@ export function emitHono(ctx: EmitCtx): void {
     },
     emit: (context, dep) => {
       emitServer(context, stack, dep);
-      emitChosenPayments(context, stack);
       setFile(
         context.files,
         'README.md',
@@ -44,23 +40,6 @@ See the Hono Node guide for the Node.js adapter.
       );
     },
   });
-}
-
-function emitChosenPayments(ctx: EmitCtx, stack: HonoStack): void {
-  switch (stack.payments) {
-    case 'none':
-      break;
-    case 'stripe':
-      emitStripe(ctx);
-      break;
-    case 'polar':
-      emitPolar(ctx);
-      break;
-    default: {
-      const _exhaustive: never = stack.payments;
-      throw new Error(`unhandled payments: ${_exhaustive}`);
-    }
-  }
 }
 
 function emitServer(ctx: EmitCtx, stack: HonoStack, dep: string): void {
@@ -82,12 +61,6 @@ function emitServer(ctx: EmitCtx, stack: HonoStack, dep: string): void {
   if (stack.database !== 'none' && stack.orm === 'drizzle') {
     dependencies['drizzle-orm'] = DEPENDENCY_VERSIONS['drizzle-orm'];
     devDependencies['drizzle-kit'] = DEPENDENCY_VERSIONS['drizzle-kit'];
-  }
-  if (stack.auth === 'better-auth') {
-    dependencies['better-auth'] = DEPENDENCY_VERSIONS['better-auth'];
-  }
-  if (stack.auth === 'clerk') {
-    dependencies['@hono/clerk-auth'] = DEPENDENCY_VERSIONS['@hono/clerk-auth'];
   }
   if (stack.database !== 'none' && stack.api === 'orpc') {
     dependencies['@orpc/openapi'] = DEPENDENCY_VERSIONS['@orpc/openapi'];
@@ -111,50 +84,7 @@ function emitServer(ctx: EmitCtx, stack: HonoStack, dep: string): void {
     devDependencies,
   });
 
-  if (stack.auth === 'better-auth' && stack.database !== 'none') {
-    emitServerAuth(ctx, stack);
-  }
-
   setFile(ctx.files, 'apps/server/src/index.ts', serverEntry(stack));
-}
-
-function authProvider(stack: HonoStack): string {
-  if (stack.database === 'mysql') {
-    return 'mysql';
-  }
-  if (stack.database === 'sqlite') {
-    return 'sqlite';
-  }
-  return 'postgresql';
-}
-
-function emitServerAuth(ctx: EmitCtx, stack: HonoStack): void {
-  const provider = authProvider(stack);
-  const source =
-    stack.orm === 'drizzle'
-      ? `import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "./db";
-
-export const auth = betterAuth({
-  database: drizzleAdapter(db, { provider: "${stack.database === 'mysql' ? 'mysql' : stack.database === 'sqlite' ? 'sqlite' : 'pg'}" }),
-  emailAndPassword: { enabled: true },
-  trustedOrigins: ["${WEB_ORIGIN}"],
-  baseURL: "${SERVER_URL}",
-});
-`
-      : `import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-import { prisma } from "./db";
-
-export const auth = betterAuth({
-  database: prismaAdapter(prisma, { provider: "${provider}" }),
-  emailAndPassword: { enabled: true },
-  trustedOrigins: ["${WEB_ORIGIN}"],
-  baseURL: "${SERVER_URL}",
-});
-`;
-  setFile(ctx.files, 'apps/server/src/auth.ts', source);
 }
 
 function serverEntry(stack: HonoStack): string {

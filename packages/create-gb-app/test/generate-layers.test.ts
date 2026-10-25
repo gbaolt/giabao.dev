@@ -104,7 +104,8 @@ test('Clerk on Nest writes @clerk/express', () => {
     { projectName: 'nest-clerk', packageManager: 'pnpm' }
   );
   expect(files['apps/server/package.json']).toContain('@clerk/express');
-  expect(files['apps/server/src/clerk.ts']).toContain('getAuth');
+  expect(files['apps/server/src/notes.controller.ts']).toContain('getAuth');
+  expect(files['apps/server/package.json']).not.toContain('better-auth');
   expect(files['apps/server/src/main.ts']).toContain('clerkMiddleware');
   expect(files['apps/server/src/app.module.ts']).not.toContain('AuthModule');
 });

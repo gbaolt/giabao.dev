@@ -107,6 +107,22 @@ export class NotesController {
 
 function emitOrpcController(ctx: EmitCtx): void {
   const repo = notesRepository(ctx.stack);
+  // Without auth the Notes are public, matching Hono and single apps.
+  const authed = ctx.stack.auth === 'better-auth';
+  const session = authed
+    ? `        const session = await auth.api.getSession({
+          headers: fromNodeHeaders(context.request.headers),
+        });
+        if (!session) {
+          throw new ORPCError("UNAUTHORIZED");
+        }
+`
+    : '';
+  const me = authed
+    ? `${session}        return session.user;\n`
+    : '        return { id: "public", email: "public@example.com", name: "Public" };\n';
+  const contextArg = authed ? '{ context }' : '';
+  const owner = authed ? ', userId: session.user.id' : '';
   setFile(
     ctx.files,
     'apps/server/src/notes.controller.ts',
@@ -114,10 +130,8 @@ function emitOrpcController(ctx: EmitCtx): void {
 import { Implement } from "@orpc/nest";
 import { ORPCError, implement } from "@orpc/server";
 import { contract } from "@repo/contract";
-import { fromNodeHeaders } from "better-auth/node";
-import type { Request } from "express";
-import { auth } from "./auth.js";
-${repo.importFrom('"', './', '.js')}
+${authed ? 'import { fromNodeHeaders } from "better-auth/node";\n' : ''}import type { Request } from "express";
+${authed ? 'import { auth } from "./auth.js";\n' : ''}${repo.importFrom('"', './', '.js')}
 
 @Controller()
 export class NotesController {
@@ -125,31 +139,17 @@ export class NotesController {
   me() {
     return implement(contract.me)
       .$context<{ request: Request }>()
-      .handler(async ({ context }) => {
-        const session = await auth.api.getSession({
-          headers: fromNodeHeaders(context.request.headers),
-        });
-        if (!session) {
-          throw new ORPCError("UNAUTHORIZED");
-        }
-        return session.user;
-      });
+      .handler(async (${contextArg}) => {
+${me}      });
   }
 
   @Implement(contract.notes.list)
   list() {
     return implement(contract.notes.list)
       .$context<{ request: Request }>()
-      .handler(async ({ context }) => {
-        const session = await auth.api.getSession({
-          headers: fromNodeHeaders(context.request.headers),
-        });
-        if (!session) {
-          throw new ORPCError("UNAUTHORIZED");
-        }
-        return ${repo.list}({
-          where: { userId: session.user.id },
-          orderBy: { createdAt: "desc" },
+      .handler(async (${contextArg}) => {
+${session}        return ${repo.list}({
+${authed ? '          where: { userId: session.user.id },\n' : ''}          orderBy: { createdAt: "desc" },
         });
       });
   }
@@ -158,19 +158,12 @@ export class NotesController {
   create() {
     return implement(contract.notes.create)
       .$context<{ request: Request }>()
-      .handler(async ({ input, context }) => {
-        const session = await auth.api.getSession({
-          headers: fromNodeHeaders(context.request.headers),
-        });
-        if (!session) {
-          throw new ORPCError("UNAUTHORIZED");
-        }
-        return ${repo.create}({
+      .handler(async ({ input${authed ? ', context' : ''} }) => {
+${session}        return ${repo.create}({
           data: {
             title: input.title,
             body: input.body,
-            userId: session.user.id,
-          },
+${authed ? '            userId: session.user.id,\n' : ''}          },
         });
       });
   }
@@ -179,15 +172,9 @@ export class NotesController {
   update() {
     return implement(contract.notes.update)
       .$context<{ request: Request }>()
-      .handler(async ({ input, context }) => {
-        const session = await auth.api.getSession({
-          headers: fromNodeHeaders(context.request.headers),
-        });
-        if (!session) {
-          throw new ORPCError("UNAUTHORIZED");
-        }
-        const note = await ${repo.find}({
-          where: { id: input.id, userId: session.user.id },
+      .handler(async ({ input${authed ? ', context' : ''} }) => {
+${session}        const note = await ${repo.find}({
+          where: { id: input.id${owner} },
         });
         if (!note) {
           throw new ORPCError("NOT_FOUND");
@@ -203,15 +190,9 @@ export class NotesController {
   remove() {
     return implement(contract.notes.delete)
       .$context<{ request: Request }>()
-      .handler(async ({ input, context }) => {
-        const session = await auth.api.getSession({
-          headers: fromNodeHeaders(context.request.headers),
-        });
-        if (!session) {
-          throw new ORPCError("UNAUTHORIZED");
-        }
-        const note = await ${repo.find}({
-          where: { id: input.id, userId: session.user.id },
+      .handler(async ({ input${authed ? ', context' : ''} }) => {
+${session}        const note = await ${repo.find}({
+          where: { id: input.id${owner} },
         });
         if (!note) {
           throw new ORPCError("NOT_FOUND");

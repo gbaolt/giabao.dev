@@ -2,11 +2,46 @@ import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { addDependencies, setFile } from '../files';
 import { joinPath } from '../layout';
-import { SERVER_URL } from './server-workspace';
+import { SERVER_URL, WEB_ORIGIN } from './server-workspace';
 import { emitStartOrpcAuth } from './start-orpc-auth';
 
-// The web app signs in against the separate server's Better Auth handler.
-function emitServerAuthClient(ctx: EmitCtx): void {
+/** Better Auth's adapter provider name for the Stack's database and ORM. */
+function adapterProvider(ctx: EmitCtx): string {
+  if (ctx.stack.backend === 'convex') throw new Error('convex has no ORM');
+  const { database, orm } = ctx.stack;
+  if (database === 'sqlite' || database === 'mysql') return database;
+  return orm === 'drizzle' ? 'pg' : 'postgresql';
+}
+
+// A separate server owns the auth config; the web app signs in against it.
+function emitServerAuth(ctx: EmitCtx): void {
+  const drizzle = ctx.stack.backend !== 'convex' && ctx.stack.orm === 'drizzle';
+  const provider = adapterProvider(ctx);
+  addDependencies(ctx.files, ctx.layout.backendManifest!, {
+    'better-auth': DEPENDENCY_VERSIONS['better-auth'],
+  });
+  setFile(
+    ctx.files,
+    ctx.layout.authFile,
+    `import { betterAuth } from "better-auth";
+${
+  drizzle
+    ? `import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { db } from "./db";
+import * as schema from "./schema";`
+    : `import { prismaAdapter } from "better-auth/adapters/prisma";
+import { prisma } from "./db";`
+}
+
+export const auth = betterAuth({
+  database: ${drizzle ? `drizzleAdapter(db, { schema, provider: "${provider}" })` : `prismaAdapter(prisma, { provider: "${provider}" })`},
+  emailAndPassword: { enabled: true },
+  trustedOrigins: ["${WEB_ORIGIN}"],
+  baseURL: "${SERVER_URL}",
+});
+`
+  );
+
   const env =
     ctx.stack.frontend === 'next'
       ? 'process.env.NEXT_PUBLIC_SERVER_URL'
@@ -28,7 +63,7 @@ export const authClient = createAuthClient({
 
 export function emitBetterAuth(ctx: EmitCtx): void {
   if (ctx.layout.backendRoot === 'apps/server') {
-    emitServerAuthClient(ctx);
+    emitServerAuth(ctx);
     return;
   }
   ctx.pkg.dependencies['better-auth'] = DEPENDENCY_VERSIONS['better-auth'];
@@ -66,10 +101,10 @@ import { prisma } from './db';`;
   const adapterCall = drizzle
     ? `drizzleAdapter(db, {
     schema,
-    provider: '${ctx.stack.database === 'sqlite' ? 'sqlite' : ctx.stack.database === 'mysql' ? 'mysql' : 'pg'}',
+    provider: '${adapterProvider(ctx)}',
   })`
     : `prismaAdapter(prisma, {
-    provider: '${ctx.stack.database === 'sqlite' ? 'sqlite' : ctx.stack.database === 'mysql' ? 'mysql' : 'postgresql'}',
+    provider: '${adapterProvider(ctx)}',
   })`;
 
   setFile(

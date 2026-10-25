@@ -490,13 +490,13 @@ exports[`template migration preserves nest output 1`] = `
   "README.md": "4c846df0583c41695d0cbec6b16da03e68dbf45c9715ddc4841c4b51c3aa6cc3",
   "apps/server/.env": "f63efc1e84a2a1ecde724487306f6af1cc6cc55933a254840a3e41f1d3d85c22",
   "apps/server/.env.example": "f63efc1e84a2a1ecde724487306f6af1cc6cc55933a254840a3e41f1d3d85c22",
-  "apps/server/package.json": "770fc7c4489d127b2eb30095f218260f305082c8104e40a45c97f0c5329b0c07",
+  "apps/server/package.json": "2a8ce916b0499a54bb1f4d294f8bcb753ee335484f1c84f461ac31e9f2977c6a",
   "apps/server/prisma/schema.prisma": "a46ebedc519ba2e62c3d32073a47d6228987757309269e2ce2d9e415f528fd9a",
   "apps/server/src/app.module.ts": "3846c21571069b8ee28ec7e343f60f5af7bfae1e4b7f6fda6af3c13219552759",
-  "apps/server/src/auth.ts": "43375066929fc5daff85f421c771b1215930e4d4247fa5b79ca672b4d7c1bbb4",
+  "apps/server/src/auth.ts": "7b6640f9c3efaf518bd68765ff549a431b4540f1db0e8dd9d6000e7a9a4814d0",
   "apps/server/src/db.ts": "20b9c868e29dcdfddc9b849612a93980eecd1f2278060fb63c2368c05e7ea02d",
   "apps/server/src/env.ts": "6565d91183cee64fa82b06c469050b30ca9fed9053ae4870c601eee1d3e29e07",
-  "apps/server/src/main.ts": "9089e58fe0bde67d98182100ba7cb7a57c163654c179b0ac5db03b18e34259db",
+  "apps/server/src/main.ts": "576f76bcf3efbb781de9f2fcc9eb898b5b6742b6a2c109200f16eb76fac6bbfc",
   "apps/server/src/notes.controller.ts": "ced48bbc7ffd8e644a3875bb0c93448a21eefb1de28fad1060d92cc22818889c",
   "apps/server/tsconfig.json": "d241593794a0cc618cd59406f5460497426bb020a149ee18d095e4f3e1d093c1",
   "apps/web/.env": "289d6b0d823872c3bafcd3a77d3e9aaa946396d425d7e2d2f4d98f1d5b22baa5",
@@ -548,7 +548,7 @@ exports[`template migration preserves nest output 1`] = `
   "packages/validation/src/index.ts": "46a1bcd40d3eb38af4cb6398b5e85356cd9a7b082f6b0b8b7a7ba4f0b803682b",
   "packages/validation/tsconfig.json": "e1f3f6dfcce58cd895a3c6f0ff46e9f48e3b64e46ea72c5d5603f6b610d2c796",
   "scripts/workspace.mjs": "af56149c3755037332cd33589f2bb4c25092ce3beeb4f723800c08b95c06afa7",
-  "scripts/workspaces.json": "80abe8fd97e3024604c82a14813cc7f0035b08e4cc079414153585c74963f5aa",
+  "scripts/workspaces.json": "b103bfff1fb2878d6aa1cead73293a8941ed33574c0e4e274038b56609df5ef8",
 }
 `;
 
@@ -935,9 +935,9 @@ exports[`template migration preserves nest-rest-drizzle output 1`] = `
   "apps/server/.env": "f63efc1e84a2a1ecde724487306f6af1cc6cc55933a254840a3e41f1d3d85c22",
   "apps/server/.env.example": "f63efc1e84a2a1ecde724487306f6af1cc6cc55933a254840a3e41f1d3d85c22",
   "apps/server/drizzle.config.ts": "d49fe7f892fa0a24c11c914129f917caf56beca2f044f97ac46576e4649616e1",
-  "apps/server/package.json": "83cc3173839c044e3251f2a31711cd90f27d34549108e78e2aba39fe35227aee",
+  "apps/server/package.json": "1836252bdf2101075d92641f7b71d51685f747dff9cfddd411476a88ad664f3c",
   "apps/server/src/app.module.ts": "5fcc49033944b8cccb42e60461bc3a922b765f74bf197fbeccbc63fe5d326852",
-  "apps/server/src/auth.ts": "0270cb25fa4a5c6f57556ca574f547b7d0591c07b478aa6a7bf03fe5f4e8c700",
+  "apps/server/src/auth.ts": "2a1a2bee66e4bc7bb99a97f680effc03ef55310277a9d5380c65b5c0fa8f6ef4",
   "apps/server/src/db.ts": "5b803e49d2fd5f68bc5286ea374037fc6733efe3e3ab66171a866f3a4e8ef706",
   "apps/server/src/env.ts": "6565d91183cee64fa82b06c469050b30ca9fed9053ae4870c601eee1d3e29e07",
   "apps/server/src/main.ts": "576f76bcf3efbb781de9f2fcc9eb898b5b6742b6a2c109200f16eb76fac6bbfc",
@@ -986,7 +986,7 @@ exports[`template migration preserves nest-rest-drizzle output 1`] = `
   "packages/validation/src/index.ts": "46a1bcd40d3eb38af4cb6398b5e85356cd9a7b082f6b0b8b7a7ba4f0b803682b",
   "packages/validation/tsconfig.json": "e1f3f6dfcce58cd895a3c6f0ff46e9f48e3b64e46ea72c5d5603f6b610d2c796",
   "scripts/workspace.mjs": "af56149c3755037332cd33589f2bb4c25092ce3beeb4f723800c08b95c06afa7",
-  "scripts/workspaces.json": "df91c457d8c51ebf9b923ca47f9e1a97cf4f48660c0e7dafadf0cf6583709120",
+  "scripts/workspaces.json": "841bd7059b2527a9aa68b707c80c9e460b6af51b8ab3f504173d3217abe24c5b",
 }
 `;
 
@@ -996,10 +996,10 @@ exports[`template migration preserves nest-start-rest-rhf output 1`] = `
   "README.md": "3546b7e6dfca19f283ec8791713cca2419fd29a8403e8801d0e21d68c03f8430",
   "apps/server/.env": "4388ef917e9d3b21145d04adfca7b69049c85f0ac0d0dacadd4647ac4bd72be5",
   "apps/server/.env.example": "4388ef917e9d3b21145d04adfca7b69049c85f0ac0d0dacadd4647ac4bd72be5",
-  "apps/server/package.json": "8f7b97b3673af855bf82d529598e072d9aa94c50259db4feb220bd5f9f277ec2",
+  "apps/server/package.json": "ed1a4cdb7cf12ffa72f71aabe33c4ca9298544c0102dbadfcadaf67ff0ae0659",
   "apps/server/prisma/schema.prisma": "a46ebedc519ba2e62c3d32073a47d6228987757309269e2ce2d9e415f528fd9a",
   "apps/server/src/app.module.ts": "5fcc49033944b8cccb42e60461bc3a922b765f74bf197fbeccbc63fe5d326852",
-  "apps/server/src/auth.ts": "43375066929fc5daff85f421c771b1215930e4d4247fa5b79ca672b4d7c1bbb4",
+  "apps/server/src/auth.ts": "7b6640f9c3efaf518bd68765ff549a431b4540f1db0e8dd9d6000e7a9a4814d0",
   "apps/server/src/db.ts": "20b9c868e29dcdfddc9b849612a93980eecd1f2278060fb63c2368c05e7ea02d",
   "apps/server/src/env.ts": "6565d91183cee64fa82b06c469050b30ca9fed9053ae4870c601eee1d3e29e07",
   "apps/server/src/main.ts": "576f76bcf3efbb781de9f2fcc9eb898b5b6742b6a2c109200f16eb76fac6bbfc",
@@ -1051,7 +1051,7 @@ exports[`template migration preserves nest-start-rest-rhf output 1`] = `
   "packages/validation/src/index.ts": "46a1bcd40d3eb38af4cb6398b5e85356cd9a7b082f6b0b8b7a7ba4f0b803682b",
   "packages/validation/tsconfig.json": "e1f3f6dfcce58cd895a3c6f0ff46e9f48e3b64e46ea72c5d5603f6b610d2c796",
   "scripts/workspace.mjs": "af56149c3755037332cd33589f2bb4c25092ce3beeb4f723800c08b95c06afa7",
-  "scripts/workspaces.json": "5ef1ee4988141e6bc11cdb8e4fa1a71e7eb86752a2448c30d55b2b10b13437ae",
+  "scripts/workspaces.json": "d731adfdc2d6e3a5acf99ab4b200c2666ec24207b0abc14c26f170f164b87998",
 }
 `;
 
@@ -1063,12 +1063,10 @@ exports[`template migration preserves nest-orpc-clerk output 1`] = `
   "apps/server/.env.example": "751ffb2180b38b6e910082eadd430447c6dd2b7c44dc6055e16a0b4a94d7a022",
   "apps/server/package.json": "f0eea6e6ba86747a7ef66c15ae91283214ef8425b9092e08a7edc80cdd0ec267",
   "apps/server/prisma/schema.prisma": "7464814d94c7e766473d277e8c67b3408e298c1f9b83ddedf44d8b9c1d48a01f",
-  "apps/server/src/app.module.ts": "701785bea123afa34c808b7edcfaba6cbd91715cb6fc419538be1cf0578820f9",
-  "apps/server/src/auth.ts": "43375066929fc5daff85f421c771b1215930e4d4247fa5b79ca672b4d7c1bbb4",
-  "apps/server/src/clerk.ts": "078946bd25af24698b09be8ab6940ffe8fe2efb8d99ee8c6ac5992508f086be3",
+  "apps/server/src/app.module.ts": "c6f474ee1b1b5983cfa55790a1eeb4f81298ff567340cb82c7803d0af0bc5724",
   "apps/server/src/db.ts": "20b9c868e29dcdfddc9b849612a93980eecd1f2278060fb63c2368c05e7ea02d",
   "apps/server/src/env.ts": "6565d91183cee64fa82b06c469050b30ca9fed9053ae4870c601eee1d3e29e07",
-  "apps/server/src/main.ts": "393b3215d4b61aaff8f11d5207a8cbd9d58a0f4b308fc1f43e772bc2faa54fe1",
+  "apps/server/src/main.ts": "3446dc4615520d19daae24d2a39df0fd2af66a03b5f91d9b27167c98a4368309",
   "apps/server/src/notes.controller.ts": "1949c6cbd3737d71f4849372a768a12be8a40c00e47cbe4f5143151fc95b12ab",
   "apps/server/tsconfig.json": "d241593794a0cc618cd59406f5460497426bb020a149ee18d095e4f3e1d093c1",
   "apps/web/.env": "7d24a924c1df54613f6f74be256a8c6b22fdfa0c4ce050bf1c6373bea93a3808",
@@ -1092,7 +1090,7 @@ exports[`template migration preserves nest-orpc-clerk output 1`] = `
   "apps/web/postcss.config.mjs": "9ca55411b62b2c9cc5631a3e6c631d80c8b8171c7b9ea1e19f83400f4100e910",
   "apps/web/tsconfig.json": "d799fd63c6e8826c2b35459e10e79554b656efc86a1549be816602f1126aae07",
   "eslint.config.mjs": "d55e24853384230308aa5a210ff4a07754dcc02f3608a514aca00868962fabe0",
-  "package.json": "17bb1f87d444ca37c6be76a0cdd792de5adad9fbd805bb7c7fd78861a5c89a87",
+  "package.json": "f710f408e9cd7bdbad897c927074a1b34c4d515132655c72589bf8012c49abc0",
   "packages/contract/package.json": "5b47716ccc420046cb9a0c1442dd8fb77e612991efc014bfaf693479fdb79c02",
   "packages/contract/src/contract.ts": "4d0f45201a726b90364d1b01b9e2dc51853af2bbbe3b2a0392a0a3a9ba3fc8d2",
   "packages/contract/src/index.ts": "e1cae6a83964baa810b16b8b72bfbe409fafeec6166649f45d682f75aa082cf8",
@@ -1128,8 +1126,8 @@ exports[`template migration preserves hono-orpc-drizzle output 1`] = `
   "apps/server/.env": "f63efc1e84a2a1ecde724487306f6af1cc6cc55933a254840a3e41f1d3d85c22",
   "apps/server/.env.example": "f63efc1e84a2a1ecde724487306f6af1cc6cc55933a254840a3e41f1d3d85c22",
   "apps/server/drizzle.config.ts": "d49fe7f892fa0a24c11c914129f917caf56beca2f044f97ac46576e4649616e1",
-  "apps/server/package.json": "023295d58a624e62916130223f2131e28d10d1b8c10c5ea2c98ac418bf722512",
-  "apps/server/src/auth.ts": "072be1c57939ff8365e56fc5e5b1c91e496471cb9ebccaa05c2f834c76105756",
+  "apps/server/package.json": "31ab2a73653dbfafc5e3c8e5ed7b4ee1d1fb1ab449a44ad04a3826c1edc43a00",
+  "apps/server/src/auth.ts": "2a1a2bee66e4bc7bb99a97f680effc03ef55310277a9d5380c65b5c0fa8f6ef4",
   "apps/server/src/db.ts": "5b803e49d2fd5f68bc5286ea374037fc6733efe3e3ab66171a866f3a4e8ef706",
   "apps/server/src/env.ts": "6565d91183cee64fa82b06c469050b30ca9fed9053ae4870c601eee1d3e29e07",
   "apps/server/src/index.ts": "81a24bec9ba1962661baaf7e2567babef2a78f713c4435a4be890face0ad6b3b",
@@ -1186,7 +1184,7 @@ exports[`template migration preserves hono-orpc-drizzle output 1`] = `
   "packages/validation/src/index.ts": "46a1bcd40d3eb38af4cb6398b5e85356cd9a7b082f6b0b8b7a7ba4f0b803682b",
   "packages/validation/tsconfig.json": "e1f3f6dfcce58cd895a3c6f0ff46e9f48e3b64e46ea72c5d5603f6b610d2c796",
   "scripts/workspace.mjs": "af56149c3755037332cd33589f2bb4c25092ce3beeb4f723800c08b95c06afa7",
-  "scripts/workspaces.json": "24adc752cc0586fa6dc5b1f42212a9efce843c64e84da47317bdc42e849aa0e1",
+  "scripts/workspaces.json": "f33f85b4a40f48b564dc8ff164891248260446e3e9c34439527a3fbbf180ac16",
 }
 `;
 

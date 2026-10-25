@@ -4,9 +4,10 @@ import { addDependencies, setFile } from '../files';
 
 export function emitClerk(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex') {
-    const dependency = ctx.stack.frontend === 'tanstack-start'
-      ? '@clerk/clerk-react'
-      : '@clerk/nextjs';
+    const dependency =
+      ctx.stack.frontend === 'tanstack-start'
+        ? '@clerk/clerk-react'
+        : '@clerk/nextjs';
     ctx.pkg.dependencies[dependency] = DEPENDENCY_VERSIONS[dependency];
     ctx.pkg.dependencies.convex = DEPENDENCY_VERSIONS.convex;
     emitStartClerkConvexProviders(ctx);
@@ -14,14 +15,19 @@ export function emitClerk(ctx: EmitCtx): void {
   }
 
   if (ctx.layout.backendRoot === 'apps/server') {
-    const sdk =
+    // The server adapters mount the middleware these SDKs provide.
+    const serverSdk =
+      ctx.stack.backend === 'nest' ? '@clerk/express' : '@hono/clerk-auth';
+    const webSdk =
       ctx.stack.frontend === 'next'
         ? '@clerk/nextjs'
         : '@clerk/tanstack-react-start';
-    addDependencies(ctx.files, ctx.layout.frontendManifest, {
-      [sdk]: DEPENDENCY_VERSIONS[sdk],
+    addDependencies(ctx.files, ctx.layout.backendManifest!, {
+      [serverSdk]: DEPENDENCY_VERSIONS[serverSdk],
     });
-    if (ctx.stack.backend === 'nest') emitNestClerk(ctx);
+    addDependencies(ctx.files, ctx.layout.frontendManifest, {
+      [webSdk]: DEPENDENCY_VERSIONS[webSdk],
+    });
     return;
   }
 
@@ -42,95 +48,6 @@ export default clerkMiddleware();
 export const config = {
   matcher: ["/((?!_next|[^?]*\\\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)", "/(api|trpc)(.*)"],
 };
-`
-  );
-}
-
-function emitNestClerk(ctx: EmitCtx): void {
-  ctx.pkg.dependencies['@clerk/express'] =
-    DEPENDENCY_VERSIONS['@clerk/express'];
-  const serverPkgPath = 'apps/server/package.json';
-  const serverPkgRaw = ctx.files[serverPkgPath];
-  if (serverPkgRaw) {
-    const serverPkg = JSON.parse(serverPkgRaw) as {
-      dependencies: Record<string, string>;
-    };
-    serverPkg.dependencies['@clerk/express'] =
-      DEPENDENCY_VERSIONS['@clerk/express'];
-    delete serverPkg.dependencies['@thallesp/nestjs-better-auth'];
-    delete serverPkg.dependencies['better-auth'];
-    setFile(
-      ctx.files,
-      serverPkgPath,
-      `${JSON.stringify(serverPkg, null, 2)}\n`
-    );
-  }
-
-  setFile(
-    ctx.files,
-    'apps/server/src/clerk.ts',
-    `import { clerkMiddleware, getAuth } from "@clerk/express";
-import type { Request } from "express";
-
-export { clerkMiddleware, getAuth };
-
-export function clerkUserId(request: Request) {
-  return getAuth(request).userId;
-}
-`
-  );
-
-  setFile(
-    ctx.files,
-    'apps/server/src/main.ts',
-    `import "reflect-metadata";
-import { NestFactory } from "@nestjs/core";
-import { clerkMiddleware } from "@clerk/express";
-import { AppModule } from "./app.module.js";
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  app.use(clerkMiddleware());
-  app.enableCors({
-    origin: ["http://localhost:3000"],
-    credentials: true,
-  });
-
-  await app.listen(3333);
-}
-
-void bootstrap();
-`
-  );
-
-  // The oRPC module only exists to serve Notes, which needs a database.
-  if (
-    ctx.stack.backend === 'nest' &&
-    (ctx.stack.api !== 'orpc' || ctx.stack.database === 'none')
-  ) {
-    return;
-  }
-
-  setFile(
-    ctx.files,
-    'apps/server/src/app.module.ts',
-    `import { type ExecutionContext, Module } from "@nestjs/common";
-import { ORPCModule } from "@orpc/nest";
-import type { Request } from "express";
-import { NotesController } from "./notes.controller.js";
-
-@Module({
-  imports: [
-    ORPCModule.forRoot({
-      context: (ctx: object) => ({
-        request: (ctx as ExecutionContext).switchToHttp().getRequest<Request>(),
-      }),
-    }),
-  ],
-  controllers: [NotesController],
-})
-export class AppModule {}
 `
   );
 }
