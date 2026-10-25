@@ -150,7 +150,7 @@ for (const flags of [
 
     expect(polarFirst).toEqual(authFirst);
     expect(authFirst[authFile]).toMatch(
-      /import \{ polar \} from ["']@polar-sh\/better-auth["'];/
+      /import \{ checkout, polar \} from ["']@polar-sh\/better-auth["'];/
     );
     expect(authFirst[authFile]).toContain('polar({');
   });

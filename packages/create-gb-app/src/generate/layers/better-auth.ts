@@ -2,7 +2,11 @@ import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 import { joinPath } from '../layout';
-import { addDependencies, setAuthConfig } from '../project-model';
+import {
+  addDependencies,
+  authPluginImports,
+  setAuthConfig,
+} from '../project-model';
 import { SERVER_URL, WEB_ORIGIN } from './server-workspace';
 import { emitStartOrpcAuth } from './start-orpc-auth';
 
@@ -24,7 +28,7 @@ function emitServerAuth(ctx: EmitCtx): void {
   setAuthConfig(ctx.project, {
     path: ctx.layout.authFile,
     render: (plugins) => `import { betterAuth } from "better-auth";
-${plugins.map((plugin) => `import { ${plugin.name} } from "${plugin.from}";\n`).join('')}${
+${authPluginImports(plugins, '"')}${
       drizzle
         ? `import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
@@ -75,7 +79,7 @@ export function emitBetterAuth(ctx: EmitCtx): void {
       path: 'convex/betterAuth.ts',
       render: (plugins) => `import { betterAuth } from 'better-auth';
 import { convex } from '@convex-dev/better-auth/plugins';
-${plugins.map((plugin) => `import { ${plugin.name} } from '${plugin.from}';\n`).join('')}
+${authPluginImports(plugins, "'")}
 export const auth = betterAuth({
   plugins: [${plugins.map((plugin) => `\n    ${plugin.call}, `).join('')}convex()],
 });
@@ -109,7 +113,7 @@ import { prisma } from './db';`;
   setAuthConfig(ctx.project, {
     path: authPath,
     render: (plugins) => `import { betterAuth } from 'better-auth';
-${plugins.map((plugin) => `import { ${plugin.name} } from '${plugin.from}';\n`).join('')}${adapterImport}
+${authPluginImports(plugins, "'")}${adapterImport}
 ${pluginImport}
 
 export const auth = betterAuth({

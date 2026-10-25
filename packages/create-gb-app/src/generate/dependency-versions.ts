@@ -26,6 +26,7 @@ export const DEPENDENCY_VERSIONS: Readonly<Record<string, string>> = {
   '@orpc/server': '2.0.0-beta.43',
   '@orpc/tanstack-query': '2.0.0-beta.43',
   '@polar-sh/better-auth': '^1.4.0',
+  '@polar-sh/sdk': '^0.47.1',
   '@libsql/client': '^0.15.15',
   '@prisma/adapter-libsql': '^6.16.1',
   dotenv: '^17.2.2',

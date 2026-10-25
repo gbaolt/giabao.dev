@@ -73,8 +73,18 @@ export function setRootDocument(
   project.rootDocument = render;
 }
 
-/** A Better Auth plugin: `import { name } from "from"` and its call. */
-export type AuthPlugin = { name: string; from: string; call: string };
+/** A Better Auth plugin: `import { names } from "from"` lines and its call. */
+export type AuthPlugin = {
+  imports: { names: string; from: string }[];
+  call: string;
+};
+
+export function authPluginImports(plugins: AuthPlugin[], quote: string): string {
+  return plugins
+    .flatMap((plugin) => plugin.imports)
+    .map(({ names, from }) => `import { ${names} } from ${quote}${from}${quote};\n`)
+    .join('');
+}
 
 /** The auth config file, rendered once every plugin is known. */
 export type AuthConfig = {
