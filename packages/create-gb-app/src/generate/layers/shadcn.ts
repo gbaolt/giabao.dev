@@ -108,8 +108,6 @@ function emitSharedShadcn(ctx: EmitCtx): void {
     dependencies: Record<string, string>;
   };
 
-  delete uiPackage.dependencies.clsx;
-  delete uiPackage.dependencies['tailwind-merge'];
   for (const dependency of [
     '@base-ui/react',
     'class-variance-authority',

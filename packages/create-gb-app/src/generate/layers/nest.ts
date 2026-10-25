@@ -277,8 +277,6 @@ function emitUiPackage(ctx: EmitCtx, dep: string): void {
           './utils': './src/utils.ts',
         },
         dependencies: {
-          clsx: '^2.1.1',
-          'tailwind-merge': '^3.3.1',
           react: DEPENDENCY_VERSIONS['react'],
         },
         devDependencies: {
@@ -289,77 +287,6 @@ function emitUiPackage(ctx: EmitCtx, dep: string): void {
       null,
       2
     )
-  );
-  setFile(
-    ctx.files,
-    'packages/ui/src/utils.ts',
-    `import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-`
-  );
-  setFile(
-    ctx.files,
-    'packages/ui/src/button.tsx',
-    `import type { ButtonHTMLAttributes } from "react";
-import { cn } from "./utils";
-
-export function Button({
-  className,
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      className={cn(
-        "inline-flex h-9 items-center justify-center rounded-md bg-neutral-900 px-3 text-sm font-medium text-white disabled:opacity-50",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-`
-  );
-  setFile(
-    ctx.files,
-    'packages/ui/src/input.tsx',
-    `import type { InputHTMLAttributes } from "react";
-import { cn } from "./utils";
-
-export function Input({
-  className,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      className={cn(
-        "h-9 w-full rounded-md border border-neutral-300 bg-transparent px-3 text-sm",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-`
-  );
-  setFile(
-    ctx.files,
-    'packages/ui/src/card.tsx',
-    `import type { HTMLAttributes } from "react";
-import { cn } from "./utils";
-
-export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn("rounded-lg border border-neutral-200 bg-white p-4", className)}
-      {...props}
-    />
-  );
-}
-`
   );
 }
 
