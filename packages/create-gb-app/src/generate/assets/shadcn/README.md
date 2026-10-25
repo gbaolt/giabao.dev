@@ -1,8 +1,8 @@
 # shadcn Base UI assets
 
-`source.json` contains unmodified UTF-8 text captured from the official shadcn CLI. The command ran on 2026-09-25 with `shadcn` 4.21.0:
+`packages/create-gb-app/reference/shadcn/source.json` contains unmodified UTF-8 text captured from the official shadcn CLI. It lives outside `src` so the published package does not ship it. The command ran on 2026-09-25 with `shadcn` 4.21.0:
 
-Editable source files live in `packages/create-gb-app/templates/shadcn/`. `formatted-source.json` is generated from those files with `bun run templates:generate` and committed for the CLI and Create to import. Format the templates with this repository's Prettier settings before regenerating. `source.json` remains the unmodified upstream reference, including its unused package manifest.
+Editable source files live in `packages/create-gb-app/templates/shadcn/`. `formatted-source.json` is generated from those files with `bun run templates:generate` and committed for the CLI and Create to import. Format the templates with this repository's Prettier settings before regenerating. The reference `source.json` remains the unmodified upstream capture, including its unused package manifest.
 
 ```sh
 shadcn init --name reference --template next --preset b1YnQPagE --base base --no-monorepo --yes
