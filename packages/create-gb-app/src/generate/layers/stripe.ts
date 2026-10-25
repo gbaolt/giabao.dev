@@ -3,6 +3,7 @@ import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 import { joinPath } from '../layout';
 import { addEnv } from '../project-model';
+import { emitPortalPage } from './portal';
 
 export function emitStripe(ctx: EmitCtx): void {
   ctx.pkg.dependencies.stripe = DEPENDENCY_VERSIONS['stripe'];
@@ -12,7 +13,6 @@ export function emitStripe(ctx: EmitCtx): void {
       ? joinPath(layout.serverSourceRoot, `stripe.${name}.ts`)
       : layout.apiRoute(`stripe/${name}`);
   const webhookPath = handler('webhook');
-  const portalPath = layout.route('portal');
   const checkoutPath = handler('checkout');
 
   setFile(
@@ -30,20 +30,14 @@ export function emitStripe(ctx: EmitCtx): void {
 }
 `
   );
-  setFile(
-    ctx.files,
-    portalPath,
-    `export default function PortalPage() {
-  return (
-    <main>
+  emitPortalPage(
+    ctx,
+    `    <main>
       <h1>Customer portal</h1>
       <form action="/api/stripe/portal" method="post">
         <button type="submit">Open portal</button>
       </form>
-    </main>
-  );
-}
-`
+    </main>`
   );
   setFile(
     ctx.files,
