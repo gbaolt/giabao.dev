@@ -1,6 +1,6 @@
 'use client';
 import type { ComponentProps } from 'react';
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } from '__UI_PREFIX__textarea';
 import { FormBase, type FormControlFn } from './form-base';
 
 export const FormTextarea: FormControlFn<

@@ -18,7 +18,15 @@ with `JSON.stringify`. It does not execute or format templates. Repeat generatio
 leaves unchanged assets untouched. `templates:check` reports stale assets without
 writing files; tests, format checking and CLI builds run that check.
 
+## What belongs here
+
+A file belongs in `templates/` only when its content is fully static apart from
+tokens. Files with conditional content stay inline in their generator layer.
+
 ## Asset mapping
+
+The `FAMILIES` list in `script/templates.ts` declares each family, its asset
+path, allowed extensions and directories. Add a family or directory there.
 
 - `shadcn/` preserves file paths as keys in
   `src/generate/assets/shadcn/formatted-source.json`.
@@ -30,11 +38,17 @@ writing files; tests, format checking and CLI builds run that check.
 - `next/` preserves file paths in `src/generate/assets/next/source.json`, except
   `next-env.template.d.ts` becomes `next-env.d.ts`. Its authored name avoids the
   repository's ignore rule for Next's generated declaration file.
+- `styles/` preserves filenames in `src/generate/assets/styles/source.json`.
+  Next and TanStack Start share its global stylesheet.
 
-Keep `__UI_PREFIX__` and `__PROJECT_NAME__` tokens intact. Existing generator
-layers perform their context-specific substitutions. Add templates within the
-existing directory groups; unexpected files, directories and symlinks fail generation.
-New families or naming conventions require an explicit serializer change.
+Unexpected files, directories and symlinks fail generation.
+
+## Tokens
+
+Tokens use the `__NAME__` syntax, such as `__UI_PREFIX__`, `__NOTE_VALIDATION__`
+and `__PROJECT_NAME__`. Layers fill them with `fillTemplate` from
+`src/generate/template-tokens.ts`, which throws on a token without a value and
+on any token left after substitution.
 
 ## Verification boundaries
 
@@ -43,9 +57,9 @@ configuration. They are outside the CLI's TypeScript project and typed ESLint
 rules. Prettier checks their syntax and formatting. The generator's output tests
 and application verification cover how they combine into applications.
 
-The current migration includes shadcn, form and login assets plus static Next
-snippets. Dynamic layers still contain strings. Formatting these templates does
-not guarantee that every file remains formatted after later layer transformations.
+Formatting these templates does not guarantee that every file remains formatted
+after later layer transformations.
 
-The shadcn `src/generate/assets/shadcn/source.json` is the untouched upstream
-reference, not generated output. Preserve it when editing local templates.
+The shadcn `reference/shadcn/source.json` is the untouched upstream reference,
+not generated output. It stays outside `src` so the published package omits it.
+Preserve it when editing local templates.

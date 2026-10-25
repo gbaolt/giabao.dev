@@ -140,7 +140,7 @@ describe('server backend matrix', () => {
       expect('better-auth' in web.dependencies).toBe(betterAuth);
       if (betterAuth)
         expect(files['apps/server/src/auth.ts']).toContain(
-          `provider: "${PROVIDERS[flags.orm!][flags.database as 'postgres']}"`
+          `provider: "${PROVIDERS[flags.orm as 'prisma'][flags.database as 'postgres']}"`
         );
       else expect(files['apps/server/src/auth.ts']).toBeUndefined();
 

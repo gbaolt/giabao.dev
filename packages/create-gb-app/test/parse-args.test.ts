@@ -60,7 +60,14 @@ test('structure flag is parsed and required backends reject single app', () => {
   expect(() => parseArgs(['--structure', 'workspace'])).toThrow(ParseError);
 });
 test('explicit backend override reconciles a preset structure', () => {
-  const raw = parseArgs(['--preset', 'nest', '--backend', 'self']);
+  const raw = parseArgs([
+    '--preset',
+    'nest',
+    '--backend',
+    'self',
+    '--linting',
+    'eslint',
+  ]);
   expect(raw.backend).toBe('self');
   expect(raw.structure).toBe('single');
   expect(resolveStack(raw).structure).toBe('single');
@@ -96,4 +103,24 @@ test('shouldGenerateHeadless is true for preset, directory, yes, or non-TTY', ()
   expect(shouldGenerateHeadless(parseArgs(['--yes']), true)).toBe(true);
   expect(shouldGenerateHeadless({}, true)).toBe(false);
   expect(shouldGenerateHeadless({}, false)).toBe(true);
+});
+
+test('every stack group parses from its vocabulary flag', () => {
+  expect(
+    parseArgs([
+      '--db-setup',
+      'neon',
+      '--task-runner=turborepo',
+      '--form',
+      'tanstack-form',
+      '--auth',
+      'clerk',
+    ])
+  ).toEqual({
+    dbSetup: 'neon',
+    auth: 'clerk',
+    addons: { taskRunner: 'turborepo', form: 'tanstack-form' },
+  });
+  expect(() => parseArgs(['--db-setup', 'mongo'])).toThrow(ParseError);
+  expect(() => parseArgs(['--db_setup', 'neon'])).toThrow('unknown flag');
 });

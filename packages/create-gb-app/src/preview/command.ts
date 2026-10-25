@@ -1,7 +1,7 @@
 import { parsePresetToken, rawSelection, selectionValue } from '#/preset';
-import { defaultStructureForBackend, YES_DEFAULTS } from '#/stack/resolve';
+import { configurationDefaults } from '#/stack/resolve';
 import type { FlagGroup } from '#/stack/vocab';
-import { RELATIONAL_GROUPS, STACK_CLI_FLAGS } from '#/stack/vocab';
+import { STACK_CLI_FLAGS } from '#/stack/vocab';
 import type { RawFlags } from '#/types/stack';
 
 function shellQuote(value: string): string {
@@ -11,22 +11,22 @@ function shellQuote(value: string): string {
   return `'${value.replaceAll("'", `'\\''`)}'`;
 }
 
-function impliedValue(baseline: RawFlags, key: FlagGroup): string | undefined {
-  const backend = baseline.backend ?? YES_DEFAULTS.backend;
-  if (
-    backend === 'convex' &&
-    (RELATIONAL_GROUPS as readonly FlagGroup[]).includes(key)
-  ) {
-    return undefined;
-  }
-  if (key === 'structure') {
-    return baseline.structure ?? defaultStructureForBackend(backend);
-  }
-  const fromBaseline = rawSelection(baseline, key);
-  if (fromBaseline !== undefined) {
-    return fromBaseline;
-  }
-  return selectionValue(YES_DEFAULTS, key);
+function impliedValue(
+  baseline: RawFlags,
+  flags: RawFlags,
+  key: FlagGroup
+): string {
+  // Relational defaults depend on the chosen backend (Convex implies none);
+  // structure follows the baseline backend so a chosen layout stays explicit.
+  const backend =
+    key === 'backend' || key === 'structure' ? baseline.backend : flags.backend;
+  return selectionValue(
+    configurationDefaults({
+      ...baseline,
+      backend: backend ?? baseline.backend,
+    }),
+    key
+  );
 }
 
 function definedEntries(flags: RawFlags): Array<[string, string]> {
@@ -34,7 +34,10 @@ function definedEntries(flags: RawFlags): Array<[string, string]> {
   const entries: Array<[string, string]> = [];
   for (const { key, flag } of STACK_CLI_FLAGS) {
     const current = rawSelection(flags, key);
-    if (current === undefined || current === impliedValue(baseline, key)) {
+    if (
+      current === undefined ||
+      current === impliedValue(baseline, flags, key)
+    ) {
       continue;
     }
     entries.push([flag, current]);

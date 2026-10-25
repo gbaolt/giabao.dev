@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
+import { YES_DEFAULTS } from 'create-gb-app/preset';
 
-import { YES_DEFAULTS } from '../lib/compat';
 import { FLAG_OPTIONS, presentFlagOption } from './options';
 test('self backend is Fullstack Next.js by default', () => {
   const option = FLAG_OPTIONS.core.backend.find(

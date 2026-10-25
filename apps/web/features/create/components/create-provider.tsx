@@ -1,11 +1,14 @@
 'use client';
 
 import {
+  applyChange,
   configurationFromQuery,
   configurationQuery,
   type CreateFlags,
   FLAG_GROUPS,
   type FlagGroup,
+  optionState,
+  queryKey,
   type SelectionValues,
   YES_DEFAULTS,
 } from 'create-gb-app/preset';
@@ -22,11 +25,6 @@ import { Button } from '@/components/ui/button';
 
 import { useProjectName } from '../hooks/use-project-name';
 import { buildCommand } from '../lib/command';
-import {
-  applyFlagChange,
-  isOptionEnabled,
-  normalizeFlags,
-} from '../lib/compat';
 
 type CreateContextValue = {
   flags: CreateFlags;
@@ -38,13 +36,7 @@ type CreateContextValue = {
   command: string;
 };
 const CreateContext = createContext<CreateContextValue | null>(null);
-const searchKeys = [
-  'schema',
-  'linter',
-  ...FLAG_GROUPS.map((key) =>
-    key === 'dbSetup' ? 'db-setup' : key === 'taskRunner' ? 'task-runner' : key
-  ),
-];
+const searchKeys = ['schema', 'linter', ...FLAG_GROUPS.map(queryKey)];
 const parsers = Object.fromEntries(
   searchKeys.map((key) => [key, parseAsString])
 );
@@ -54,7 +46,7 @@ export function CreateProvider({ children }: { children: ReactNode }) {
   let flags: CreateFlags = YES_DEFAULTS;
   let queryError: string | null = null;
   try {
-    flags = normalizeFlags(configurationFromQuery(query));
+    flags = configurationFromQuery(query);
   } catch (error) {
     queryError =
       error instanceof Error ? error.message : 'Invalid Configuration';
@@ -63,7 +55,7 @@ export function CreateProvider({ children }: { children: ReactNode }) {
   const setFlags = useCallback(
     (next: CreateFlags) => {
       void setParams({
-        ...configurationQuery(normalizeFlags(next)),
+        ...configurationQuery(next),
         linter: null,
       });
     },
@@ -88,10 +80,10 @@ export function CreateProvider({ children }: { children: ReactNode }) {
   const setFlag = useCallback(
     <K extends FlagGroup>(key: K, value: SelectionValues[K]) => {
       void setParams((current) => {
-        const configuration = normalizeFlags(configurationFromQuery(current));
-        if (!isOptionEnabled(configuration, key, value)) return {};
+        const configuration = configurationFromQuery(current);
+        if (!optionState(configuration, key, value).enabled) return {};
         return {
-          ...configurationQuery(applyFlagChange(configuration, key, value)),
+          ...configurationQuery(applyChange(configuration, key, value)),
           linter: null,
         };
       });

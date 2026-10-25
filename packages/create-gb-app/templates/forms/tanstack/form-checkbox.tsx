@@ -1,5 +1,5 @@
 'use client';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from '__UI_PREFIX__checkbox';
 import { useFieldContext } from './contexts';
 import { FormBase, type FormControlProps } from './form-base';
 

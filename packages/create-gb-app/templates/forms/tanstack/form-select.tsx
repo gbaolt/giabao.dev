@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '__UI_PREFIX__select';
 import { useFieldContext } from './contexts';
 import { FormBase, type FormControlProps } from './form-base';
 

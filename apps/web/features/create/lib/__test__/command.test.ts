@@ -1,10 +1,15 @@
 import { expect, test } from 'bun:test';
-import { decodePreset, YES_DEFAULTS } from 'create-gb-app/preset';
+import {
+  applyChange,
+  decodePreset,
+  optionState,
+  repairConfiguration,
+  YES_DEFAULTS,
+} from 'create-gb-app/preset';
 
 import { convertNpmCommand } from '@/lib/convert-npm-command';
 
-import { buildCommand, encodePreset, isSelectable } from '../command';
-import { applyFlagChange, disabledRuleId, normalizeFlags } from '../compat';
+import { buildCommand, encodePreset } from '../command';
 test('default command copies a compact preset', () => {
   expect(buildCommand(YES_DEFAULTS)).toBe(
     'npx create-gb-app my-gb-app --preset gb-v2-0'
@@ -29,10 +34,10 @@ test('convertNpmCommand maps the default command', () => {
 });
 test('polar plus clerk is not selectable', () => {
   expect(
-    isSelectable({ ...YES_DEFAULTS, auth: 'clerk' }, 'payments', 'polar')
+    optionState({ ...YES_DEFAULTS, auth: 'clerk' }, 'payments', 'polar').enabled
   ).toBe(false);
   expect(
-    isSelectable({ ...YES_DEFAULTS, payments: 'polar' }, 'auth', 'clerk')
+    optionState({ ...YES_DEFAULTS, payments: 'polar' }, 'auth', 'clerk').enabled
   ).toBe(false);
 });
 test('tanstack-start copies a packed --preset', () => {
@@ -42,14 +47,16 @@ test('tanstack-start copies a packed --preset', () => {
   expect(decodePreset('gb1').frontend).toBe('tanstack-start');
 });
 test('nest plus start copies a packed --preset', () => {
-  const flags = applyFlagChange(
-    applyFlagChange(YES_DEFAULTS, 'backend', 'nest'),
+  const flags = applyChange(
+    applyChange(YES_DEFAULTS, 'backend', 'nest'),
     'frontend',
     'tanstack-start'
   );
   expect(flags.addons.linting).toBe('auto');
   expect(flags.frontend).toBe('tanstack-start');
-  expect(disabledRuleId(flags, 'api', 'trpc')).toBe('nest-trpc');
+  expect(optionState(flags, 'api', 'trpc')).toMatchObject({
+    ruleId: 'nest-trpc',
+  });
   const command = buildCommand(flags);
   expect(command.startsWith('npx create-gb-app my-gb-app --preset ')).toBe(
     true
@@ -58,7 +65,7 @@ test('nest plus start copies a packed --preset', () => {
   expect(decodePreset(code)).toEqual(flags);
 });
 test('nest copies a packed --preset', () => {
-  const flags = applyFlagChange(YES_DEFAULTS, 'backend', 'nest');
+  const flags = applyChange(YES_DEFAULTS, 'backend', 'nest');
   expect(flags.addons.linting).toBe('auto');
   expect(buildCommand(flags)).toBe(
     'npx create-gb-app my-gb-app --preset gb-v2-h7a'
@@ -66,7 +73,7 @@ test('nest copies a packed --preset', () => {
   expect(decodePreset('gb-v2-h7a')).toEqual(flags);
 });
 test('hono copies a packed --preset and leaves defaults alone', () => {
-  const flags = applyFlagChange(YES_DEFAULTS, 'backend', 'hono');
+  const flags = applyChange(YES_DEFAULTS, 'backend', 'hono');
   expect(flags.addons.linting).toBe('auto');
   expect(flags.api).toBe('orpc');
   expect(buildCommand(flags)).toBe(
@@ -81,7 +88,7 @@ test('hono copies a packed --preset and leaves defaults alone', () => {
   );
 });
 test('convex copies a packed --preset with relational groups forced to none', () => {
-  const flags = normalizeFlags({
+  const flags = repairConfiguration({
     ...YES_DEFAULTS,
     backend: 'convex',
     database: 'mysql',

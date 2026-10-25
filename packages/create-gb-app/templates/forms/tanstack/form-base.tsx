@@ -6,7 +6,7 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
-} from '@/components/ui/field';
+} from '__UI_PREFIX__field';
 
 export type FormControlProps = {
   label?: ReactNode;

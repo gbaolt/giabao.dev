@@ -1,6 +1,7 @@
 import type { Stack } from '#/types/stack';
 
 import type { EmitCtx } from '../../types/generate';
+import stylesSource from '../assets/styles/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile, setFileIfAbsent } from '../files';
 import { joinPath } from '../layout';
@@ -50,7 +51,7 @@ export function emitStart(ctx: EmitCtx): void {
         )
   );
   setFile(ctx.files, web('vite.config.ts'), startViteConfig());
-  setFile(ctx.files, layout.stylesFile, startStyles());
+  setFile(ctx.files, layout.stylesFile, stylesSource['globals.css']);
   setFile(ctx.files, joinPath(layout.sourceRoot, 'router.tsx'), startRouter());
   setFile(
     ctx.files,
@@ -145,28 +146,6 @@ import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
   return createRouter({ routeTree, scrollRestoration: true });
-}
-`;
-}
-
-function startStyles(): string {
-  return `@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
 }
 `;
 }

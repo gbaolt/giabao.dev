@@ -56,13 +56,13 @@ export const VOCAB_BY_GROUP = {
   form: FORMS,
 } as const satisfies Record<FlagGroup, readonly string[]>;
 export const RELATIONAL_GROUPS = ['api', 'database', 'orm', 'dbSetup'] as const;
+// The name a group uses in CLI flags and Create page query strings.
+export function queryKey(group: FlagGroup): string {
+  return group === 'dbSetup'
+    ? 'db-setup'
+    : group === 'taskRunner'
+      ? 'task-runner'
+      : group;
+}
 export const STACK_CLI_FLAGS: { key: FlagGroup; flag: string }[] =
-  FLAG_GROUPS.map((key) => ({
-    key,
-    flag:
-      key === 'dbSetup'
-        ? '--db-setup'
-        : key === 'taskRunner'
-          ? '--task-runner'
-          : `--${key}`,
-  }));
+  FLAG_GROUPS.map((key) => ({ key, flag: `--${queryKey(key)}` }));

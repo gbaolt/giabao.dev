@@ -1,37 +1,12 @@
 import type { EmitCtx } from '../../types/generate';
 import nextSource from '../assets/next/source.json';
+import stylesSource from '../assets/styles/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile, setFileIfAbsent } from '../files';
 import { joinPath } from '../layout';
+import { fillTemplate } from '../template-tokens';
 
-const TSCONFIG = `{
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./*"]
-    }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
-}
-`;
+const TSCONFIG = nextSource['tsconfig.json'];
 
 export function emitNext(ctx: EmitCtx): void {
   const { layout } = ctx;
@@ -77,34 +52,14 @@ export function emitNext(ctx: EmitCtx): void {
   setFile(ctx.files, web('next-env.d.ts'), nextSource['next-env.d.ts']);
   setFile(ctx.files, web('global.d.ts'), nextSource['global.d.ts']);
 
-  setFile(ctx.files, layout.stylesFile, nextSource['app/globals.css']);
+  setFile(ctx.files, layout.stylesFile, stylesSource['globals.css']);
 
   setFile(
     ctx.files,
     layout.rootLayout,
-    `import type { Metadata } from 'next';
-import { Providers } from './providers';
-import './globals.css';
-
-export const metadata: Metadata = {
-  title: '${ctx.projectName}',
-  description: 'Notes app',
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="en">
-      <body>
-        <Providers>{children}</Providers>
-      </body>
-    </html>
-  );
-}
-`
+    fillTemplate(nextSource['app/layout.tsx'], {
+      PROJECT_NAME: ctx.projectName,
+    })
   );
 
   setFile(
