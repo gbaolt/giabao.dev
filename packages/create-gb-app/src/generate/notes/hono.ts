@@ -1,10 +1,10 @@
 import type { EmitCtx } from '../../types/generate';
 import type { HonoStack } from '../../types/stack';
 import { setFile } from '../files';
+import { SERVER_URL } from '../layers/server-workspace';
 import { notesForm, restCreate } from './form';
+import { NEXT_SERVER_NOTES_PAGE } from './next-page';
 import { notesRepository } from './repository';
-
-const SERVER_URL = 'http://localhost:3333';
 
 export function emitHonoNotes(ctx: EmitCtx): void {
   const { stack } = ctx;
@@ -17,25 +17,7 @@ export function emitHonoNotes(ctx: EmitCtx): void {
       'apps/web/app/notes/notes-client.tsx',
       nextNotesClient(ctx, stack)
     );
-    setFile(
-      ctx.files,
-      'apps/web/app/notes/page.tsx',
-      `import Link from "next/link";
-import { NotesClient } from "./notes-client";
-
-export default function NotesPage() {
-  return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-8">
-      <h1 className="text-2xl font-semibold">Notes</h1>
-      <Link className="text-sm underline" href="/">
-        Home
-      </Link>
-      <NotesClient />
-    </main>
-  );
-}
-`
-    );
+    setFile(ctx.files, 'apps/web/app/notes/page.tsx', NEXT_SERVER_NOTES_PAGE);
   } else {
     setFile(
       ctx.files,

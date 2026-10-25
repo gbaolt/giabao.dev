@@ -11,8 +11,8 @@ import { setFile, setFileIfAbsent, sortRecord } from './files';
 import { emitBetterAuth } from './layers/better-auth';
 import { emitClerk } from './layers/clerk';
 import { emitConvex } from './layers/convex';
-import { emitDbSetup, finalizeDatabaseSetup } from './layers/db-setup';
-import { emitDrizzle } from './layers/drizzle';
+import { emitDatabase } from './layers/database';
+import { finalizeDatabaseSetup } from './layers/db-setup';
 import { emitEslint } from './layers/eslint';
 import { emitForms } from './layers/forms';
 import { emitHono } from './layers/hono';
@@ -23,8 +23,6 @@ import { emitOptionalWorkspace } from './layers/optional-workspace';
 import { emitOrpc } from './layers/orpc';
 import { emitOxlint } from './layers/oxlint';
 import { emitPolar } from './layers/polar';
-import { emitPostgres } from './layers/postgres';
-import { emitPrisma } from './layers/prisma';
 import { emitSelf } from './layers/self';
 import { emitShadcn } from './layers/shadcn';
 import { emitStart } from './layers/start';
@@ -37,44 +35,6 @@ import { emitNotes } from './notes';
 import { generateReadme } from './readme';
 import { emitPlainWorkspace, prepareWorkspaceTasks } from './workspace-tasks';
 import { finalizeWorkspaces } from './workspaces';
-
-function emitDatabase(
-  stack: Extract<Stack, { backend: 'self' | 'nest' }>,
-  ctx: Parameters<typeof emitNext>[0]
-) {
-  if (stack.database === 'none') {
-    return;
-  }
-
-  switch (stack.database) {
-    case 'sqlite':
-    case 'mysql':
-    case 'postgres':
-      emitPostgres(ctx);
-      break;
-    default: {
-      const _exhaustive: never = stack.database;
-      throw new Error(`unhandled database: ${_exhaustive}`);
-    }
-  }
-
-  switch (stack.orm) {
-    case 'prisma':
-      emitPrisma(ctx);
-      break;
-    case 'drizzle':
-      emitDrizzle(ctx);
-      break;
-    case 'none':
-      throw new Error('orm none requires database none');
-    default: {
-      const _exhaustive: never = stack.orm;
-      throw new Error(`unhandled orm: ${_exhaustive}`);
-    }
-  }
-
-  emitDbSetup(ctx);
-}
 
 function emitAuth(stack: Stack, ctx: Parameters<typeof emitNext>[0]) {
   switch (stack.auth) {
@@ -193,7 +153,7 @@ function buildProject(
           if (stack.api !== 'none') {
             emitApi(stack, emitCtx);
           }
-          emitDatabase(stack, emitCtx);
+          emitDatabase(emitCtx);
         }
         break;
       }

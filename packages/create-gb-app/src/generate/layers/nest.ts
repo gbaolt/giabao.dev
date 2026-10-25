@@ -2,329 +2,75 @@ import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { GenerateError } from '../errors';
 import { setFile } from '../files';
-import { workspaceProtocol } from '../workspace-protocol';
-import { emitBiome } from './biome';
-import { emitDbSetup } from './db-setup';
-import { emitDrizzle } from './drizzle';
-import { emitEslint } from './eslint';
-import { emitOxlint } from './oxlint';
-import { emitPostgres } from './postgres';
-import { emitPrisma } from './prisma';
+import {
+  emitServerWorkspace,
+  SERVER_LISTEN_PORT,
+  SERVER_URL,
+  WEB_ORIGIN,
+  writeServerManifest,
+} from './server-workspace';
 import { emitStartWebApp, startPassthroughProviders } from './start';
-
-function proto(ctx: EmitCtx): string {
-  return workspaceProtocol(ctx.packageManager);
-}
 
 export function emitNest(ctx: EmitCtx): void {
   if (ctx.stack.backend !== 'nest') {
     throw new Error('emitNest requires nest');
   }
-  if (ctx.stack.api === 'trpc') {
+  const stack = ctx.stack;
+  if (stack.api === 'trpc') {
     throw new GenerateError(
       'nest-trpc',
       'nest trpc generate is not implemented yet'
     );
   }
-
-  const dep = proto(ctx);
-  ctx.pkg.private = true;
-  ctx.pkg.devDependencies.typescript = DEPENDENCY_VERSIONS['typescript'];
-  ctx.pkg.workspaces = ['apps/*', 'packages/*'];
-
-  if (ctx.stack.database !== 'none') {
-    emitPostgres(ctx);
-    switch (ctx.stack.orm) {
-      case 'prisma':
-        emitPrisma(ctx);
-        break;
-      case 'drizzle':
-        emitDrizzle(ctx);
-        break;
-      case 'none':
-        throw new Error('orm none requires database none');
-      default: {
-        const _exhaustive: never = ctx.stack.orm;
-        throw new Error(`unhandled orm: ${_exhaustive}`);
+  emitServerWorkspace(ctx, {
+    nodeNext: true,
+    tsconfig: {
+      compilerOptions: {
+        module: 'NodeNext',
+        moduleResolution: 'NodeNext',
+        experimentalDecorators: true,
+        emitDecoratorMetadata: true,
+        outDir: 'dist',
+        rootDir: 'src',
+      },
+      include: ['src/**/*.ts'],
+    },
+    emit: (context, dep) => {
+      if (stack.database === 'none') {
+        emitShellServer(context, dep);
+      } else if (stack.api === 'none') {
+        emitRestServer(context, dep);
+      } else {
+        emitServer(context, dep);
       }
-    }
-    emitDbSetup(ctx);
-  }
-
-  if (ctx.stack.frontend === 'tanstack-start') {
-    setFile(
-      ctx.files,
-      '.gitignore',
-      `node_modules
-.next
-.output
-.vinxi
-dist
-.env
-*.log
-`
-    );
-  }
-
-  emitTypescriptConfig(ctx, dep);
-  setFile(
-    ctx.files,
-    'apps/server/tsconfig.json',
-    JSON.stringify(
-      {
-        extends: '@repo/typescript-config/base.json',
-        compilerOptions: {
-          module: 'NodeNext',
-          moduleResolution: 'NodeNext',
-          experimentalDecorators: true,
-          emitDecoratorMetadata: true,
-          outDir: 'dist',
-          rootDir: 'src',
-        },
-        include: ['src/**/*.ts'],
-      },
-      null,
-      2
-    )
-  );
-  if (ctx.stack.api === 'orpc') {
-    emitContract(ctx, dep);
-  }
-  emitUiPackage(ctx, dep);
-  if (ctx.stack.database === 'none') {
-    emitShellServer(ctx, dep);
-  } else if (ctx.stack.api === 'none') {
-    emitRestServer(ctx, dep);
-  } else {
-    emitServer(ctx, dep);
-  }
-  emitWeb(ctx, dep);
-
-  switch (ctx.stack.addons.linting) {
-    case 'biome':
-      emitBiome(ctx);
-      break;
-    case 'eslint':
-      emitEslint(ctx);
-      break;
-    case 'oxlint':
-      emitOxlint(ctx);
-      break;
-    default: {
-      const _exhaustive: never = ctx.stack.addons.linting;
-      throw new Error(`unhandled linter: ${_exhaustive}`);
-    }
-  }
-}
-
-function emitTypescriptConfig(ctx: EmitCtx, _dep: string): void {
-  setFile(
-    ctx.files,
-    'packages/typescript-config/package.json',
-    JSON.stringify(
-      {
-        name: '@repo/typescript-config',
-        version: '0.0.0',
-        private: true,
-        files: ['base.json'],
-      },
-      null,
-      2
-    )
-  );
-  setFile(
-    ctx.files,
-    'packages/typescript-config/base.json',
-    JSON.stringify(
-      {
-        compilerOptions: {
-          strict: true,
-          target: 'ES2022',
-          module: 'ESNext',
-          moduleResolution: 'bundler',
-          skipLibCheck: true,
-        },
-      },
-      null,
-      2
-    )
-  );
-}
-
-function emitContract(ctx: EmitCtx, dep: string): void {
-  setFile(
-    ctx.files,
-    'packages/contract/package.json',
-    JSON.stringify(
-      {
-        name: '@repo/contract',
-        version: '0.0.0',
-        private: true,
-        type: 'module',
-        exports: {
-          '.': { types: './dist/index.d.ts', default: './dist/index.js' },
-        },
-        scripts: { build: 'tsc -p tsconfig.json' },
-        dependencies: {
-          '@orpc/contract': DEPENDENCY_VERSIONS['@orpc/contract'],
-          '@orpc/openapi': DEPENDENCY_VERSIONS['@orpc/openapi'],
-          zod: DEPENDENCY_VERSIONS['zod'],
-        },
-        devDependencies: {
-          '@repo/typescript-config': dep,
-          typescript: DEPENDENCY_VERSIONS['typescript'],
-        },
-      },
-      null,
-      2
-    )
-  );
-
-  setFile(
-    ctx.files,
-    'packages/contract/src/index.ts',
-    `export { contract } from "./contract.js";
-`
-  );
-
-  setFile(
-    ctx.files,
-    'packages/contract/tsconfig.json',
-    JSON.stringify(
-      {
-        extends: '@repo/typescript-config/base.json',
-        compilerOptions: {
-          module: 'NodeNext',
-          moduleResolution: 'NodeNext',
-          declaration: true,
-          outDir: 'dist',
-          rootDir: 'src',
-        },
-        include: ['src/**/*.ts'],
-      },
-      null,
-      2
-    )
-  );
-
-  setFile(
-    ctx.files,
-    'packages/contract/src/contract.ts',
-    `import { oc } from "@orpc/contract";
-import { openapi } from "@orpc/openapi";
-import { noteInputSchema } from "@repo/validation";
-import { z } from "zod";
-
-const UserSchema = z.object({
-  id: z.string(),
-  email: z.string(),
-  name: z.string(),
-});
-
-const NoteSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  body: z.string(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-});
-
-export const contract = {
-  me: oc
-    .meta(openapi({ method: "GET", path: "/me" }))
-    .output(UserSchema),
-  notes: {
-    list: oc
-      .meta(openapi({ method: "GET", path: "/notes" }))
-      .output(z.array(NoteSchema)),
-    create: oc
-      .meta(openapi({ method: "POST", path: "/notes" }))
-      .input(noteInputSchema)
-      .output(NoteSchema),
-    update: oc
-      .meta(openapi({ method: "PATCH", path: "/notes/{id}" }))
-      .input(
-        z.object({
-          id: z.string(),
-          ...noteInputSchema.shape,
-        }),
-      )
-      .output(NoteSchema),
-    delete: oc
-      .meta(openapi({ method: "DELETE", path: "/notes/{id}" }))
-      .input(z.object({ id: z.string() }))
-      .output(z.object({ ok: z.literal(true) })),
-  },
-};
-`
-  );
-}
-
-function emitUiPackage(ctx: EmitCtx, dep: string): void {
-  setFile(
-    ctx.files,
-    'packages/ui/package.json',
-    JSON.stringify(
-      {
-        name: '@repo/ui',
-        version: '0.0.0',
-        private: true,
-        type: 'module',
-        exports: {
-          './button': './src/button.tsx',
-          './input': './src/input.tsx',
-          './card': './src/card.tsx',
-          './utils': './src/utils.ts',
-        },
-        dependencies: {
-          react: DEPENDENCY_VERSIONS['react'],
-        },
-        devDependencies: {
-          '@repo/typescript-config': dep,
-          '@types/react': DEPENDENCY_VERSIONS['@types/react'],
-        },
-      },
-      null,
-      2
-    )
-  );
+      emitWeb(context, dep);
+    },
+  });
 }
 
 function emitShellServer(ctx: EmitCtx, dep: string): void {
-  setFile(
-    ctx.files,
-    'apps/server/package.json',
-    JSON.stringify(
-      {
-        name: 'server',
-        version: '0.0.0',
-        private: true,
-        type: 'module',
-        scripts: {
-          dev: 'tsx watch src/main.ts',
-          start: 'node dist/main.js',
-          build: 'tsc',
-        },
-        dependencies: {
-          '@nestjs/common': DEPENDENCY_VERSIONS['@nestjs/common'],
-          '@nestjs/core': DEPENDENCY_VERSIONS['@nestjs/core'],
-          '@nestjs/platform-express':
-            DEPENDENCY_VERSIONS['@nestjs/platform-express'],
-          'reflect-metadata': DEPENDENCY_VERSIONS['reflect-metadata'],
-          rxjs: DEPENDENCY_VERSIONS['rxjs'],
-        },
-        devDependencies: {
-          '@repo/typescript-config': dep,
-          '@types/express': DEPENDENCY_VERSIONS['@types/express'],
-          '@types/node': DEPENDENCY_VERSIONS['@types/node'],
-          tsx: DEPENDENCY_VERSIONS['tsx'],
-          typescript: DEPENDENCY_VERSIONS['typescript'],
-        },
-      },
-      null,
-      2
-    )
-  );
+  writeServerManifest(ctx, {
+    scripts: {
+      dev: 'tsx watch src/main.ts',
+      start: 'node dist/main.js',
+      build: 'tsc',
+    },
+    dependencies: {
+      '@nestjs/common': DEPENDENCY_VERSIONS['@nestjs/common'],
+      '@nestjs/core': DEPENDENCY_VERSIONS['@nestjs/core'],
+      '@nestjs/platform-express':
+        DEPENDENCY_VERSIONS['@nestjs/platform-express'],
+      'reflect-metadata': DEPENDENCY_VERSIONS['reflect-metadata'],
+      rxjs: DEPENDENCY_VERSIONS['rxjs'],
+    },
+    devDependencies: {
+      '@repo/typescript-config': dep,
+      '@types/express': DEPENDENCY_VERSIONS['@types/express'],
+      '@types/node': DEPENDENCY_VERSIONS['@types/node'],
+      tsx: DEPENDENCY_VERSIONS['tsx'],
+      typescript: DEPENDENCY_VERSIONS['typescript'],
+    },
+  });
 
   setFile(
     ctx.files,
@@ -335,7 +81,7 @@ import { AppModule } from "./app.module.js";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(Number(process.env.SERVER_PORT ?? process.env.PORT ?? 3333));
+  await app.listen(${SERVER_LISTEN_PORT});
 }
 
 void bootstrap();
@@ -372,34 +118,22 @@ function emitRestServer(ctx: EmitCtx, dep: string): void {
     dependencies['better-auth'] = DEPENDENCY_VERSIONS['better-auth'];
   }
 
-  setFile(
-    ctx.files,
-    'apps/server/package.json',
-    JSON.stringify(
-      {
-        name: 'server',
-        version: '0.0.0',
-        private: true,
-        type: 'module',
-        scripts: {
-          dev: 'tsx watch src/main.ts',
-          start: 'node dist/main.js',
-          build: 'tsc',
-        },
-        dependencies,
-        devDependencies: {
-          '@repo/typescript-config': dep,
-          '@types/express': DEPENDENCY_VERSIONS['@types/express'],
-          '@types/node': DEPENDENCY_VERSIONS['@types/node'],
-          prisma: DEPENDENCY_VERSIONS['prisma'],
-          tsx: DEPENDENCY_VERSIONS['tsx'],
-          typescript: DEPENDENCY_VERSIONS['typescript'],
-        },
-      },
-      null,
-      2
-    )
-  );
+  writeServerManifest(ctx, {
+    scripts: {
+      dev: 'tsx watch src/main.ts',
+      start: 'node dist/main.js',
+      build: 'tsc',
+    },
+    dependencies,
+    devDependencies: {
+      '@repo/typescript-config': dep,
+      '@types/express': DEPENDENCY_VERSIONS['@types/express'],
+      '@types/node': DEPENDENCY_VERSIONS['@types/node'],
+      prisma: DEPENDENCY_VERSIONS['prisma'],
+      tsx: DEPENDENCY_VERSIONS['tsx'],
+      typescript: DEPENDENCY_VERSIONS['typescript'],
+    },
+  });
 
   setFile(
     ctx.files,
@@ -412,11 +146,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule${authed ? ', { bodyParser: false }' : ''});
 
   app.enableCors({
-    origin: ["http://localhost:3000"],
+    origin: ["${WEB_ORIGIN}"],
     credentials: true,
   });
 
-  await app.listen(Number(process.env.SERVER_PORT ?? process.env.PORT ?? 3333));
+  await app.listen(${SERVER_LISTEN_PORT});
 }
 
 void bootstrap();
@@ -467,58 +201,45 @@ import { prisma } from "./db.js";
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: { enabled: true },
-  trustedOrigins: ["http://localhost:3000"],
+  trustedOrigins: ["${WEB_ORIGIN}"],
 });
 `
     );
   }
-
 }
 
 function emitServer(ctx: EmitCtx, dep: string): void {
-  setFile(
-    ctx.files,
-    'apps/server/package.json',
-    JSON.stringify(
-      {
-        name: 'server',
-        version: '0.0.0',
-        private: true,
-        type: 'module',
-        scripts: {
-          dev: 'tsx watch src/main.ts',
-          start: 'node dist/main.js',
-          build: 'tsc',
-        },
-        dependencies: {
-          '@nestjs/common': DEPENDENCY_VERSIONS['@nestjs/common'],
-          '@nestjs/core': DEPENDENCY_VERSIONS['@nestjs/core'],
-          '@nestjs/platform-express':
-            DEPENDENCY_VERSIONS['@nestjs/platform-express'],
-          '@orpc/nest': DEPENDENCY_VERSIONS['@orpc/nest'],
-          '@orpc/openapi': DEPENDENCY_VERSIONS['@orpc/openapi'],
-          '@orpc/server': DEPENDENCY_VERSIONS['@orpc/server'],
-          '@prisma/client': DEPENDENCY_VERSIONS['@prisma/client'],
-          '@repo/contract': dep,
-          '@thallesp/nestjs-better-auth':
-            DEPENDENCY_VERSIONS['@thallesp/nestjs-better-auth'],
-          'better-auth': DEPENDENCY_VERSIONS['better-auth'],
-          'reflect-metadata': DEPENDENCY_VERSIONS['reflect-metadata'],
-          rxjs: DEPENDENCY_VERSIONS['rxjs'],
-        },
-        devDependencies: {
-          '@repo/typescript-config': dep,
-          '@types/express': DEPENDENCY_VERSIONS['@types/express'],
-          '@types/node': DEPENDENCY_VERSIONS['@types/node'],
-          prisma: DEPENDENCY_VERSIONS['prisma'],
-          tsx: DEPENDENCY_VERSIONS['tsx'],
-          typescript: DEPENDENCY_VERSIONS['typescript'],
-        },
-      },
-      null,
-      2
-    )
-  );
+  writeServerManifest(ctx, {
+    scripts: {
+      dev: 'tsx watch src/main.ts',
+      start: 'node dist/main.js',
+      build: 'tsc',
+    },
+    dependencies: {
+      '@nestjs/common': DEPENDENCY_VERSIONS['@nestjs/common'],
+      '@nestjs/core': DEPENDENCY_VERSIONS['@nestjs/core'],
+      '@nestjs/platform-express':
+        DEPENDENCY_VERSIONS['@nestjs/platform-express'],
+      '@orpc/nest': DEPENDENCY_VERSIONS['@orpc/nest'],
+      '@orpc/openapi': DEPENDENCY_VERSIONS['@orpc/openapi'],
+      '@orpc/server': DEPENDENCY_VERSIONS['@orpc/server'],
+      '@prisma/client': DEPENDENCY_VERSIONS['@prisma/client'],
+      '@repo/contract': dep,
+      '@thallesp/nestjs-better-auth':
+        DEPENDENCY_VERSIONS['@thallesp/nestjs-better-auth'],
+      'better-auth': DEPENDENCY_VERSIONS['better-auth'],
+      'reflect-metadata': DEPENDENCY_VERSIONS['reflect-metadata'],
+      rxjs: DEPENDENCY_VERSIONS['rxjs'],
+    },
+    devDependencies: {
+      '@repo/typescript-config': dep,
+      '@types/express': DEPENDENCY_VERSIONS['@types/express'],
+      '@types/node': DEPENDENCY_VERSIONS['@types/node'],
+      prisma: DEPENDENCY_VERSIONS['prisma'],
+      tsx: DEPENDENCY_VERSIONS['tsx'],
+      typescript: DEPENDENCY_VERSIONS['typescript'],
+    },
+  });
 
   setFile(
     ctx.files,
@@ -533,11 +254,11 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: ["http://localhost:3000"],
+    origin: ["${WEB_ORIGIN}"],
     credentials: true,
   });
 
-  await app.listen(Number(process.env.SERVER_PORT ?? process.env.PORT ?? 3333));
+  await app.listen(${SERVER_LISTEN_PORT});
 }
 
 void bootstrap();
@@ -591,13 +312,11 @@ import { prisma } from "./db.js";
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: { enabled: true },
-  trustedOrigins: ["http://localhost:3000"],
+  trustedOrigins: ["${WEB_ORIGIN}"],
 });
 `
   );
 }
-
-const SERVER_URL = 'http://localhost:3333';
 
 function emitNestStartWeb(ctx: EmitCtx, dep: string): void {
   if (ctx.stack.backend !== 'nest') {
@@ -874,7 +593,6 @@ export default function RootLayout({
 }
 `
   );
-
 }
 
 function emitWeb(ctx: EmitCtx, dep: string): void {
@@ -1013,7 +731,7 @@ import { contract } from "@repo/contract";
 
 export function createOrpcLink(getHeaders?: () => Promise<Record<string, string>>) {
   return new OpenAPILink(contract, {
-    url: process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3333",
+    url: process.env.NEXT_PUBLIC_SERVER_URL ?? "${SERVER_URL}",
     fetch: (url, init) =>
       globalThis.fetch(url, {
         ...init,
@@ -1104,7 +822,7 @@ export function Providers(props: { children: React.ReactNode }) {
     `import { createAuthClient } from "better-auth/react";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3333",
+  baseURL: process.env.NEXT_PUBLIC_SERVER_URL ?? "${SERVER_URL}",
 });
 `
   );
