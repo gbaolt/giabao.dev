@@ -80,7 +80,7 @@ export function clerkUserId(request: Request) {
     `import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { clerkMiddleware } from "@clerk/express";
-import { AppModule } from "./app.module";
+import { AppModule } from "./app.module.js";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -112,7 +112,7 @@ void bootstrap();
     `import { type ExecutionContext, Module } from "@nestjs/common";
 import { ORPCModule } from "@orpc/nest";
 import type { Request } from "express";
-import { NotesController } from "./notes.controller";
+import { NotesController } from "./notes.controller.js";
 
 @Module({
   imports: [

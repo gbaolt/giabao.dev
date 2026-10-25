@@ -61,11 +61,9 @@ export function emitNotesStore(ctx: EmitCtx): void {
   const { stack } = ctx;
   if (!usesDrizzle(stack)) return;
   const server = stack.backend === 'nest' || stack.backend === 'hono';
-  const lib = server
-    ? 'apps/server/src/'
-    : stack.frontend === 'next'
-      ? 'lib/'
-      : 'src/lib/';
+  const root = ctx.layout.backendRoot ? ctx.layout.backendRoot + '/' : '';
+  const lib =
+    root + (server ? 'src/' : stack.frontend === 'next' ? 'lib/' : 'src/lib/');
   const extension = stack.backend === 'nest' ? '.js' : '';
   // Only Start with the built-in oRPC backend reports affected rows.
   const counted =

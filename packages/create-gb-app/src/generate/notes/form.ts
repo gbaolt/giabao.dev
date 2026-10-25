@@ -4,6 +4,7 @@ import type { Stack } from '../../types/stack';
 // NotesForm, which owns validation, pending state, error display, and reset.
 export type NotesFormAdapter = {
   inline: boolean;
+  // Newline-prefixed so it can follow the last import line directly.
   importLine(quote: '"' | "'", path?: string): string;
   // Pages place the form at six spaces of JSX indentation.
   element(statements: string[]): string;

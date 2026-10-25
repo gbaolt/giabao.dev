@@ -2,6 +2,7 @@ import type { EmitCtx } from '../../types/generate';
 import type { HonoStack } from '../../types/stack';
 import { setFile } from '../files';
 import { notesForm, restCreate } from './form';
+import { notesRepository } from './repository';
 
 const SERVER_URL = 'http://localhost:3333';
 
@@ -79,15 +80,16 @@ export async function removeNote(userId: string | null, id: string): Promise<{ o
     return;
   }
 
+  const repo = notesRepository(stack);
   const scope = authed ? 'where: { userId: userId ?? "" }' : '';
   setFile(
     ctx.files,
     'apps/server/src/notes.ts',
     `import { noteInputSchema } from "@repo/validation";
-import { prisma } from "./db";
+${repo.importFrom('"', './')}
 
 export async function listNotes(userId: string | null) {
-  ${authed ? 'if (!userId) {\n    return [];\n  }\n  ' : ''}return prisma.note.findMany({
+  ${authed ? 'if (!userId) {\n    return [];\n  }\n  ' : ''}return ${repo.list}({
     ${scope ? `${scope},` : ''}
     orderBy: { createdAt: "desc" },
   });
@@ -98,7 +100,7 @@ export async function createNote(
   input: { title: string; body: string },
 ) {
   const note = noteInputSchema.parse(input);
-  return prisma.note.create({
+  return ${repo.create}({
     data: {
       title: note.title,
       body: note.body,
@@ -112,14 +114,14 @@ export async function updateNote(
   input: { id: string; title: string; body: string },
 ) {
   const parsed = noteInputSchema.parse(input);
-  ${authed ? 'const note = await prisma.note.findFirst({ where: { id: input.id, userId: userId ?? "" } });\n  if (!note) {\n    throw new Error("NOT_FOUND");\n  }\n  ' : ''}return prisma.note.update({
+  ${authed ? `const note = await ${repo.find}({ where: { id: input.id, userId: userId ?? "" } });\n  if (!note) {\n    throw new Error("NOT_FOUND");\n  }\n  ` : ''}return ${repo.update}({
     where: { id: ${authed ? 'note.id' : 'input.id'} },
     data: { title: parsed.title, body: parsed.body },
   });
 }
 
 export async function removeNote(userId: string | null, id: string) {
-  ${authed ? 'const note = await prisma.note.findFirst({ where: { id, userId: userId ?? "" } });\n  if (!note) {\n    throw new Error("NOT_FOUND");\n  }\n  await prisma.note.delete({ where: { id: note.id } });' : 'await prisma.note.delete({ where: { id } });'}
+  ${authed ? `const note = await ${repo.find}({ where: { id, userId: userId ?? "" } });\n  if (!note) {\n    throw new Error("NOT_FOUND");\n  }\n  await ${repo.remove}({ where: { id: note.id } });` : `await ${repo.remove}({ where: { id } });`}
   return { ok: true as const };
 }
 `
@@ -311,8 +313,7 @@ function startNotesRoute(ctx: EmitCtx, stack: HonoStack): string {
   const submit = trpc
     ? ['await client.notes.create.mutate(input);']
     : restCreate(notesHttpPath(stack), false);
-  return `import { createFileRoute } from "@tanstack/react-router";
-${inline ? 'import { noteInputSchema } from "@repo/validation";\nimport { useState } from "react";\n' : ''}${trpc ? 'import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";\nimport type { AppRouter } from "@repo/contract";\n' : ''}${inline ? 'import { Button } from "@repo/ui/button";\nimport { Input } from "@repo/ui/input";' : form.importLine('"').slice(1)}
+  return `import { createFileRoute } from "@tanstack/react-router";${inline ? '\nimport { noteInputSchema } from "@repo/validation";\nimport { useState } from "react";' : ''}${trpc ? '\nimport { createTRPCProxyClient, httpBatchLink } from "@trpc/client";\nimport type { AppRouter } from "@repo/contract";' : ''}${inline ? '\nimport { Button } from "@repo/ui/button";\nimport { Input } from "@repo/ui/input";' : form.importLine('"')}
 
 ${trpc ? TRPC_CLIENT('import.meta.env.VITE_SERVER_URL') : `const serverUrl = import.meta.env.VITE_SERVER_URL ?? "${SERVER_URL}";`}
 

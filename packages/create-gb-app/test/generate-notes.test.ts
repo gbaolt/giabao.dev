@@ -65,13 +65,13 @@ for (const [name, flags] of Object.entries(notesStacks)) {
   if (flags.backend !== 'convex') {
     test(`${name} Drizzle Notes are written against the notes store`, () => {
       const files = generate({ ...flags, orm: 'drizzle' });
-      const sources = Object.entries(files).filter(([path]) =>
-        /\.tsx?$/.test(path)
-      );
-      for (const [path, source] of sources)
-        expect(`${path}: ${source.includes('prisma.note.')}`).toBe(
-          `${path}: false`
-        );
+      const prismaCalls = Object.entries(files)
+        .filter(
+          ([path, source]) =>
+            /\.tsx?$/.test(path) && source.includes('prisma.note.')
+        )
+        .map(([path]) => path);
+      expect(prismaCalls).toEqual([]);
       expect(
         Object.keys(files).some((path) => path.endsWith('notes-store.ts'))
       ).toBe(true);
@@ -115,6 +115,22 @@ test('Nest oRPC with Clerk and no database keeps the shell module', () => {
     'NotesController'
   );
   expect(files['apps/server/src/notes.controller.ts']).toBeUndefined();
+});
+
+test('Nest Clerk server imports resolve under NodeNext', () => {
+  for (const database of ['postgres', 'none'] as const) {
+    const files = generate({
+      backend: 'nest',
+      api: 'orpc',
+      auth: 'clerk',
+      database,
+    });
+    expect(files['apps/server/src/main.ts']).toContain('"./app.module.js"');
+    if (database !== 'none')
+      expect(files['apps/server/src/app.module.ts']).toContain(
+        '"./notes.controller.js"'
+      );
+  }
 });
 
 test('database none with a form library writes the validation demo', () => {

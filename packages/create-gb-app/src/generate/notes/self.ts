@@ -246,7 +246,7 @@ ${queries.close}
       }
       {notes.error ? (
         <p className="text-sm">
-          Sign in to load notes. {String(notes.error.message ?? '')}
+          ${transport === 'orpc' ? 'Sign in to load notes.' : 'Could not load notes.'} {String(notes.error.message ?? '')}
         </p>
       ) : null}
       <ul className="flex flex-col gap-3">
