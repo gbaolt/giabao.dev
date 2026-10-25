@@ -34,9 +34,12 @@ import { emitValidation } from './layers/validation';
 import { projectLayout } from './layout';
 import { emitNotes } from './notes';
 import {
+  appCollections,
+  applyServerModuleFormat,
   createProjectModel,
   manifestAt,
   type ProjectModel,
+  renderAppFiles,
   renderProject,
 } from './project-model';
 import { generateReadme } from './readme';
@@ -187,7 +190,7 @@ function buildProject(
         emitOptionalWorkspace(emitCtx, (singleStack, context) => {
           // The monorepo writes its own README notes over the inner app's,
           // and the inner app's manifest becomes the web workspace's.
-          const inner = { ...project, readmeSections: {}, manifests: {} };
+          const inner = { ...project, ...appCollections() };
           const innerFiles = buildProject(singleStack, context, false, inner);
           return {
             files: innerFiles,
@@ -236,27 +239,30 @@ export function Providers({ children }: { children: ReactNode }) {
     else emitPlainWorkspace(emitCtx, workspaces);
   }
 
-  if (foundations) {
-    Object.assign(
-      files,
-      renderProject(project, {
-        stack,
-        layout,
-        packageManager: ctx.packageManager,
-      })
-    );
-    setFile(
-      files,
-      'README.md',
-      generateReadme(
-        stack,
-        ctx,
-        files,
-        JSON.parse(files['package.json']!) as PackageJsonShape,
-        project.readmeSections
-      )
-    );
+  if (!foundations) {
+    Object.assign(files, renderAppFiles(project));
+    return files;
   }
+  Object.assign(
+    files,
+    renderProject(project, {
+      stack,
+      layout,
+      packageManager: ctx.packageManager,
+    })
+  );
+  applyServerModuleFormat(files, stack, layout);
+  setFile(
+    files,
+    'README.md',
+    generateReadme(
+      stack,
+      ctx,
+      files,
+      JSON.parse(files['package.json']!) as PackageJsonShape,
+      project.readmeSections
+    )
+  );
   return files;
 }
 

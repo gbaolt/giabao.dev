@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
 
 import { DEPENDENCY_VERSIONS } from '#/generate/dependency-versions';
+import { emitBetterAuth } from '#/generate/layers/better-auth';
+import { emitPolar } from '#/generate/layers/polar';
 import { projectLayout } from '#/generate/layout';
 import {
   addDependencies,
@@ -12,6 +14,7 @@ import {
 } from '#/generate/project-model';
 import { generateReadme } from '#/generate/readme';
 import { resolveStack } from '#/stack/resolve';
+import type { EmitCtx } from '#/types/generate';
 import type { RawFlags } from '#/types/stack';
 
 function render(project: ProjectModel, flags: RawFlags = {}) {
@@ -97,6 +100,55 @@ test('renders manifests sorted, with workspace links and a shared catalog', () =
     turbo: DEPENDENCY_VERSIONS.turbo,
   });
 });
+
+function emitInOrder(flags: RawFlags, modules: ((ctx: EmitCtx) => void)[]) {
+  const stack = resolveStack(flags);
+  const layout = projectLayout(stack);
+  const project = createProjectModel();
+  const pkg: EmitCtx['pkg'] = {
+    name: 'model-app',
+    private: true,
+    type: 'module',
+    scripts: {},
+    dependencies: {},
+    devDependencies: {},
+  };
+  project.manifests['package.json'] = pkg;
+  for (const path of [layout.frontendManifest, layout.backendManifest])
+    if (path) project.manifests[path] ??= { name: path };
+  const files: Record<string, string> = {};
+  const ctx: EmitCtx = {
+    projectName: 'model-app',
+    packageManager: 'bun',
+    files,
+    pkg,
+    stack,
+    layout,
+    project,
+  };
+  for (const emit of modules) emit(ctx);
+  return {
+    ...files,
+    ...renderProject(project, { stack, layout, packageManager: 'bun' }),
+  };
+}
+
+for (const flags of [
+  { auth: 'better-auth', payments: 'polar' },
+  { backend: 'nest', auth: 'better-auth', payments: 'polar' },
+] satisfies RawFlags[]) {
+  test(`registers the Polar plugin in either emit order for ${flags.backend ?? 'self'}`, () => {
+    const authFirst = emitInOrder(flags, [emitBetterAuth, emitPolar]);
+    const polarFirst = emitInOrder(flags, [emitPolar, emitBetterAuth]);
+    const authFile = projectLayout(resolveStack(flags)).authFile;
+
+    expect(polarFirst).toEqual(authFirst);
+    expect(authFirst[authFile]).toMatch(
+      /import \{ polar \} from ["']@polar-sh\/better-auth["'];/
+    );
+    expect(authFirst[authFile]).toContain('polar({');
+  });
+}
 
 test('rejects a second writer of one env entry', () => {
   const project = createProjectModel();

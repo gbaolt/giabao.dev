@@ -23,36 +23,9 @@ export function emitPolar(ctx: EmitCtx): void {
 }
 `
   );
-  const authPath = ctx.layout.authFile;
-  const current = ctx.files[authPath] ?? '';
-  if (!current || current.includes('@polar-sh/better-auth')) {
-    return;
-  }
-  setFile(ctx.files, authPath, injectPolarPlugin(current));
-}
-
-function injectPolarPlugin(source: string): string {
-  const next = source
-    .replace(
-      'from "better-auth";',
-      `from "better-auth";
-import { polar } from "@polar-sh/better-auth";`
-    )
-    .replace(
-      "from 'better-auth';",
-      `from 'better-auth';
-import { polar } from '@polar-sh/better-auth';`
-    );
-
-  if (next.includes('plugins: [')) {
-    return next.replace('plugins: [', `plugins: [\n    ${POLAR_PLUGIN}, `);
-  }
-
-  return next.replace(
-    'betterAuth({',
-    `betterAuth({
-  plugins: [
-    ${POLAR_PLUGIN},
-  ],`
-  );
+  ctx.project.authPlugins.push({
+    name: 'polar',
+    from: '@polar-sh/better-auth',
+    call: POLAR_PLUGIN,
+  });
 }

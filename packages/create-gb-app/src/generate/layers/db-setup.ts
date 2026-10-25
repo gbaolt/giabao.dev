@@ -118,64 +118,7 @@ function envOwnerPrefix(ctx: EmitCtx): string {
 
 export function finalizeDatabaseSetup(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex' || ctx.stack.database === 'none') return;
-  finalizeServerDatabase(ctx);
   appendDatabaseSetupReadme(ctx);
-}
-
-function finalizeServerDatabase(ctx: EmitCtx): void {
-  if (ctx.stack.backend === 'convex' || ctx.stack.database === 'none') return;
-  const { orm, database, backend } = ctx.stack;
-  if (backend !== 'nest' && backend !== 'hono') return;
-
-  if (orm === 'drizzle') {
-    const authPath = ctx.layout.authFile;
-    const source = ctx.files[authPath];
-    if (source) {
-      const provider =
-        database === 'sqlite'
-          ? 'sqlite'
-          : database === 'mysql'
-            ? 'mysql'
-            : 'pg';
-      setFile(
-        ctx.files,
-        authPath,
-        source
-          .replace('prismaAdapter', 'drizzleAdapter')
-          .replace('prismaAdapter', 'drizzleAdapter')
-          .replace(
-            'better-auth/adapters/prisma',
-            'better-auth/adapters/drizzle'
-          )
-          .replace(
-            /import \{ prisma \} from (["'])\.\/db(\.js)?\1;/,
-            'import { db } from $1./db$2$1;\nimport * as schema from $1./schema$2$1;'
-          )
-          .replace(
-            /drizzleAdapter\((?:prisma|db), \{ provider: "[^"]+" \}\)/,
-            `drizzleAdapter(db, { schema, provider: "${provider}" })`
-          )
-      );
-    }
-  }
-  for (const [path, source] of Object.entries(ctx.files)) {
-    if (
-      !path.startsWith(`${ctx.layout.serverSourceRoot}/`) ||
-      !path.endsWith('.ts')
-    )
-      continue;
-    setFile(
-      ctx.files,
-      path,
-      source.replace(
-        /from (["'])(\.[^"']+)\1/g,
-        (match, quote: string, specifier: string) =>
-          /\.[a-z]+$/.test(specifier)
-            ? match
-            : `from ${quote}${specifier}.js${quote}`
-      )
-    );
-  }
 }
 
 function appendDatabaseSetupReadme(ctx: EmitCtx): void {

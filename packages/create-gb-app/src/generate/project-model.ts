@@ -35,10 +35,42 @@ export type ProjectModel = {
   env: Record<string, string>;
   /** Workspace manifests by path; registration order is workspace order. */
   manifests: Record<string, Manifest>;
+  authPlugins: AuthPlugin[];
+  authConfig: AuthConfig | null;
+};
+
+/** A Better Auth plugin: `import { name } from "from"` and its call. */
+export type AuthPlugin = { name: string; from: string; call: string };
+
+/** The auth config file, rendered once every plugin is known. */
+export type AuthConfig = {
+  path: string;
+  render: (plugins: AuthPlugin[]) => string;
 };
 
 export function createProjectModel(): ProjectModel {
-  return { ignoreLines: [], readmeSections: {}, env: {}, manifests: {} };
+  return {
+    ignoreLines: [],
+    readmeSections: {},
+    env: {},
+    manifests: {},
+    authPlugins: [],
+    authConfig: null,
+  };
+}
+
+/** Collections that belong to one app build, not the whole project. */
+export function appCollections(): Pick<
+  ProjectModel,
+  'readmeSections' | 'manifests' | 'authPlugins' | 'authConfig'
+> {
+  return { readmeSections: {}, manifests: {}, authPlugins: [], authConfig: null };
+}
+
+export function setAuthConfig(project: ProjectModel, config: AuthConfig): void {
+  if (project.authConfig)
+    throw new Error(`auth config ${project.authConfig.path} already has a writer`);
+  project.authConfig = config;
 }
 
 export function manifestAt(project: ProjectModel, path: string): Manifest {
@@ -103,12 +135,43 @@ export function renderProject(
   project: ProjectModel,
   { stack, layout, packageManager }: RenderTarget
 ): FileMap {
-  const files: FileMap = {};
+  const files: FileMap = renderAppFiles(project);
   if (project.ignoreLines.length > 0)
     files['.gitignore'] = [...new Set(project.ignoreLines)].join('\n') + '\n';
   renderEnv(project.env, stack, layout, files);
   renderManifests(project.manifests, packageManager, files);
   return files;
+}
+
+/** Files one app build renders itself, before a monorepo relocates them. */
+export function renderAppFiles(project: ProjectModel): FileMap {
+  const files: FileMap = {};
+  const { authConfig } = project;
+  if (authConfig) {
+    const source = authConfig.render(project.authPlugins);
+    files[authConfig.path] = source.endsWith('\n') ? source : `${source}\n`;
+  }
+  return files;
+}
+
+/** NodeNext server workspaces need explicit `.js` relative specifiers. */
+export function applyServerModuleFormat(
+  files: FileMap,
+  stack: Stack,
+  layout: ProjectLayout
+): void {
+  // Server backends without a database keep bare specifiers (#251 story 2).
+  if (stack.backend !== 'nest' && stack.backend !== 'hono') return;
+  if (stack.database === 'none') return;
+  for (const [path, source] of Object.entries(files)) {
+    if (!path.startsWith(`${layout.serverSourceRoot}/`) || !path.endsWith('.ts'))
+      continue;
+    files[path] = source.replace(
+      /from (["'])(\.[^"']+)\1/g,
+      (match, quote: string, specifier: string) =>
+        /\.[a-z]+$/.test(specifier) ? match : `from ${quote}${specifier}.js${quote}`
+    );
+  }
 }
 
 function renderManifests(

@@ -2,7 +2,7 @@ import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 import { joinPath } from '../layout';
-import { addDependencies } from '../project-model';
+import { addDependencies, setAuthConfig } from '../project-model';
 import { SERVER_URL, WEB_ORIGIN } from './server-workspace';
 import { emitStartOrpcAuth } from './start-orpc-auth';
 
@@ -21,27 +21,26 @@ function emitServerAuth(ctx: EmitCtx): void {
   addDependencies(ctx.project, ctx.layout.backendManifest!, {
     'better-auth': DEPENDENCY_VERSIONS['better-auth'],
   });
-  setFile(
-    ctx.files,
-    ctx.layout.authFile,
-    `import { betterAuth } from "better-auth";
-${
-  drizzle
-    ? `import { drizzleAdapter } from "better-auth/adapters/drizzle";
+  setAuthConfig(ctx.project, {
+    path: ctx.layout.authFile,
+    render: (plugins) => `import { betterAuth } from "better-auth";
+${plugins.map((plugin) => `import { ${plugin.name} } from "${plugin.from}";\n`).join('')}${
+      drizzle
+        ? `import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import * as schema from "./schema";`
-    : `import { prismaAdapter } from "better-auth/adapters/prisma";
+        : `import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./db";`
-}
+    }
 
 export const auth = betterAuth({
-  database: ${drizzle ? `drizzleAdapter(db, { schema, provider: "${provider}" })` : `prismaAdapter(prisma, { provider: "${provider}" })`},
+${plugins.length > 0 ? `  plugins: [\n${plugins.map((plugin) => `    ${plugin.call},\n`).join('')}  ],\n` : ''}  database: ${drizzle ? `drizzleAdapter(db, { schema, provider: "${provider}" })` : `prismaAdapter(prisma, { provider: "${provider}" })`},
   emailAndPassword: { enabled: true },
   trustedOrigins: ["${WEB_ORIGIN}"],
   baseURL: "${SERVER_URL}",
 });
-`
-  );
+`,
+  });
 
   const env =
     ctx.stack.frontend === 'next'
@@ -108,11 +107,10 @@ import { prisma } from './db';`;
     provider: '${adapterProvider(ctx)}',
   })`;
 
-  setFile(
-    ctx.files,
-    authPath,
-    `import { betterAuth } from 'better-auth';
-${adapterImport}
+  setAuthConfig(ctx.project, {
+    path: authPath,
+    render: (plugins) => `import { betterAuth } from 'better-auth';
+${plugins.map((plugin) => `import { ${plugin.name} } from '${plugin.from}';\n`).join('')}${adapterImport}
 ${pluginImport}
 
 export const auth = betterAuth({
@@ -120,10 +118,10 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  plugins: [${pluginCall}],
+  plugins: [${plugins.map((plugin) => `\n    ${plugin.call}, `).join('')}${pluginCall}],
 });
-`
-  );
+`,
+  });
 
   if (start) {
     setFile(
