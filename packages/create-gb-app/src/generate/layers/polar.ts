@@ -32,13 +32,17 @@ export function emitPolar(ctx: EmitCtx): void {
 }
 
 function injectPolarPlugin(source: string): string {
-  let next = source.includes('from "@polar-sh/better-auth"')
-    ? source
-    : source.replace(
-        'from "better-auth";',
-        `from "better-auth";
+  const next = source
+    .replace(
+      'from "better-auth";',
+      `from "better-auth";
 import { polar } from "@polar-sh/better-auth";`
-      );
+    )
+    .replace(
+      "from 'better-auth';",
+      `from 'better-auth';
+import { polar } from '@polar-sh/better-auth';`
+    );
 
   if (next.includes('plugins: [')) {
     return next.replace('plugins: [', `plugins: [\n    ${POLAR_PLUGIN}, `);

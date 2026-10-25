@@ -72,6 +72,9 @@ test('Polar plus Better Auth writes plugin', () => {
   expect(files['lib/auth.ts'].indexOf('polar(')).toBeLessThan(
     files['lib/auth.ts'].indexOf('nextCookies()')
   );
+  expect(files['lib/auth.ts']).toContain(
+    "import { polar } from '@polar-sh/better-auth';"
+  );
 });
 test('Polar plus Clerk still errors and dest stays empty', async () => {
   expect(() => resolveStack({ auth: 'clerk', payments: 'polar' })).toThrow(
