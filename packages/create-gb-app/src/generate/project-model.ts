@@ -214,7 +214,10 @@ export function applyServerModuleFormat(
     files[path] = source.replace(
       /from (["'])(\.[^"']+)\1/g,
       (match, quote: string, specifier: string) =>
-        /\.[a-z]+$/.test(specifier) ? match : `from ${quote}${specifier}.js${quote}`
+        // `./app.module` names a module, not a `.module` file extension.
+        /\.(?:js|ts|mjs|cjs|json)$/.test(specifier)
+          ? match
+          : `from ${quote}${specifier}.js${quote}`
     );
   }
 }

@@ -1,11 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 
-import { buildTree } from '#/generate/build-tree';
+import { buildTree, buildTreeArranged } from '#/generate/build-tree';
+import { setFile } from '#/generate/files';
 import { emitHono } from '#/generate/layers/hono';
 import { emitNest } from '#/generate/layers/nest';
 import { projectLayout } from '#/generate/layout';
 import { createProjectModel, renderProject } from '#/generate/project-model';
 import { resolveStack } from '#/stack/resolve';
+import type { EmitCtx } from '#/types/generate';
 import type { RawFlags } from '#/types/stack';
 
 const ctx = { projectName: 'server-app', packageManager: 'pnpm' } as const;
@@ -19,6 +21,35 @@ function loginPage(files: Record<string, string>, frontend: string) {
     ? files['apps/web/app/login/page.tsx']
     : files['apps/web/src/routes/login.tsx'];
 }
+
+describe('server module format', () => {
+  const extra = (source: string) => (emitCtx: EmitCtx) =>
+    setFile(emitCtx.files, 'apps/server/src/extra.ts', source);
+
+  test.each([
+    ['nest', 'postgres'],
+    ['hono', 'sqlite'],
+  ] as const)(
+    '%s with database %s gives every relative specifier a .js extension',
+    (backend, database) => {
+      const stack = resolveStack({ backend, database, api: 'none', auth: 'none' });
+      const files = buildTreeArranged(stack, ctx, (modules) => [
+        ...modules,
+        extra(
+          'import { AppModule } from "./app.module";\nimport { env } from "./env.js";\nimport data from "./data.json";\n'
+        ),
+      ]);
+
+      expect(files['apps/server/src/extra.ts']).toBe(
+        'import { AppModule } from "./app.module.js";\nimport { env } from "./env.js";\nimport data from "./data.json";\n'
+      );
+      for (const [path, source] of Object.entries(files))
+        if (path.startsWith('apps/server/src/'))
+          for (const [, specifier] of source.matchAll(/from ["'](\.[^"']+)["']/g))
+            expect([path, specifier]).toEqual([path, expect.stringMatching(/\.js(on)?$/)]);
+    }
+  );
+});
 
 describe('server backend regressions', () => {
   test.each(['sqlite', 'mysql'] as const)(
