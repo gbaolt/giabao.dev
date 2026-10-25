@@ -62,6 +62,31 @@
   ],
   "illegal": [
     {
+      "name": "Nest tRPC",
+      "flags": {
+        "backend": "nest",
+        "api": "trpc"
+      },
+      "ruleId": "nest-trpc"
+    },
+    {
+      "name": "Biome on a single app",
+      "flags": {
+        "addons": {
+          "linting": "biome"
+        }
+      },
+      "ruleId": "biome-requires-nest-or-hono"
+    },
+    {
+      "name": "Start oRPC with SQLite",
+      "flags": {
+        "frontend": "tanstack-start",
+        "database": "sqlite"
+      },
+      "ruleId": "start-orpc-limits"
+    },
+    {
       "name": "Polar without Better Auth",
       "flags": {
         "payments": "polar",

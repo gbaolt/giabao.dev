@@ -1,7 +1,5 @@
-import type { CreateFlags, FlagGroup } from 'create-gb-app/preset';
+import type { CreateFlags } from 'create-gb-app/preset';
 import { encodePreset } from 'create-gb-app/preset';
-
-import { isOptionEnabled } from './compat';
 
 export const DEFAULT_PROJECT_NAME = 'my-gb-app';
 export const DEFAULT_COMMAND = 'npx create-gb-app my-gb-app';
@@ -31,12 +29,4 @@ export function buildCommand(
     parts.push('--preset', preset);
   }
   return parts.join(' ');
-}
-
-export function isSelectable(
-  flags: CreateFlags,
-  group: FlagGroup,
-  value: string
-): boolean {
-  return isOptionEnabled(flags, group, value);
 }

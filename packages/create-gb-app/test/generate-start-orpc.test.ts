@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { buildTree, GenerateError, resolveStack } from '#/generate/public';
+import { buildTree, resolveStack } from '#/generate/public';
 const publicFlags = {
   frontend: 'tanstack-start',
   backend: 'self',
@@ -48,17 +48,12 @@ test('private Start oRPC includes a complete Better Auth flow and ownership cons
   expect(files['src/routes/notes.tsx']).toContain('Sign out');
   expect(files['src/routes/notes.tsx']).toContain('private, no-store');
 });
-test('Start oRPC rejects unverified variants with an actionable generation gap', () => {
+test('Start oRPC rejects unverified variants before generation', () => {
   for (const flags of [
     { ...publicFlags, auth: 'clerk' },
     { ...publicFlags, database: 'mysql' },
   ] as const) {
-    expect(() =>
-      buildTree(resolveStack(flags), {
-        projectName: 'unsupported',
-        packageManager: 'bun',
-      })
-    ).toThrow(GenerateError);
+    expect(() => resolveStack(flags)).toThrow('(start-orpc-limits)');
   }
 });
 for (const form of ['react-hook-form', 'tanstack-form'] as const) {
@@ -125,17 +120,14 @@ for (const packageManager of ['bun', 'npm', 'pnpm', 'yarn'] as const) {
 test('Start oRPC keeps unverified workspace and form-library combinations gated', () => {
   for (const form of ['react-hook-form', 'tanstack-form'] as const) {
     expect(() =>
-      buildTree(
-        resolveStack({
-          ...publicFlags,
-          form,
-          structure: 'monorepo',
-          addons: {
-            taskRunner: 'turborepo',
-          },
-        }),
-        { projectName: 'unsupported-workspace', packageManager: 'bun' }
-      )
-    ).toThrow(GenerateError);
+      resolveStack({
+        ...publicFlags,
+        form,
+        structure: 'monorepo',
+        addons: {
+          taskRunner: 'turborepo',
+        },
+      })
+    ).toThrow('(start-orpc-limits)');
   }
 });

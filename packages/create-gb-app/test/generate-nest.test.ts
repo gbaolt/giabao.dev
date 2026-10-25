@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 
 import { buildTree } from '#/generate/build-tree';
-import { GenerateError } from '#/generate/errors';
 import { previewTree } from '#/preview/tree';
+import { CompatError } from '#/stack/errors';
 import { resolveStack } from '#/stack/resolve';
 const NEST_FLAGS = {
   backend: 'nest',
@@ -113,20 +113,10 @@ test('nest plus start with api none keeps REST and omits the contract', () => {
   expect(files['apps/web/vite.config.ts']).toBeDefined();
   expect(files['apps/server/package.json']).toContain('@nestjs/core');
 });
-test('nest plus start with trpc stays a gap', () => {
-  try {
-    buildTree(
-      resolveStack({ ...NEST_FLAGS, frontend: 'tanstack-start', api: 'trpc' }),
-      { projectName: 'nest-start', packageManager: 'pnpm' }
-    );
-    throw new Error('expected GenerateError');
-  } catch (error) {
-    expect(error).toBeInstanceOf(GenerateError);
-    expect((error as GenerateError).code).toBe('nest-trpc');
-    expect((error as GenerateError).message).toBe(
-      'nest trpc generate is not implemented yet'
-    );
-  }
+test('nest plus start with trpc is rejected before generation', () => {
+  expect(() =>
+    resolveStack({ ...NEST_FLAGS, frontend: 'tanstack-start', api: 'trpc' })
+  ).toThrow(new CompatError('nest-trpc'));
 });
 test('nest plus eslint and oxlint return a FileMap', () => {
   const eslintFiles = buildTree(resolveStack({ backend: 'nest' }), {
