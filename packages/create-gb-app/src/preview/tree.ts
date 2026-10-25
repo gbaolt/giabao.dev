@@ -1,4 +1,4 @@
-import { projectLayout } from '#/generate/layout';
+import { joinPath, projectLayout } from '#/generate/layout';
 import type { Stack } from '#/types/stack';
 
 export function previewTree(stack: Stack): string {
@@ -28,7 +28,12 @@ export function previewTree(stack: Stack): string {
   if (stack.backend === 'convex') {
     rows.push(layout.backendRoot);
   } else if (stack.database !== 'none') {
-    rows.push(layout.serverSourceRoot);
+    // Start keeps its server functions and routers in src/server.
+    rows.push(
+      stack.frontend === 'next'
+        ? layout.serverSourceRoot
+        : joinPath(layout.sourceRoot, 'server')
+    );
     if (stack.orm === 'prisma') {
       rows.push('prisma');
     }
