@@ -5,6 +5,7 @@ import stylesSource from '../assets/styles/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 import { joinPath } from '../layout';
+import { setRootDocument } from '../project-model';
 
 export function emitStart(ctx: EmitCtx): void {
   ctx.pkg.dependencies['@tanstack/router-core'] =
@@ -53,14 +54,25 @@ export function emitStart(ctx: EmitCtx): void {
   setFile(ctx.files, web('vite.config.ts'), startViteConfig());
   setFile(ctx.files, layout.stylesFile, stylesSource['globals.css']);
   setFile(ctx.files, joinPath(layout.sourceRoot, 'router.tsx'), startRouter());
-  setFile(
-    ctx.files,
-    layout.rootLayout,
-    startRootRoute(
-      ctx.projectName,
-      ctx.stack.backend === 'self' && ctx.stack.api === 'orpc'
-    )
+  const rootRoute = startRootRoute(
+    ctx.projectName,
+    ctx.stack.backend === 'self' && ctx.stack.api === 'orpc'
   );
+  setRootDocument(ctx.project, (wrappers) => {
+    const attributes = wrappers.flatMap((wrapper) => wrapper.htmlAttributes);
+    let source =
+      wrappers.map((wrapper) => wrapper.imports).join('') +
+      rootRoute.replace(
+        '<html lang="en">',
+        `<html lang="en"${attributes.map((attribute) => ` ${attribute}`).join('')}>`
+      );
+    // shortcut: indentation is exact for one wrapper only; fix it when a second wrapper exists.
+    for (const { component } of [...wrappers].reverse())
+      source = source
+        .replace('<body>', `<body>\n        <${component}>`)
+        .replace('</body>', `  </${component}>\n      </body>`);
+    return source;
+  });
   setFile(
     ctx.files,
     layout.route(''),

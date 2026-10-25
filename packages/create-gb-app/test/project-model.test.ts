@@ -2,7 +2,10 @@ import { expect, test } from 'bun:test';
 
 import { DEPENDENCY_VERSIONS } from '#/generate/dependency-versions';
 import { emitBetterAuth } from '#/generate/layers/better-auth';
+import { emitNext } from '#/generate/layers/next';
 import { emitPolar } from '#/generate/layers/polar';
+import { emitShadcn } from '#/generate/layers/shadcn';
+import { emitStart } from '#/generate/layers/start';
 import { projectLayout } from '#/generate/layout';
 import {
   addDependencies,
@@ -11,6 +14,7 @@ import {
   createProjectModel,
   type ProjectModel,
   renderProject,
+  setProviders,
 } from '#/generate/project-model';
 import { generateReadme } from '#/generate/readme';
 import { resolveStack } from '#/stack/resolve';
@@ -36,8 +40,10 @@ test('renders ignore lines once each, in first-contributed order', () => {
   );
 });
 
-test('renders no files from an empty project model', () => {
-  expect(render(createProjectModel())).toEqual({});
+test('renders only the providers file from an empty project model', () => {
+  expect(Object.keys(render(createProjectModel()))).toEqual([
+    'app/providers.tsx',
+  ]);
 });
 
 test('renders a single app env file and its example', () => {
@@ -149,6 +155,43 @@ for (const flags of [
     expect(authFirst[authFile]).toContain('polar({');
   });
 }
+
+for (const frontend of ['next', 'tanstack-start'] as const) {
+  test(`wraps the ${frontend} root document in either emit order`, () => {
+    const flags = { frontend, api: 'none', auth: 'none' } satisfies RawFlags;
+    const frontendFirst = emitInOrder(flags, [
+      frontend === 'next' ? emitNext : emitStart,
+      emitShadcn,
+    ]);
+    const shadcnFirst = emitInOrder(flags, [
+      emitShadcn,
+      frontend === 'next' ? emitNext : emitStart,
+    ]);
+    const document = projectLayout(resolveStack(flags)).rootLayout;
+
+    expect(shadcnFirst[document]).toBe(frontendFirst[document]!);
+    expect(frontendFirst[document]).toContain('<ThemeProvider>');
+    expect(frontendFirst[document]).toContain('suppressHydrationWarning');
+  });
+}
+
+test('renders pass-through providers when no emit module contributes any', () => {
+  const files = render(createProjectModel());
+
+  expect(files['app/providers.tsx']).toContain(
+    'export function Providers({ children }: { children: ReactNode })'
+  );
+});
+
+test('renders contributed providers under the frontend root', () => {
+  const project = createProjectModel();
+  setProviders(project, 'export function Providers() {}\n');
+
+  expect(render(project, { backend: 'nest' })['apps/web/app/providers.tsx']).toBe(
+    'export function Providers() {}\n'
+  );
+  expect(() => setProviders(project, 'again')).toThrow('providers');
+});
 
 test('rejects a second writer of one env entry', () => {
   const project = createProjectModel();

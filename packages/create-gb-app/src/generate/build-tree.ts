@@ -7,7 +7,7 @@ import type {
 } from '../types/generate';
 import { emitTurborepo } from './addons/turborepo';
 import { GenerateError } from './errors';
-import { setFile, setFileIfAbsent } from './files';
+import { setFile } from './files';
 import { emitBetterAuth } from './layers/better-auth';
 import { emitClerk } from './layers/clerk';
 import { emitConvex } from './layers/convex';
@@ -192,6 +192,9 @@ function buildProject(
           // and the inner app's manifest becomes the web workspace's.
           const inner = { ...project, ...appCollections() };
           const innerFiles = buildProject(singleStack, context, false, inner);
+          // Its providers and root document render with the web app's wrappers.
+          project.providers = inner.providers;
+          project.rootDocument = inner.rootDocument;
           return {
             files: innerFiles,
             manifest: manifestAt(inner, 'package.json'),
@@ -212,16 +215,6 @@ function buildProject(
     // The server workspace already chose the linter for every server backend.
     if (stack.structure === 'single') emitLinter(stack, emitCtx);
     emitNotes(emitCtx);
-    setFileIfAbsent(
-      files,
-      layout.providersFile,
-      `import type { ReactNode } from "react";
-
-export function Providers({ children }: { children: ReactNode }) {
-  return children;
-}
-`
-    );
   }
 
   if (foundations) {

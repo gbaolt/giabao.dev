@@ -2,6 +2,7 @@ import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 import { joinPath } from '../layout';
+import { setProviders } from '../project-model';
 import { workspaceProtocol } from '../workspace-protocol';
 import { emitBiome } from './biome';
 import { emitDatabase } from './database';
@@ -214,9 +215,8 @@ export const trpc = createTRPCReact<AppRouter>();
   // Clerk's Next components need its provider; Start reads the session server-side.
   const clerk = stack.auth === 'clerk' && next;
   if (orpc || clerk)
-    setFile(
-      ctx.files,
-      layout.providersFile,
+    setProviders(
+      ctx.project,
       serverProviders(next, orpc, clerk)
     );
 }

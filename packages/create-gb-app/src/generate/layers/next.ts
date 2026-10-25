@@ -4,6 +4,7 @@ import stylesSource from '../assets/styles/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 import { joinPath } from '../layout';
+import { setRootDocument } from '../project-model';
 import { fillTemplate } from '../template-tokens';
 
 const TSCONFIG = nextSource['tsconfig.json'];
@@ -54,13 +55,26 @@ export function emitNext(ctx: EmitCtx): void {
 
   setFile(ctx.files, layout.stylesFile, stylesSource['globals.css']);
 
-  setFile(
-    ctx.files,
-    layout.rootLayout,
-    fillTemplate(nextSource['app/layout.tsx'], {
-      PROJECT_NAME: ctx.projectName,
-    })
-  );
+  const rootLayout = fillTemplate(nextSource['app/layout.tsx'], {
+    PROJECT_NAME: ctx.projectName,
+  });
+  setRootDocument(ctx.project, (wrappers) => {
+    if (wrappers.length === 0) return rootLayout;
+    const attributes = wrappers.flatMap((wrapper) => wrapper.htmlAttributes);
+    let source =
+      wrappers.map((wrapper) => wrapper.imports).join('') +
+      rootLayout.replace(
+        /<html([^>]*)>/,
+        `<html\n     $1\n${attributes.map((attribute) => `      ${attribute}\n`).join('')}    >`
+      );
+    // shortcut: indentation is exact for one wrapper only; fix it when a second wrapper exists.
+    for (const { component } of [...wrappers].reverse())
+      source = source
+        .replace(/<body([^>]*)>/, `<body$1>\n        <${component}>`)
+        .replace('        <Providers>', '          <Providers>')
+        .replace('</body>', `  </${component}>\n      </body>`);
+    return source;
+  });
 
   setFile(
     ctx.files,

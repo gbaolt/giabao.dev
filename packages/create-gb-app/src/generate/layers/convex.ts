@@ -1,7 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { addEnv, addReadmeSection } from '../project-model';
+import { addEnv, addReadmeSection, setProviders } from '../project-model';
 
 export function emitConvex(ctx: EmitCtx): void {
   const isNext = ctx.stack.frontend === 'next';
@@ -53,9 +53,8 @@ export default defineSchema({
       CLERK_JWT_ISSUER_DOMAIN: 'https://your-clerk-domain',
     });
   if (!authed)
-    setFile(
-      ctx.files,
-      ctx.layout.providersFile,
+    setProviders(
+      ctx.project,
       `"use client";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import type { ReactNode } from "react";

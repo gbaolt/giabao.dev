@@ -2,7 +2,7 @@ import type { EmitCtx } from '../../types/generate';
 import shadcnSource from '../assets/shadcn/formatted-source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile, setFileIfAbsent } from '../files';
-import { manifestSections } from '../project-model';
+import { type DocumentWrapper, manifestSections } from '../project-model';
 
 export function emitShadcn(ctx: EmitCtx): void {
   if (ctx.layout.structure === 'monorepo') {
@@ -73,12 +73,7 @@ export function emitShadcn(ctx: EmitCtx): void {
       `${root}components/theme-provider.tsx`,
       shadcnSource['components/theme-provider.tsx']
     );
-    const layoutPath = ctx.layout.rootLayout;
-    const layout = ctx.files[layoutPath];
-    if (layout === undefined) {
-      throw new Error(`missing generated Next layout: ${layoutPath}`);
-    }
-    setFile(ctx.files, layoutPath, withNextTheme(layout, '@/lib/utils'));
+    ctx.project.documentWrappers.push(nextThemeWrapper('@/lib/utils'));
   } else {
     emitStartTheme(ctx, root, ctx.pkg.dependencies);
   }
@@ -256,12 +251,7 @@ function emitSharedShadcn(ctx: EmitCtx): void {
         2
       )
     );
-    const layoutPath = ctx.layout.rootLayout;
-    const layout = ctx.files[layoutPath];
-    if (layout === undefined) {
-      throw new Error(`missing generated Next layout: ${layoutPath}`);
-    }
-    setFile(ctx.files, layoutPath, withNextTheme(layout, '@repo/ui/utils'));
+    ctx.project.documentWrappers.push(nextThemeWrapper('@repo/ui/utils'));
   } else {
     emitStartTheme(ctx, webSourceRoot, webPackage.dependencies);
   }
@@ -281,23 +271,11 @@ function emitStartTheme(
     `${root}components/theme-provider.tsx`,
     shadcnSource['components/theme-provider.tsx']
   );
-  const routePath = ctx.layout.rootLayout;
-  const route = ctx.files[routePath];
-  if (route === undefined) {
-    throw new Error(`missing generated Start root route: ${routePath}`);
-  }
-  setFile(
-    ctx.files,
-    routePath,
-    'import { ThemeProvider } from "../components/theme-provider";\n' +
-      route
-        .replace(
-          '<html lang="en">',
-          '<html lang="en" className="font-sans antialiased" suppressHydrationWarning>'
-        )
-        .replace('<body>', '<body>\n        <ThemeProvider>')
-        .replace('</body>', '  </ThemeProvider>\n      </body>')
-  );
+  ctx.project.documentWrappers.push({
+    imports: 'import { ThemeProvider } from "../components/theme-provider";\n',
+    component: 'ThemeProvider',
+    htmlAttributes: ['className="font-sans antialiased"', 'suppressHydrationWarning'],
+  });
   const cssPath = ctx.layout.stylesFile;
   setFile(
     ctx.files,
@@ -308,34 +286,25 @@ function emitStartTheme(
   );
 }
 
-function withNextTheme(layout: string, utilsImport: string): string {
-  const imports = `import { Geist, Geist_Mono } from 'next/font/google';
+function nextThemeWrapper(utilsImport: string): DocumentWrapper {
+  return {
+    imports: `import { Geist, Geist_Mono } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { cn } from '${utilsImport}';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
-`;
-
-  return (
-    imports +
-    layout
-      .replace(
-        /<html([^>]*)>/,
-        `<html
-     $1
-      suppressHydrationWarning
-      className={cn(
+`,
+    component: 'ThemeProvider',
+    htmlAttributes: [
+      'suppressHydrationWarning',
+      `className={cn(
         'antialiased',
         'font-sans',
         geist.variable,
         geistMono.variable
-      )}
-    >`
-      )
-      .replace(/<body([^>]*)>/, '<body$1>\n        <ThemeProvider>')
-      .replace('        <Providers>', '          <Providers>')
-      .replace('</body>', '  </ThemeProvider>\n      </body>')
-  );
+      )}`,
+    ],
+  };
 }

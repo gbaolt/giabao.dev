@@ -1,6 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { setProviders } from '../project-model';
 
 export function emitTrpc(ctx: EmitCtx): void {
   ctx.pkg.dependencies['@trpc/server'] = DEPENDENCY_VERSIONS['@trpc/server'];
@@ -96,9 +97,8 @@ export function getQueryClient() {
 `
   );
 
-  setFile(
-    ctx.files,
-    'src/components/providers.tsx',
+  setProviders(
+    ctx.project,
     `"use client";
 
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -204,9 +204,8 @@ export const trpc = createTRPCReact<AppRouter>();
   );
 
   const clerkWrap = ctx.stack.auth === 'clerk';
-  setFile(
-    ctx.files,
-    'app/providers.tsx',
+  setProviders(
+    ctx.project,
     `"use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

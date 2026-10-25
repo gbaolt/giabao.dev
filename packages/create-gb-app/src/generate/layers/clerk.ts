@@ -1,7 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { addDependencies } from '../project-model';
+import { addDependencies, setProviders } from '../project-model';
 
 export function emitClerk(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex') {
@@ -55,9 +55,8 @@ export const config = {
 
 function emitStartClerkConvexProviders(ctx: EmitCtx): void {
   const start = ctx.stack.frontend === 'tanstack-start';
-  setFile(
-    ctx.files,
-    ctx.layout.providersFile,
+  setProviders(
+    ctx.project,
     `"use client";
 
 import { ClerkProvider, useAuth } from "${start ? '@clerk/clerk-react' : '@clerk/nextjs'}";

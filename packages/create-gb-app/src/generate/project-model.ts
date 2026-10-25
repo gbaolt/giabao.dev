@@ -37,7 +37,41 @@ export type ProjectModel = {
   manifests: Record<string, Manifest>;
   authPlugins: AuthPlugin[];
   authConfig: AuthConfig | null;
+  /** The providers file; a pass-through renders when no module writes one. */
+  providers: string | null;
+  /** The Next root layout or Start root route, rendered with its wrappers. */
+  rootDocument: ((wrappers: DocumentWrapper[]) => string) | null;
+  documentWrappers: DocumentWrapper[];
 };
+
+/** A component that wraps the root document's body, outermost first. */
+export type DocumentWrapper = {
+  /** Import and setup lines placed above the document. */
+  imports: string;
+  component: string;
+  htmlAttributes: string[];
+};
+
+const PASS_THROUGH_PROVIDERS = `import type { ReactNode } from "react";
+
+export function Providers({ children }: { children: ReactNode }) {
+  return children;
+}
+`;
+
+export function setProviders(project: ProjectModel, source: string): void {
+  if (project.providers !== null)
+    throw new Error('providers file already has a writer');
+  project.providers = source;
+}
+
+export function setRootDocument(
+  project: ProjectModel,
+  render: NonNullable<ProjectModel['rootDocument']>
+): void {
+  if (project.rootDocument) throw new Error('root document already has a writer');
+  project.rootDocument = render;
+}
 
 /** A Better Auth plugin: `import { name } from "from"` and its call. */
 export type AuthPlugin = { name: string; from: string; call: string };
@@ -56,6 +90,9 @@ export function createProjectModel(): ProjectModel {
     manifests: {},
     authPlugins: [],
     authConfig: null,
+    providers: null,
+    rootDocument: null,
+    documentWrappers: [],
   };
 }
 
@@ -136,6 +173,13 @@ export function renderProject(
   { stack, layout, packageManager }: RenderTarget
 ): FileMap {
   const files: FileMap = renderAppFiles(project);
+  files[layout.providersFile] = withNewline(
+    project.providers ?? PASS_THROUGH_PROVIDERS
+  );
+  if (project.rootDocument)
+    files[layout.rootLayout] = withNewline(
+      project.rootDocument(project.documentWrappers)
+    );
   if (project.ignoreLines.length > 0)
     files['.gitignore'] = [...new Set(project.ignoreLines)].join('\n') + '\n';
   renderEnv(project.env, stack, layout, files);
@@ -147,11 +191,13 @@ export function renderProject(
 export function renderAppFiles(project: ProjectModel): FileMap {
   const files: FileMap = {};
   const { authConfig } = project;
-  if (authConfig) {
-    const source = authConfig.render(project.authPlugins);
-    files[authConfig.path] = source.endsWith('\n') ? source : `${source}\n`;
-  }
+  if (authConfig)
+    files[authConfig.path] = withNewline(authConfig.render(project.authPlugins));
   return files;
+}
+
+function withNewline(source: string): string {
+  return source.endsWith('\n') ? source : `${source}\n`;
 }
 
 /** NodeNext server workspaces need explicit `.js` relative specifiers. */
