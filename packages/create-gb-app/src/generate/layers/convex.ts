@@ -1,7 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { addReadmeSection } from '../project-model';
+import { addEnv, addReadmeSection } from '../project-model';
 
 export function emitConvex(ctx: EmitCtx): void {
   const isNext = ctx.stack.frontend === 'next';
@@ -42,13 +42,16 @@ export default defineSchema({
 `
     );
 
-  const env =
-    `${isNext ? 'NEXT_PUBLIC' : 'VITE'}_CONVEX_URL="https://your-deployment.convex.cloud"\n` +
-    (authed
-      ? `${isNext ? 'NEXT_PUBLIC' : 'VITE'}_CLERK_PUBLISHABLE_KEY="pk_test_replace_me"\nCLERK_SECRET_KEY="sk_test_replace_me"\nCLERK_JWT_ISSUER_DOMAIN="https://your-clerk-domain"\n`
-      : '');
-  setFile(ctx.files, '.env', env);
-  setFile(ctx.files, '.env.example', env);
+  const publicPrefix = isNext ? 'NEXT_PUBLIC' : 'VITE';
+  addEnv(ctx.project, {
+    [`${publicPrefix}_CONVEX_URL`]: 'https://your-deployment.convex.cloud',
+  });
+  if (authed)
+    addEnv(ctx.project, {
+      [`${publicPrefix}_CLERK_PUBLISHABLE_KEY`]: 'pk_test_replace_me',
+      CLERK_SECRET_KEY: 'sk_test_replace_me',
+      CLERK_JWT_ISSUER_DOMAIN: 'https://your-clerk-domain',
+    });
   if (!authed)
     setFile(
       ctx.files,

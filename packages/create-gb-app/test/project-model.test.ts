@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
 
+import { projectLayout } from '#/generate/layout';
 import {
+  addEnv,
   addReadmeSection,
   createProjectModel,
   type ProjectModel,
@@ -8,19 +10,60 @@ import {
 } from '#/generate/project-model';
 import { generateReadme } from '#/generate/readme';
 import { resolveStack } from '#/stack/resolve';
+import type { RawFlags } from '#/types/stack';
+
+function render(project: ProjectModel, flags: RawFlags = {}) {
+  const stack = resolveStack(flags);
+  return renderProject(project, { stack, layout: projectLayout(stack) });
+}
 
 test('renders ignore lines once each, in first-contributed order', () => {
   const project = createProjectModel();
   project.ignoreLines.push('node_modules', '.env*', '!.env.example');
   project.ignoreLines.push('node_modules', '.turbo', '.env*');
 
-  expect(renderProject(project)['.gitignore']).toBe(
+  expect(render(project)['.gitignore']).toBe(
     'node_modules\n.env*\n!.env.example\n.turbo\n'
   );
 });
 
-test('renders no ignore file without ignore lines', () => {
-  expect(renderProject(createProjectModel())).toEqual({});
+test('renders no files from an empty project model', () => {
+  expect(render(createProjectModel())).toEqual({});
+});
+
+test('renders a single app env file and its example', () => {
+  const project = createProjectModel();
+  addEnv(project, { DATABASE_URL: 'file:./dev.db' });
+  addEnv(project, { STRIPE_SECRET_KEY: 'sk_test' });
+  const files = render(project);
+
+  expect(files['.env']).toBe(
+    'DATABASE_URL="file:./dev.db"\nSTRIPE_SECRET_KEY="sk_test"\n'
+  );
+  expect(files['.env.example']).toBe(files['.env']);
+});
+
+test('splits public env entries into the web workspace of a server backend', () => {
+  const project = createProjectModel();
+  addEnv(project, {
+    DATABASE_URL: 'postgres://db',
+    NEXT_PUBLIC_SERVER_URL: 'http://localhost:3333',
+    VITE_SERVER_URL: 'http://localhost:3333',
+  });
+  const files = render(project, { backend: 'nest' });
+
+  expect(files['apps/server/.env']).toContain('DATABASE_URL="postgres://db"');
+  expect(files['apps/web/.env']).toBe(
+    'NEXT_PUBLIC_SERVER_URL="http://localhost:3333"\nVITE_SERVER_URL="http://localhost:3333"\n'
+  );
+  expect(files['.env']).toBeUndefined();
+});
+
+test('rejects a second writer of one env entry', () => {
+  const project = createProjectModel();
+  addEnv(project, { DATABASE_URL: 'a' });
+
+  expect(() => addEnv(project, { DATABASE_URL: 'b' })).toThrow('DATABASE_URL');
 });
 
 function readmeOf(project: ProjectModel) {

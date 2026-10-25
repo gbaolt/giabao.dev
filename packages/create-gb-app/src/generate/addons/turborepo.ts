@@ -16,12 +16,8 @@ export function emitTurborepo(
     'HOST',
     'NEXT_PUBLIC_*',
     'VITE_*',
+    ...Object.keys(ctx.project.env),
   ]);
-  for (const [path, source] of Object.entries(ctx.files)) {
-    if (!/(^|\/)\.env(?:\.|$)/.test(path)) continue;
-    for (const match of source.matchAll(/^([A-Z][A-Z0-9_]*)=/gm))
-      environment.add(match[1]);
-  }
   const tasks: Record<string, object> = {
     build: {
       dependsOn: ['^build'],

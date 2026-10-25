@@ -2,6 +2,7 @@ import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 import { joinPath } from '../layout';
+import { addEnv } from '../project-model';
 
 export function emitStripe(ctx: EmitCtx): void {
   ctx.pkg.dependencies.stripe = DEPENDENCY_VERSIONS['stripe'];
@@ -60,15 +61,9 @@ export function emitStripe(ctx: EmitCtx): void {
 `
   );
 
-  const env = ctx.files['.env'] ?? '';
-  const extra = `STRIPE_SECRET_KEY="sk_test_replace_me"
-STRIPE_WEBHOOK_SECRET="whsec_replace_me"
-STRIPE_PRO_PRICE_ID="price_pro"
-`;
-  setFile(ctx.files, '.env', `${env}${extra}`);
-  setFile(
-    ctx.files,
-    '.env.example',
-    `${ctx.files['.env.example'] ?? env}${extra}`
-  );
+  addEnv(ctx.project, {
+    STRIPE_SECRET_KEY: 'sk_test_replace_me',
+    STRIPE_WEBHOOK_SECRET: 'whsec_replace_me',
+    STRIPE_PRO_PRICE_ID: 'price_pro',
+  });
 }

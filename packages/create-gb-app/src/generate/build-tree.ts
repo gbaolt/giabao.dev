@@ -238,7 +238,7 @@ export function Providers({ children }: { children: ReactNode }) {
   setFile(files, 'package.json', JSON.stringify(pkg, null, 2));
   finalizeWorkspaces(files, ctx.packageManager);
   if (foundations) {
-    Object.assign(files, renderProject(project));
+    Object.assign(files, renderProject(project, { stack, layout }));
     setFile(files, 'README.md', generateReadme(stack, ctx, files, pkg, project.readmeSections)
     );
   }

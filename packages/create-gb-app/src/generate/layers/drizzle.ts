@@ -120,7 +120,7 @@ ${turso ? 'const client = createClient({ url: process.env.TURSO_DATABASE_URL!, a
     `import { config } from "dotenv";
 import { defineConfig } from "drizzle-kit";
 
-config({ path: "${envOwner ? '../../.env' : '.env'}" });
+config({ path: ".env" });
 
 ${planetscaleMysql ? 'const connection = new URL(process.env.DATABASE_URL!);\n' : ''}
 export default defineConfig({

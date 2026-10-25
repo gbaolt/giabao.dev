@@ -45,39 +45,11 @@ export function emitDbSetup(ctx: EmitCtx): void {
       return;
     }
     case 'turso':
-      patchEnv(
-        ctx,
-        `TURSO_DATABASE_URL="libsql://DATABASE-ORGANIZATION.turso.io"
-TURSO_AUTH_TOKEN="YOUR_TURSO_AUTH_TOKEN"${ctx.stack.orm === 'prisma' ? '\nLOCAL_DATABASE_URL="file:./dev.db"' : ''}`
-      );
-      return;
     case 'planetscale':
-      patchEnv(
-        ctx,
-        database === 'mysql'
-          ? ctx.stack.orm === 'prisma'
-            ? 'DATABASE_URL="mysql://USER:PASSWORD@HOST/DATABASE?sslaccept=strict"'
-            : 'DATABASE_URL="mysql://USER:PASSWORD@HOST/DATABASE"'
-          : 'DATABASE_URL="postgresql://USER:PASSWORD@HOST:6432/DATABASE?sslmode=verify-full"\nDIRECT_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=verify-full"'
-      );
-      return;
     case 'prisma-postgres':
-      patchEnv(
-        ctx,
-        'DATABASE_URL="postgresql://USER:PASSWORD@pooled.db.prisma.io:5432/postgres?sslmode=require"\nDIRECT_URL="postgresql://USER:PASSWORD@db.prisma.io:5432/postgres?sslmode=require"'
-      );
-      return;
     case 'neon':
-      patchEnv(
-        ctx,
-        `DATABASE_URL="postgres://USER:PASSWORD@ep-xxx.region.aws.neon.tech/${dbName}?sslmode=require"`
-      );
-      return;
     case 'supabase':
-      patchEnv(
-        ctx,
-        `DATABASE_URL="postgres://postgres:PASSWORD@db.${dbName}.supabase.co:5432/postgres"`
-      );
+      // The database emit module writes their env entries.
       return;
     default: {
       const _exhaustive: never = setup;
@@ -86,13 +58,58 @@ TURSO_AUTH_TOKEN="YOUR_TURSO_AUTH_TOKEN"${ctx.stack.orm === 'prisma' ? '\nLOCAL_
   }
 }
 
-function patchEnv(ctx: EmitCtx, databaseUrlLine: string): void {
-  const current = ctx.files['.env'] ?? '';
-  const next = current.includes('DATABASE_URL=')
-    ? current.replace(/DATABASE_URL=".*"/, databaseUrlLine)
-    : `${databaseUrlLine}\n${current}`;
-  setFile(ctx.files, '.env', next);
-  setFile(ctx.files, '.env.example', next);
+/** Connection entries a hosted database replaces the local URL with. */
+export function hostedDatabaseEnv(
+  stack: EmitCtx['stack'],
+  dbName: string
+): Record<string, string> | null {
+  if (stack.backend === 'convex') return null;
+  switch (stack.dbSetup) {
+    case 'none':
+    case 'docker':
+      return null;
+    case 'turso':
+      return {
+        TURSO_DATABASE_URL: 'libsql://DATABASE-ORGANIZATION.turso.io',
+        TURSO_AUTH_TOKEN: 'YOUR_TURSO_AUTH_TOKEN',
+        ...(stack.orm === 'prisma'
+          ? { LOCAL_DATABASE_URL: 'file:./dev.db' }
+          : {}),
+      };
+    case 'planetscale':
+      return stack.database === 'mysql'
+        ? {
+            DATABASE_URL:
+              stack.orm === 'prisma'
+                ? 'mysql://USER:PASSWORD@HOST/DATABASE?sslaccept=strict'
+                : 'mysql://USER:PASSWORD@HOST/DATABASE',
+          }
+        : {
+            DATABASE_URL:
+              'postgresql://USER:PASSWORD@HOST:6432/DATABASE?sslmode=verify-full',
+            DIRECT_URL:
+              'postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=verify-full',
+          };
+    case 'prisma-postgres':
+      return {
+        DATABASE_URL:
+          'postgresql://USER:PASSWORD@pooled.db.prisma.io:5432/postgres?sslmode=require',
+        DIRECT_URL:
+          'postgresql://USER:PASSWORD@db.prisma.io:5432/postgres?sslmode=require',
+      };
+    case 'neon':
+      return {
+        DATABASE_URL: `postgres://USER:PASSWORD@ep-xxx.region.aws.neon.tech/${dbName}?sslmode=require`,
+      };
+    case 'supabase':
+      return {
+        DATABASE_URL: `postgres://postgres:PASSWORD@db.${dbName}.supabase.co:5432/postgres`,
+      };
+    default: {
+      const _exhaustive: never = stack.dbSetup;
+      throw new Error(`unhandled db-setup: ${_exhaustive}`);
+    }
+  }
 }
 
 function envOwnerPrefix(ctx: EmitCtx): string {
@@ -177,27 +194,6 @@ function finalizeServerDatabase(ctx: EmitCtx): void {
     }
   }
   setFile(ctx.files, owner + 'package.json', JSON.stringify(manifest, null, 2));
-  for (const name of ['.env', '.env.example']) {
-    const source = ctx.files[name];
-    setFile(ctx.files, owner + name, source);
-    const publicValues = source
-      .split('\n')
-      .filter((line) => /^(NEXT_PUBLIC_|VITE_)/.test(line))
-      .join('\n');
-    if (publicValues)
-      setFile(
-        ctx.files,
-        `${ctx.layout.frontendRoot}/${name}`,
-        publicValues + '\n'
-      );
-    delete ctx.files[name];
-  }
-  if (orm === 'drizzle')
-    setFile(
-      ctx.files,
-      owner + 'drizzle.config.ts',
-      ctx.files[owner + 'drizzle.config.ts'].replace('"../../.env"', '".env"')
-    );
   for (const [path, source] of Object.entries(ctx.files)) {
     if (
       !path.startsWith(`${ctx.layout.serverSourceRoot}/`) ||
