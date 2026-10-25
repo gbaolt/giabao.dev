@@ -31,6 +31,23 @@ for (const [flags, manifest] of [
   });
 }
 
+for (const [structure, path] of [
+  ['single', 'convex/betterAuth.ts'],
+  ['monorepo', 'apps/web/convex/betterAuth.ts'],
+] as const) {
+  test(`Convex Better Auth registers the Polar plugin in a ${structure} app`, () => {
+    const auth = build({
+      backend: 'convex',
+      structure,
+      auth: 'better-auth',
+      payments: 'polar',
+    })[path];
+
+    expect(auth).toContain("import { polar } from '@polar-sh/better-auth';");
+    expect(auth).toMatch(/plugins: \[\s*polar\(\{[\s\S]*\}\),\s*convex\(\)\]/);
+  });
+}
+
 for (const payments of ['stripe', 'polar'] as const)
   for (const [flags, path] of [
     [{ frontend: 'tanstack-start', api: 'trpc' }, 'src/routes/portal.tsx'],
