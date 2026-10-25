@@ -18,10 +18,16 @@ test('fillTemplate rejects a token without a value', () => {
   );
 });
 
-test('fillTemplate rejects a token left over after substitution', () => {
-  expect(() => fillTemplate('__A__', { A: '__B__' })).toThrow(
-    'Unreplaced template token: __B__'
-  );
+test('fillTemplate keeps token-shaped text inside substituted values', () => {
+  expect(fillTemplate('__A__', { A: '__B__' })).toBe('__B__');
+});
+
+test('login generation accepts a token-shaped project name', () => {
+  const files = buildTree(resolveStack({ yes: true }), {
+    projectName: '__DEMO__',
+    packageManager: 'bun',
+  });
+  expect(files['app/login/page.tsx']).toContain('__DEMO__');
 });
 
 const axes = {
