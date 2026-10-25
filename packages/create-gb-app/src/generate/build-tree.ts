@@ -232,13 +232,9 @@ function buildProject(
     emitPayments(stack, emitCtx);
     emitLinter(stack, emitCtx);
     emitNotes(emitCtx);
-    const providerPath =
-      stack.frontend === 'next'
-        ? 'app/providers.tsx'
-        : 'src/components/providers.tsx';
     setFileIfAbsent(
       files,
-      providerPath,
+      layout.providersFile,
       `import type { ReactNode } from "react";
 
 export function Providers({ children }: { children: ReactNode }) {

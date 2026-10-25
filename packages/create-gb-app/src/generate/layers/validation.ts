@@ -26,11 +26,11 @@ function addWorkspaceDependency(ctx: EmitCtx, path: string): void {
 export function emitValidation(ctx: EmitCtx): void {
   if (ctx.stack.structure === 'single') {
     ctx.pkg.dependencies.zod = DEPENDENCY_VERSIONS['zod'];
-    const path =
-      ctx.stack.frontend === 'tanstack-start'
-        ? 'src/lib/note-validation.ts'
-        : 'lib/note-validation.ts';
-    setFile(ctx.files, path, noteValidationSource);
+    setFile(
+      ctx.files,
+      `${ctx.layout.libDir}/note-validation.ts`,
+      noteValidationSource
+    );
     return;
   }
 

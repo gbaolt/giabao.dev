@@ -1,7 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { isAppsLayout, joinPath, libDir } from '../paths';
+import { joinPath } from '../layout';
 
 export function emitDrizzle(ctx: EmitCtx): void {
   ctx.pkg.dependencies['drizzle-orm'] = DEPENDENCY_VERSIONS['drizzle-orm'];
@@ -21,12 +21,11 @@ export function emitDrizzle(ctx: EmitCtx): void {
   ctx.pkg.devDependencies.dotenv = DEPENDENCY_VERSIONS.dotenv;
   if (turso) ctx.pkg.scripts['db:migrate'] = 'drizzle-kit migrate';
 
-  const schemaPath = isAppsLayout(ctx.stack)
-    ? 'apps/server/src/schema.ts'
-    : joinPath(libDir(ctx.stack), 'schema.ts');
-  const clientPath = isAppsLayout(ctx.stack)
-    ? 'apps/server/src/db.ts'
-    : joinPath(libDir(ctx.stack), 'db.ts');
+  const {
+    envOwner,
+    schemaFile: schemaPath,
+    dbFile: clientPath,
+  } = ctx.layout;
   const driver =
     ctx.stack.backend === 'convex'
       ? 'postgresql'
@@ -117,17 +116,15 @@ ${turso ? 'const client = createClient({ url: process.env.TURSO_DATABASE_URL!, a
 
   setFile(
     ctx.files,
-    isAppsLayout(ctx.stack)
-      ? 'apps/server/drizzle.config.ts'
-      : 'drizzle.config.ts',
+    joinPath(envOwner, 'drizzle.config.ts'),
     `import { config } from "dotenv";
 import { defineConfig } from "drizzle-kit";
 
-config({ path: "${isAppsLayout(ctx.stack) ? '../../.env' : '.env'}" });
+config({ path: "${envOwner ? '../../.env' : '.env'}" });
 
 ${planetscaleMysql ? 'const connection = new URL(process.env.DATABASE_URL!);\n' : ''}
 export default defineConfig({
-  schema: "./${isAppsLayout(ctx.stack) ? 'src/schema.ts' : schemaPath}",
+  schema: "./${envOwner ? schemaPath.slice(envOwner.length + 1) : schemaPath}",
   out: "./drizzle",
   dialect: "${turso ? 'turso' : driver === 'sqlite' ? 'sqlite' : driver === 'mysql' ? 'mysql' : 'postgresql'}",
   dbCredentials: ${turso ? '{ url: process.env.TURSO_DATABASE_URL!, authToken: process.env.TURSO_AUTH_TOKEN! }' : planetscaleMysql ? '{ host: connection.hostname, port: Number(connection.port || 3306), user: decodeURIComponent(connection.username), password: decodeURIComponent(connection.password), database: connection.pathname.slice(1), ssl: { rejectUnauthorized: true } }' : `{ url: process.env.${direct ? 'DIRECT_URL' : 'DATABASE_URL'} as string }`},

@@ -1,25 +1,18 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { isAppsLayout, isStart } from '../paths';
+import { joinPath } from '../layout';
 
 export function emitStripe(ctx: EmitCtx): void {
   ctx.pkg.dependencies.stripe = DEPENDENCY_VERSIONS['stripe'];
-  const webhookPath = isAppsLayout(ctx.stack)
-    ? 'apps/server/src/stripe.webhook.ts'
-    : isStart(ctx.stack)
-      ? 'src/routes/api/stripe/webhook.ts'
-      : 'app/api/stripe/webhook/route.ts';
-  const portalPath = isAppsLayout(ctx.stack)
-    ? 'apps/web/app/portal/page.tsx'
-    : isStart(ctx.stack)
-      ? 'src/routes/portal.tsx'
-      : 'app/portal/page.tsx';
-  const checkoutPath = isAppsLayout(ctx.stack)
-    ? 'apps/server/src/stripe.checkout.ts'
-    : isStart(ctx.stack)
-      ? 'src/routes/api/stripe/checkout.ts'
-      : 'app/api/stripe/checkout/route.ts';
+  const { layout } = ctx;
+  const handler = (name: string) =>
+    layout.backendRoot === 'apps/server'
+      ? joinPath(layout.serverSourceRoot, `stripe.${name}.ts`)
+      : layout.apiRoute(`stripe/${name}`);
+  const webhookPath = handler('webhook');
+  const portalPath = layout.route('portal');
+  const checkoutPath = handler('checkout');
 
   setFile(
     ctx.files,

@@ -24,7 +24,7 @@ export const auth = betterAuth({
   }
 
   const start = ctx.stack.frontend === 'tanstack-start';
-  const authPath = start ? 'src/lib/auth.ts' : 'lib/auth.ts';
+  const authPath = ctx.layout.authFile;
   const pluginImport = start
     ? `import { tanstackStartCookies } from 'better-auth/tanstack-start';`
     : `import { nextCookies } from 'better-auth/next-js';`;

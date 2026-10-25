@@ -21,12 +21,8 @@ export function emitShadcn(ctx: EmitCtx): void {
     ctx.pkg.dependencies[dependency] = DEPENDENCY_VERSIONS[dependency];
   }
 
-  const webRoot = ctx.layout.frontendRoot ? `${ctx.layout.frontendRoot}/` : '';
-  const root = `${webRoot}${ctx.stack.frontend === 'tanstack-start' ? 'src/' : ''}`;
-  const css =
-    ctx.stack.frontend === 'tanstack-start'
-      ? `${webRoot}src/styles.css`
-      : `${webRoot}app/globals.css`;
+  const root = ctx.layout.sourceRoot ? `${ctx.layout.sourceRoot}/` : '';
+  const css = ctx.layout.stylesFile;
 
   setFile(ctx.files, `${root}lib/utils.ts`, shadcnSource['lib/utils.ts']);
 
@@ -76,7 +72,7 @@ export function emitShadcn(ctx: EmitCtx): void {
       `${root}components/theme-provider.tsx`,
       shadcnSource['components/theme-provider.tsx']
     );
-    const layoutPath = `${root}app/layout.tsx`;
+    const layoutPath = ctx.layout.rootLayout;
     const layout = ctx.files[layoutPath];
     if (layout === undefined) {
       throw new Error(`missing generated Next layout: ${layoutPath}`);
@@ -90,8 +86,8 @@ export function emitShadcn(ctx: EmitCtx): void {
 function emitSharedShadcn(ctx: EmitCtx): void {
   const webRoot = `${ctx.layout.frontendRoot}/`;
   const isNext = ctx.stack.frontend === 'next';
-  const webSourceRoot = `${webRoot}${isNext ? '' : 'src/'}`;
-  const webCss = `${webSourceRoot}${isNext ? 'app/globals.css' : 'styles.css'}`;
+  const webSourceRoot = `${ctx.layout.sourceRoot}/`;
+  const webCss = ctx.layout.stylesFile;
   const sharedCss = 'packages/ui/src/styles/globals.css';
 
   const uiManifest = ctx.files['packages/ui/package.json'];
@@ -276,7 +272,7 @@ function emitSharedShadcn(ctx: EmitCtx): void {
         2
       )
     );
-    const layoutPath = `${webRoot}app/layout.tsx`;
+    const layoutPath = ctx.layout.rootLayout;
     const layout = ctx.files[layoutPath];
     if (layout === undefined) {
       throw new Error(`missing generated Next layout: ${layoutPath}`);
@@ -306,7 +302,7 @@ function emitStartTheme(
     `${root}components/theme-provider.tsx`,
     shadcnSource['components/theme-provider.tsx']
   );
-  const routePath = `${root}routes/__root.tsx`;
+  const routePath = ctx.layout.rootLayout;
   const route = ctx.files[routePath];
   if (route === undefined) {
     throw new Error(`missing generated Start root route: ${routePath}`);
@@ -323,7 +319,7 @@ function emitStartTheme(
         .replace('<body>', '<body>\n        <ThemeProvider>')
         .replace('</body>', '  </ThemeProvider>\n      </body>')
   );
-  const cssPath = `${root}styles.css`;
+  const cssPath = ctx.layout.stylesFile;
   setFile(
     ctx.files,
     cssPath,

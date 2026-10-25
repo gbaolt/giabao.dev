@@ -11,39 +11,95 @@ export type ProjectLayout = {
     | 'apps/server/package.json'
     | null;
   sharedPackagesRoot: 'packages' | null;
+  /** Frontend source directory: holds lib, components and the route tree. */
+  sourceRoot: string;
+  libDir: string;
+  /** Where server-side code (auth, database client, schema) lives. */
+  serverSourceRoot: string;
+  authFile: string;
+  dbFile: string;
+  schemaFile: string;
+  /** Package directory that owns `.env` and database tooling. */
+  envOwner: '' | 'apps/web' | 'apps/server';
+  stylesFile: string;
+  /** Next root layout or Start root route. */
+  rootLayout: string;
+  providersFile: string;
+  routesDir: string;
+  /** Page for a named route; '' is the home route. */
+  route: (name: string) => string;
+  /** Frontend API handler for a named route, such as `stripe/webhook`. */
+  apiRoute: (name: string) => string;
 };
 
-export function projectLayout(stack: Stack): ProjectLayout {
-  const frontendRoot = stack.structure === 'single' ? '' : 'apps/web';
-  const frontendManifest =
-    stack.structure === 'single' ? 'package.json' : 'apps/web/package.json';
+export function joinPath(...parts: string[]): string {
+  return parts.filter(Boolean).join('/');
+}
 
-  if (stack.backend === 'nest' || stack.backend === 'hono') {
+export function projectLayout(stack: Stack): ProjectLayout {
+  const single = stack.structure === 'single';
+  const next = stack.frontend === 'next';
+  const server = stack.backend === 'nest' || stack.backend === 'hono';
+  const frontendRoot: ProjectLayout['frontendRoot'] = single ? '' : 'apps/web';
+  const frontendManifest: ProjectLayout['frontendManifest'] = single
+    ? 'package.json'
+    : 'apps/web/package.json';
+  const sourceRoot = joinPath(frontendRoot, next ? '' : 'src');
+  const libDir = joinPath(sourceRoot, 'lib');
+  const routesDir = joinPath(sourceRoot, next ? 'app' : 'routes');
+  const serverSourceRoot = server ? 'apps/server/src' : libDir;
+  const shared: Omit<
+    ProjectLayout,
+    'backendRoot' | 'backendManifest' | 'sharedPackagesRoot'
+  > = {
+    structure: stack.structure,
+    frontendRoot,
+    frontendManifest,
+    sourceRoot,
+    libDir,
+    serverSourceRoot,
+    authFile: joinPath(serverSourceRoot, 'auth.ts'),
+    dbFile: joinPath(serverSourceRoot, 'db.ts'),
+    schemaFile: joinPath(serverSourceRoot, 'schema.ts'),
+    envOwner: server ? 'apps/server' : frontendRoot,
+    stylesFile: next
+      ? joinPath(routesDir, 'globals.css')
+      : joinPath(sourceRoot, 'styles.css'),
+    rootLayout: joinPath(routesDir, next ? 'layout.tsx' : '__root.tsx'),
+    providersFile: next
+      ? joinPath(routesDir, 'providers.tsx')
+      : joinPath(sourceRoot, 'components/providers.tsx'),
+    routesDir,
+    route: (name: string) =>
+      next
+        ? joinPath(routesDir, name, 'page.tsx')
+        : joinPath(routesDir, `${name || 'index'}.tsx`),
+    apiRoute: (name: string) =>
+      next
+        ? joinPath(routesDir, 'api', name, 'route.ts')
+        : joinPath(routesDir, 'api', `${name}.ts`),
+  };
+
+  if (server) {
     return {
-      structure: stack.structure,
-      frontendRoot,
+      ...shared,
       backendRoot: 'apps/server',
-      frontendManifest,
       backendManifest: 'apps/server/package.json',
       sharedPackagesRoot: 'packages',
     };
   }
   if (stack.backend === 'convex') {
     return {
-      structure: stack.structure,
-      frontendRoot,
-      backendRoot: stack.structure === 'single' ? 'convex' : 'apps/web/convex',
-      frontendManifest,
+      ...shared,
+      backendRoot: single ? 'convex' : 'apps/web/convex',
       backendManifest: null,
-      sharedPackagesRoot: stack.structure === 'single' ? null : 'packages',
+      sharedPackagesRoot: single ? null : 'packages',
     };
   }
   return {
-    structure: stack.structure,
-    frontendRoot,
+    ...shared,
     backendRoot: frontendRoot,
-    frontendManifest,
     backendManifest: frontendManifest,
-    sharedPackagesRoot: stack.structure === 'single' ? null : 'packages',
+    sharedPackagesRoot: single ? null : 'packages',
   };
 }

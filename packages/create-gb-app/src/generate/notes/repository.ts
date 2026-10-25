@@ -60,10 +60,6 @@ export function notesRepository(stack: Stack): NotesRepository {
 export function emitNotesStore(ctx: EmitCtx): void {
   const { stack } = ctx;
   if (!usesDrizzle(stack)) return;
-  const server = stack.backend === 'nest' || stack.backend === 'hono';
-  const root = ctx.layout.backendRoot ? ctx.layout.backendRoot + '/' : '';
-  const lib =
-    root + (server ? 'src/' : stack.frontend === 'next' ? 'lib/' : 'src/lib/');
   const extension = stack.backend === 'nest' ? '.js' : '';
   // Only Start with the built-in oRPC backend reports affected rows.
   const counted =
@@ -72,7 +68,7 @@ export function emitNotesStore(ctx: EmitCtx): void {
     stack.api === 'orpc';
   setFile(
     ctx.files,
-    lib + 'notes-store.ts',
+    `${ctx.layout.serverSourceRoot}/notes-store.ts`,
     `import { and, desc, eq } from "drizzle-orm";
 import { db } from "./db${extension}";
 import { notes } from "./schema${extension}";

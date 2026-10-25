@@ -94,6 +94,10 @@ function patchEnv(ctx: EmitCtx, databaseUrlLine: string): void {
   setFile(ctx.files, '.env.example', next);
 }
 
+function envOwnerPrefix(ctx: EmitCtx): string {
+  return ctx.layout.envOwner ? `${ctx.layout.envOwner}/` : '';
+}
+
 export function finalizeDatabaseSetup(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex' || ctx.stack.database === 'none') return;
   finalizeServerDatabase(ctx);
@@ -102,13 +106,11 @@ export function finalizeDatabaseSetup(ctx: EmitCtx): void {
 
 function finalizeServerDatabase(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex' || ctx.stack.database === 'none') return;
-  const { dbSetup, orm, database, backend, structure } = ctx.stack;
-  const server = backend === 'nest' || backend === 'hono';
-  const owner =
-    structure === 'single' ? '' : server ? 'apps/server/' : 'apps/web/';
-  if (!server) return;
+  const { dbSetup, orm, database, backend } = ctx.stack;
+  const owner = envOwnerPrefix(ctx);
+  if (backend !== 'nest' && backend !== 'hono') return;
 
-  const manifest = JSON.parse(ctx.files['apps/server/package.json']);
+  const manifest = JSON.parse(ctx.files[owner + 'package.json']);
   manifest.scripts ??= {};
   manifest.dependencies ??= {};
   manifest.devDependencies ??= {};
@@ -143,7 +145,7 @@ function finalizeServerDatabase(ctx: EmitCtx): void {
   if (orm === 'drizzle') {
     delete manifest.dependencies['@prisma/client'];
     delete manifest.devDependencies.prisma;
-    const authPath = 'apps/server/src/auth.ts';
+    const authPath = ctx.layout.authFile;
     const source = ctx.files[authPath];
     if (source) {
       const provider =
@@ -173,11 +175,7 @@ function finalizeServerDatabase(ctx: EmitCtx): void {
       );
     }
   }
-  setFile(
-    ctx.files,
-    'apps/server/package.json',
-    JSON.stringify(manifest, null, 2)
-  );
+  setFile(ctx.files, owner + 'package.json', JSON.stringify(manifest, null, 2));
   for (const name of ['.env', '.env.example']) {
     const source = ctx.files[name];
     setFile(ctx.files, owner + name, source);
@@ -186,7 +184,11 @@ function finalizeServerDatabase(ctx: EmitCtx): void {
       .filter((line) => /^(NEXT_PUBLIC_|VITE_)/.test(line))
       .join('\n');
     if (publicValues)
-      setFile(ctx.files, 'apps/web/' + name, publicValues + '\n');
+      setFile(
+        ctx.files,
+        `${ctx.layout.frontendRoot}/${name}`,
+        publicValues + '\n'
+      );
     delete ctx.files[name];
   }
   if (orm === 'drizzle')
@@ -196,7 +198,11 @@ function finalizeServerDatabase(ctx: EmitCtx): void {
       ctx.files[owner + 'drizzle.config.ts'].replace('"../../.env"', '".env"')
     );
   for (const [path, source] of Object.entries(ctx.files)) {
-    if (!path.startsWith('apps/server/src/') || !path.endsWith('.ts')) continue;
+    if (
+      !path.startsWith(`${ctx.layout.serverSourceRoot}/`) ||
+      !path.endsWith('.ts')
+    )
+      continue;
     setFile(
       ctx.files,
       path,
@@ -213,10 +219,8 @@ function finalizeServerDatabase(ctx: EmitCtx): void {
 
 function appendDatabaseSetupReadme(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex' || ctx.stack.database === 'none') return;
-  const { dbSetup, orm, database, backend, structure } = ctx.stack;
-  const server = backend === 'nest' || backend === 'hono';
-  const owner =
-    structure === 'single' ? '' : server ? 'apps/server/' : 'apps/web/';
+  const { dbSetup, orm, database } = ctx.stack;
+  const owner = envOwnerPrefix(ctx);
   if (!['turso', 'planetscale', 'prisma-postgres'].includes(dbSetup)) return;
   const run = PACKAGE_MANAGER_METADATA[ctx.packageManager].run;
   const location = owner

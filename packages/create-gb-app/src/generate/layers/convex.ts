@@ -51,7 +51,7 @@ export default defineSchema({
   if (!authed)
     setFile(
       ctx.files,
-      isNext ? 'app/providers.tsx' : 'src/components/providers.tsx',
+      ctx.layout.providersFile,
       `"use client";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import type { ReactNode } from "react";

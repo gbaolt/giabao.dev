@@ -1,7 +1,6 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { isAppsLayout, isStart } from '../paths';
 
 const POLAR_PLUGIN = `polar({
       createCustomerOnSignUp: true,
@@ -11,14 +10,9 @@ const POLAR_PLUGIN = `polar({
 export function emitPolar(ctx: EmitCtx): void {
   ctx.pkg.dependencies['@polar-sh/better-auth'] =
     DEPENDENCY_VERSIONS['@polar-sh/better-auth'];
-  const portalPath = isAppsLayout(ctx.stack)
-    ? 'apps/web/app/portal/page.tsx'
-    : isStart(ctx.stack)
-      ? 'src/routes/portal.tsx'
-      : 'app/portal/page.tsx';
   setFile(
     ctx.files,
-    portalPath,
+    ctx.layout.route('portal'),
     `export default function PortalPage() {
   return (
     <main>
@@ -29,11 +23,7 @@ export function emitPolar(ctx: EmitCtx): void {
 }
 `
   );
-  const authPath = isAppsLayout(ctx.stack)
-    ? 'apps/server/src/auth.ts'
-    : isStart(ctx.stack)
-      ? 'src/lib/auth.ts'
-      : 'lib/auth.ts';
+  const authPath = ctx.layout.authFile;
   const current = ctx.files[authPath] ?? '';
   if (!current || current.includes('@polar-sh/better-auth')) {
     return;

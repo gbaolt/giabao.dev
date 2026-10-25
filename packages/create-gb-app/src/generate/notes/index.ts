@@ -40,7 +40,6 @@ function emitFormDemo(ctx: EmitCtx): void {
   )
     return;
   const isNext = ctx.stack.frontend === 'next';
-  const webRoot = ctx.layout.frontendRoot ? ctx.layout.frontendRoot + '/' : '';
   const demo = `import { NotesForm } from "@/components/notes-form";
 ${!isNext ? 'import { createFileRoute } from "@tanstack/react-router";\nexport const Route = createFileRoute("/notes")({ component: NotesPage });' : ''}
 ${isNext ? 'export default' : ''} function NotesPage() {
@@ -49,7 +48,7 @@ ${isNext ? 'export default' : ''} function NotesPage() {
 `;
   setFile(
     ctx.files,
-    webRoot + (isNext ? 'app/notes/page.tsx' : 'src/routes/notes.tsx'),
+    ctx.layout.route('notes'),
     isNext ? '"use client";\n' + demo : demo
   );
 }

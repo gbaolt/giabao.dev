@@ -1,7 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { isAppsLayout, joinPath, libDir } from '../paths';
+import { joinPath } from '../layout';
 
 export function emitPrisma(ctx: EmitCtx): void {
   ctx.pkg.dependencies['@prisma/client'] =
@@ -22,12 +22,8 @@ export function emitPrisma(ctx: EmitCtx): void {
     ctx.pkg.scripts['db:push'] = 'prisma db push';
   }
 
-  const dbPath = isAppsLayout(ctx.stack)
-    ? 'apps/server/src/db.ts'
-    : joinPath(libDir(ctx.stack), 'db.ts');
-  const schemaPath = isAppsLayout(ctx.stack)
-    ? 'apps/server/prisma/schema.prisma'
-    : 'prisma/schema.prisma';
+  const dbPath = ctx.layout.dbFile;
+  const schemaPath = joinPath(ctx.layout.envOwner, 'prisma/schema.prisma');
   const noteUser =
     ctx.stack.auth === 'none'
       ? ''

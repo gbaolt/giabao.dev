@@ -33,16 +33,13 @@ export function emitOptionalWorkspace(
       /(["'])(?:@\/|(?:\.\.\/)+)components\/ui\/([^"']+)\1/g,
       '"@repo/ui/$2"'
     );
-    setFile(ctx.files, `apps/web/${path}`, source);
+    setFile(ctx.files, `${ctx.layout.frontendRoot}/${path}`, source);
   }
-  setFile(ctx.files, 'apps/web/package.json', JSON.stringify(web, null, 2));
-  const tsconfig = JSON.parse(ctx.files['apps/web/tsconfig.json']);
+  setFile(ctx.files, ctx.layout.frontendManifest, JSON.stringify(web, null, 2));
+  const tsconfigPath = `${ctx.layout.frontendRoot}/tsconfig.json`;
+  const tsconfig = JSON.parse(ctx.files[tsconfigPath]);
   tsconfig.extends = '@repo/typescript-config/base.json';
-  setFile(
-    ctx.files,
-    'apps/web/tsconfig.json',
-    JSON.stringify(tsconfig, null, 2)
-  );
+  setFile(ctx.files, tsconfigPath, JSON.stringify(tsconfig, null, 2));
 
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
   setFile(
@@ -95,18 +92,17 @@ export function emitOptionalWorkspace(
       2
     )
   );
-  const sourceRoot =
-    ctx.stack.frontend === 'next' ? 'apps/web' : 'apps/web/src';
   setFile(
     ctx.files,
-    `${sourceRoot}/lib/note-validation.ts`,
+    `${ctx.layout.libDir}/note-validation.ts`,
     'export { noteInputSchema, type NoteInput } from "@repo/validation";\n'
   );
   if (ctx.stack.backend === 'convex') {
-    const notes = ctx.files['apps/web/convex/notes.ts'];
+    const convexNotes = `${ctx.layout.backendRoot}/notes.ts`;
+    const notes = ctx.files[convexNotes];
     setFile(
       ctx.files,
-      'apps/web/convex/notes.ts',
+      convexNotes,
       notes.replace(
         /from "\.\.\/(?:src\/)?lib\/note-validation"/,
         'from "@repo/validation"'

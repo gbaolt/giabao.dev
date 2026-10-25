@@ -1,11 +1,10 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { isStart } from '../paths';
 
 export function emitClerk(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex') {
-    const dependency = isStart(ctx.stack)
+    const dependency = ctx.stack.frontend === 'tanstack-start'
       ? '@clerk/clerk-react'
       : '@clerk/nextjs';
     ctx.pkg.dependencies[dependency] = DEPENDENCY_VERSIONS[dependency];
@@ -19,7 +18,7 @@ export function emitClerk(ctx: EmitCtx): void {
     return;
   }
 
-  if (isStart(ctx.stack) && ctx.stack.backend === 'self') {
+  if (ctx.stack.frontend === 'tanstack-start' && ctx.stack.backend === 'self') {
     ctx.pkg.dependencies['@clerk/tanstack-react-start'] =
       DEPENDENCY_VERSIONS['@clerk/tanstack-react-start'];
     return;
@@ -130,10 +129,10 @@ export class AppModule {}
 }
 
 function emitStartClerkConvexProviders(ctx: EmitCtx): void {
-  const start = isStart(ctx.stack);
+  const start = ctx.stack.frontend === 'tanstack-start';
   setFile(
     ctx.files,
-    start ? 'src/components/providers.tsx' : 'app/providers.tsx',
+    ctx.layout.providersFile,
     `"use client";
 
 import { ClerkProvider, useAuth } from "${start ? '@clerk/clerk-react' : '@clerk/nextjs'}";

@@ -1,35 +1,38 @@
+import { projectLayout } from '#/generate/layout';
 import type { Stack } from '#/types/stack';
 
 export function previewTree(stack: Stack): string {
-  if (stack.structure === 'monorepo') {
-    const rows = ['apps/web'];
-    if (stack.backend === 'nest' || stack.backend === 'hono')
-      rows.push('apps/server');
-    if (stack.backend === 'convex') rows.push('apps/web/convex');
+  const layout = projectLayout(stack);
+  if (layout.sharedPackagesRoot) {
+    const rows: string[] = [layout.frontendRoot];
+    if (layout.backendRoot !== layout.frontendRoot)
+      rows.push(layout.backendRoot);
     if (
       (stack.backend === 'nest' || stack.backend === 'hono') &&
       stack.api !== 'none'
     ) {
-      rows.push('packages/contract');
+      rows.push(`${layout.sharedPackagesRoot}/contract`);
     }
     rows.push(
-      'packages/typescript-config',
-      'packages/ui',
-      'packages/validation',
-      stack.addons.taskRunner === 'turborepo' ? 'turbo.json' : 'scripts/workspace.mjs'
+      ...['typescript-config', 'ui', 'validation'].map(
+        (name) => `${layout.sharedPackagesRoot}/${name}`
+      ),
+      stack.addons.taskRunner === 'turborepo'
+        ? 'turbo.json'
+        : 'scripts/workspace.mjs'
     );
     return rows.join('\n');
   }
 
-  const rows = [stack.frontend === 'next' ? 'app' : 'src/routes'];
+  const rows: string[] = [layout.routesDir];
   if (stack.backend === 'convex') {
-    rows.push('convex');
+    rows.push(layout.backendRoot);
   } else if (stack.database !== 'none') {
-    rows.push(stack.frontend === 'next' ? 'lib' : 'src/server');
+    rows.push(layout.serverSourceRoot);
     if (stack.orm === 'prisma') {
       rows.push('prisma');
     }
   }
-  rows.push('package.json');
+  rows.push(layout.frontendManifest);
   return rows.join('\n');
 }
