@@ -1,7 +1,6 @@
 import type { EmitCtx } from '../../types/generate';
 import { setFile } from '../files';
 import { PACKAGE_MANAGER_METADATA } from '../package-managers';
-import { emitDrizzleNotesRepository } from './drizzle';
 
 export function emitDbSetup(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex') {
@@ -97,7 +96,6 @@ function patchEnv(ctx: EmitCtx, databaseUrlLine: string): void {
 
 export function finalizeDatabaseSetup(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex' || ctx.stack.database === 'none') return;
-  emitDrizzleNotesRepository(ctx);
   finalizeServerDatabase(ctx);
   appendDatabaseSetupReadme(ctx);
 }

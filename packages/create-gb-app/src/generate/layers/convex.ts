@@ -26,54 +26,6 @@ export default defineSchema({
 `
   );
 
-  setFile(
-    ctx.files,
-    'convex/notes.ts',
-    `import { v } from "convex/values";
-import { noteInputSchema } from "../${isNext ? '' : 'src/'}lib/note-validation";
-import { mutation, query } from "./_generated/server";
-
-export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    ${
-      authed
-        ? `const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return [];
-    }`
-        : ''
-    }
-    return ctx.db
-      .query("notes")
-      ${authed ? '.withIndex("by_user", (q) => q.eq("userId", identity.subject))' : ''}
-      .order("desc")
-      .collect();
-  },
-});
-
-export const create = mutation({
-  args: { title: v.string(), body: v.string() },
-  handler: async (ctx, args) => {
-    ${
-      authed
-        ? `const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }`
-        : ''
-    }
-    const note = noteInputSchema.parse(args);
-    return ctx.db.insert("notes", {
-      title: note.title,
-      body: note.body,
-      ${authed ? 'userId: identity.subject,' : ''}
-    });
-  },
-});
-`
-  );
-
   if (authed)
     setFile(
       ctx.files,

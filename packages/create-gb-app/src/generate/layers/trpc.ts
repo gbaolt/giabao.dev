@@ -176,30 +176,6 @@ export const publicProcedure = t.procedure;
 
   setFile(
     ctx.files,
-    'server/router.ts',
-    `import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { publicProcedure, router } from "./trpc";
-
-export const appRouter = router({
-  notes: {
-    list: publicProcedure.query(async () => {
-      return prisma.note.findMany({ orderBy: { createdAt: "desc" } });
-    }),
-    create: publicProcedure
-      .input(z.object({ title: z.string().min(1), body: z.string() }))
-      .mutation(async ({ input }) => {
-        return prisma.note.create({ data: input });
-      }),
-  },
-});
-
-export type AppRouter = typeof appRouter;
-`
-  );
-
-  setFile(
-    ctx.files,
     'app/api/trpc/[trpc]/route.ts',
     `import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "@/server/router";

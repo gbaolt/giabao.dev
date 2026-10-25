@@ -19,7 +19,6 @@ import { emitHono } from './layers/hono';
 import { emitLogin } from './layers/login';
 import { emitNest } from './layers/nest';
 import { emitNext } from './layers/next';
-import { emitNotes } from './layers/notes';
 import { emitOptionalWorkspace } from './layers/optional-workspace';
 import { emitOrpc } from './layers/orpc';
 import { emitOxlint } from './layers/oxlint';
@@ -34,6 +33,7 @@ import { emitStripe } from './layers/stripe';
 import { emitTrpc } from './layers/trpc';
 import { emitValidation } from './layers/validation';
 import { projectLayout } from './layout';
+import { emitNotes } from './notes';
 import { generateReadme } from './readme';
 import { emitPlainWorkspace, prepareWorkspaceTasks } from './workspace-tasks';
 import { finalizeWorkspaces } from './workspaces';
@@ -231,9 +231,7 @@ function buildProject(
     emitAuth(stack, emitCtx);
     emitPayments(stack, emitCtx);
     emitLinter(stack, emitCtx);
-    if (stack.backend === 'convex' || stack.database !== 'none') {
-      emitNotes(emitCtx);
-    }
+    emitNotes(emitCtx);
     const providerPath =
       stack.frontend === 'next'
         ? 'app/providers.tsx'
@@ -253,6 +251,9 @@ export function Providers({ children }: { children: ReactNode }) {
       emitClerk(emitCtx);
     }
     emitPayments(stack, emitCtx);
+    emitNotes(emitCtx);
+  } else if (stack.backend === 'hono') {
+    emitNotes(emitCtx);
   }
 
   if (foundations) {

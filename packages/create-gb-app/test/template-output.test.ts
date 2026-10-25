@@ -47,6 +47,45 @@ const cases = {
     form: 'tanstack-form',
   },
   nest: { backend: 'nest' },
+  'next-trpc': { api: 'trpc', auth: 'none' },
+  'next-actions-rhf': { api: 'none', form: 'react-hook-form' },
+  'next-drizzle-clerk': { orm: 'drizzle', auth: 'clerk', api: 'none' },
+  'start-trpc-rhf': {
+    frontend: 'tanstack-start',
+    api: 'trpc',
+    auth: 'none',
+    form: 'react-hook-form',
+  },
+  'start-server-fn-tanstack-form': {
+    frontend: 'tanstack-start',
+    api: 'none',
+    form: 'tanstack-form',
+  },
+  'start-orpc-drizzle': {
+    frontend: 'tanstack-start',
+    api: 'orpc',
+    orm: 'drizzle',
+  },
+  'self-workspace-rhf': {
+    structure: 'monorepo',
+    api: 'none',
+    form: 'react-hook-form',
+  },
+  'convex-next-rhf': { backend: 'convex', form: 'react-hook-form' },
+  'nest-rest-drizzle': { backend: 'nest', api: 'none', orm: 'drizzle' },
+  'nest-start-rest-rhf': {
+    backend: 'nest',
+    frontend: 'tanstack-start',
+    api: 'none',
+    form: 'react-hook-form',
+  },
+  'nest-orpc-clerk': { backend: 'nest', auth: 'clerk' },
+  'hono-orpc-drizzle': { backend: 'hono', orm: 'drizzle' },
+  'hono-rest-tanstack-form': {
+    backend: 'hono',
+    api: 'none',
+    form: 'tanstack-form',
+  },
 } satisfies Record<string, RawFlags>;
 
 const options = await prettier.resolveConfig(
