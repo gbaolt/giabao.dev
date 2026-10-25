@@ -25,10 +25,6 @@ export function emitOptionalWorkspace(
 
   for (const [path, contents] of Object.entries(single)) {
     if (path === 'package.json' || path === 'README.md') continue;
-    if (path === '.gitignore') {
-      setFile(ctx.files, path, contents);
-      continue;
-    }
     const source = contents.replace(
       /(["'])(?:@\/|(?:\.\.\/)+)components\/ui\/([^"']+)\1/g,
       '"@repo/ui/$2"'

@@ -11,17 +11,7 @@ type WorkspaceManifest = {
 };
 export function prepareWorkspaceTasks(ctx: EmitCtx) {
   ctx.pkg.engines = { node: '>=22.12.0' };
-  if (!ctx.files['.gitignore'])
-    setFile(
-      ctx.files,
-      '.gitignore',
-      'node_modules\ndist\n.next\n.output\n.env*\n!.env.example\n*.log\n'
-    );
-  setFile(
-    ctx.files,
-    '.gitignore',
-    ctx.files['.gitignore'].trimEnd() + '\n.env*\n!.env.example\n.tanstack\n'
-  );
+  ctx.project.ignoreLines.push('.env*', '!.env.example', '.tanstack');
   const workspaces = Object.entries(ctx.files)
     .filter(([path]) => /^(apps|packages)\/[^/]+\/package.json$/.test(path))
     .map(([path, source]) => {

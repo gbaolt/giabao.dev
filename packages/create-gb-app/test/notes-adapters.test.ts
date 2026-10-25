@@ -3,6 +3,7 @@ import { expect, test } from 'bun:test';
 import { projectLayout } from '#/generate/layout';
 import { notesForm, restCreate } from '#/generate/notes/form';
 import { emitNotesStore, notesRepository } from '#/generate/notes/repository';
+import { createProjectModel } from '#/generate/project-model';
 import { resolveStack } from '#/stack/resolve';
 import type { EmitCtx } from '#/types/generate';
 import type { RawFlags } from '#/types/stack';
@@ -23,6 +24,7 @@ function context(flags: RawFlags): EmitCtx {
     },
     stack,
     layout: projectLayout(stack),
+    project: createProjectModel(),
   };
 }
 

@@ -3,7 +3,7 @@ import type { Stack } from '#/types/stack';
 import type { EmitCtx } from '../../types/generate';
 import stylesSource from '../assets/styles/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
-import { setFile, setFileIfAbsent } from '../files';
+import { setFile } from '../files';
 import { joinPath } from '../layout';
 
 export function emitStart(ctx: EmitCtx): void {
@@ -66,17 +66,13 @@ export function emitStart(ctx: EmitCtx): void {
     layout.route(''),
     startIndexRoute(ctx.projectName, startNotesLink(ctx.stack))
   );
-  // A server workspace writes the root ignore lines first.
-  setFileIfAbsent(
-    ctx.files,
-    '.gitignore',
-    `node_modules
-.output
-.vinxi
-dist
-.env
-*.log
-`
+  ctx.project.ignoreLines.push(
+    'node_modules',
+    '.output',
+    '.vinxi',
+    'dist',
+    '.env',
+    '*.log'
   );
 }
 

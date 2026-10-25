@@ -4,6 +4,7 @@ import { buildTree } from '#/generate/build-tree';
 import { emitHono } from '#/generate/layers/hono';
 import { emitNest } from '#/generate/layers/nest';
 import { projectLayout } from '#/generate/layout';
+import { createProjectModel } from '#/generate/project-model';
 import { resolveStack } from '#/stack/resolve';
 import type { RawFlags } from '#/types/stack';
 
@@ -177,6 +178,7 @@ describe('server adapters', () => {
       files,
       stack,
       layout: projectLayout(stack),
+      project: createProjectModel(),
       pkg: {
         name: ctx.projectName,
         private: true,

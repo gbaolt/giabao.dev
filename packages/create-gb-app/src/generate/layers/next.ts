@@ -2,7 +2,7 @@ import type { EmitCtx } from '../../types/generate';
 import nextSource from '../assets/next/source.json';
 import stylesSource from '../assets/styles/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
-import { setFile, setFileIfAbsent } from '../files';
+import { setFile } from '../files';
 import { joinPath } from '../layout';
 import { fillTemplate } from '../template-tokens';
 
@@ -86,15 +86,5 @@ export default function HomePage() {
 `
   );
 
-  // A server workspace writes the root ignore lines first.
-  setFileIfAbsent(
-    ctx.files,
-    '.gitignore',
-    `node_modules
-.next
-dist
-.env
-*.log
-`
-  );
+  ctx.project.ignoreLines.push('node_modules', '.next', 'dist', '.env', '*.log');
 }

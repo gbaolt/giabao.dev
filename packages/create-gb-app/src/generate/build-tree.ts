@@ -33,6 +33,11 @@ import { emitTrpc } from './layers/trpc';
 import { emitValidation } from './layers/validation';
 import { projectLayout } from './layout';
 import { emitNotes } from './notes';
+import {
+  createProjectModel,
+  type ProjectModel,
+  renderProject,
+} from './project-model';
 import { generateReadme } from './readme';
 import { emitPlainWorkspace, prepareWorkspaceTasks } from './workspace-tasks';
 import { finalizeWorkspaces } from './workspaces';
@@ -131,7 +136,8 @@ function emitApi(
 function buildProject(
   stack: Stack,
   ctx: GenerateContext,
-  foundations: boolean
+  foundations: boolean,
+  project: ProjectModel
 ): FileMap {
   const files: FileMap = {};
   const pkg: PackageJsonShape = {
@@ -143,7 +149,7 @@ function buildProject(
     devDependencies: {},
   };
   const layout = projectLayout(stack);
-  const emitCtx = { ...ctx, files, pkg, stack, layout };
+  const emitCtx = { ...ctx, files, pkg, stack, layout, project };
 
   if (stack.structure === 'single') {
     switch (stack.backend) {
@@ -178,7 +184,7 @@ function buildProject(
       case 'self':
       case 'convex':
         emitOptionalWorkspace(emitCtx, (singleStack, context) =>
-          buildProject(singleStack, context, false)
+          buildProject(singleStack, context, false, project)
         );
         break;
       default:
@@ -228,6 +234,7 @@ export function Providers({ children }: { children: ReactNode }) {
   setFile(files, 'package.json', JSON.stringify(pkg, null, 2));
   finalizeWorkspaces(files, ctx.packageManager);
   if (foundations) {
+    Object.assign(files, renderProject(project));
     setFile(files, 'README.md', generateReadme(stack, ctx, files, pkg));
   }
   return files;
@@ -235,5 +242,5 @@ export function Providers({ children }: { children: ReactNode }) {
 
 export function buildTree(stack: Stack, ctx: GenerateContext): FileMap {
   validateStartOrpc(stack);
-  return buildProject(stack, ctx, true);
+  return buildProject(stack, ctx, true, createProjectModel());
 }

@@ -68,9 +68,5 @@ export function emitTurborepo(
       2
     )
   );
-  setFile(
-    ctx.files,
-    '.gitignore',
-    ctx.files['.gitignore'].trimEnd() + '\n.turbo\n'
-  );
+  ctx.project.ignoreLines.push('.turbo');
 }

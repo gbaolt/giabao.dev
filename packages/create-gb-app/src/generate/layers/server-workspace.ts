@@ -37,17 +37,14 @@ export function emitServerWorkspace(
   ctx.pkg.devDependencies.typescript = DEPENDENCY_VERSIONS['typescript'];
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
 
-  setFile(
-    ctx.files,
-    '.gitignore',
-    `node_modules
-.next
-.output
-.vinxi
-dist
-.env
-*.log
-`
+  ctx.project.ignoreLines.push(
+    'node_modules',
+    '.next',
+    '.output',
+    '.vinxi',
+    'dist',
+    '.env',
+    '*.log'
   );
   emitTypescriptConfig(ctx);
   emitDatabase(ctx);
