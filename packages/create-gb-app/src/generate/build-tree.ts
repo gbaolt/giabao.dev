@@ -24,6 +24,7 @@ import { emitOrpc } from './layers/orpc';
 import { emitOxlint } from './layers/oxlint';
 import { emitPolar } from './layers/polar';
 import { emitSelf } from './layers/self';
+import { emitServerWebApp } from './layers/server-workspace';
 import { emitShadcn } from './layers/shadcn';
 import { emitStart } from './layers/start';
 import { emitStartOrpc, validateStartOrpc } from './layers/start-orpc';
@@ -170,9 +171,11 @@ function buildProject(
     switch (stack.backend) {
       case 'nest':
         emitNest(emitCtx);
+        emitServerWebApp(emitCtx, (webCtx) => emitFrontend(stack, webCtx));
         break;
       case 'hono':
         emitHono(emitCtx);
+        emitServerWebApp(emitCtx, (webCtx) => emitFrontend(stack, webCtx));
         break;
       case 'self':
       case 'convex':
@@ -187,11 +190,22 @@ function buildProject(
     }
   }
 
+  if (stack.backend === 'nest') {
+    emitAuth(stack, emitCtx);
+    emitPayments(stack, emitCtx);
+    emitNotes(emitCtx);
+  } else if (stack.backend === 'hono') {
+    emitAuth(stack, emitCtx);
+    emitNotes(emitCtx);
+  }
+
   if (stack.structure === 'single') {
     emitAuth(stack, emitCtx);
     emitPayments(stack, emitCtx);
     emitLinter(stack, emitCtx);
     emitNotes(emitCtx);
+  }
+  if (stack.structure === 'single' || layout.backendRoot === 'apps/server') {
     setFileIfAbsent(
       files,
       layout.providersFile,
@@ -202,14 +216,6 @@ export function Providers({ children }: { children: ReactNode }) {
 }
 `
     );
-  } else if (stack.backend === 'nest') {
-    if (stack.auth === 'clerk') {
-      emitClerk(emitCtx);
-    }
-    emitPayments(stack, emitCtx);
-    emitNotes(emitCtx);
-  } else if (stack.backend === 'hono') {
-    emitNotes(emitCtx);
   }
 
   if (foundations) {

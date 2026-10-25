@@ -2,23 +2,8 @@ import type { Stack } from '#/types/stack';
 
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
-import { setFile } from '../files';
-
-export type StartWebAppOptions = {
-  dependencies: Record<string, string>;
-  devDependencies: Record<string, string>;
-  providers: string;
-  notesLink: boolean;
-};
-
-export function startPassthroughProviders(): string {
-  return `import type { ReactNode } from "react";
-
-export function Providers(props: { children: ReactNode }) {
-  return props.children;
-}
-`;
-}
+import { setFile, setFileIfAbsent } from '../files';
+import { joinPath } from '../layout';
 
 export function emitStart(ctx: EmitCtx): void {
   ctx.pkg.dependencies['@tanstack/router-core'] =
@@ -48,13 +33,28 @@ export function emitStart(ctx: EmitCtx): void {
   ctx.pkg.devDependencies['vite-tsconfig-paths'] =
     DEPENDENCY_VERSIONS['vite-tsconfig-paths'];
 
-  setFile(ctx.files, 'tsconfig.json', startRootTsconfig());
-  setFile(ctx.files, 'vite.config.ts', startViteConfig());
-  setFile(ctx.files, 'src/styles.css', startStyles());
-  setFile(ctx.files, 'src/router.tsx', startRouter());
+  const { layout } = ctx;
+  const web = (path: string) => joinPath(layout.frontendRoot, path);
   setFile(
     ctx.files,
-    'src/routes/__root.tsx',
+    web('tsconfig.json'),
+    layout.structure === 'single'
+      ? startRootTsconfig()
+      : JSON.stringify(
+          {
+            extends: '@repo/typescript-config/base.json',
+            ...JSON.parse(startRootTsconfig()),
+          },
+          null,
+          2
+        )
+  );
+  setFile(ctx.files, web('vite.config.ts'), startViteConfig());
+  setFile(ctx.files, layout.stylesFile, startStyles());
+  setFile(ctx.files, joinPath(layout.sourceRoot, 'router.tsx'), startRouter());
+  setFile(
+    ctx.files,
+    layout.rootLayout,
     startRootRoute(
       ctx.projectName,
       ctx.stack.backend === 'self' && ctx.stack.api === 'orpc'
@@ -62,10 +62,11 @@ export function emitStart(ctx: EmitCtx): void {
   );
   setFile(
     ctx.files,
-    'src/routes/index.tsx',
+    layout.route(''),
     startIndexRoute(ctx.projectName, startNotesLink(ctx.stack))
   );
-  setFile(
+  // A server workspace writes the root ignore lines first.
+  setFileIfAbsent(
     ctx.files,
     '.gitignore',
     `node_modules
@@ -75,70 +76,6 @@ dist
 .env
 *.log
 `
-  );
-}
-
-export function emitStartWebApp(
-  ctx: EmitCtx,
-  options: StartWebAppOptions
-): void {
-  setFile(
-    ctx.files,
-    'apps/web/package.json',
-    JSON.stringify(
-      {
-        name: 'web',
-        version: '0.0.0',
-        private: true,
-        type: 'module',
-        scripts: {
-          dev: 'vite dev',
-          build: 'vite build',
-          start: 'vite preview',
-        },
-        dependencies: options.dependencies,
-        devDependencies: options.devDependencies,
-      },
-      null,
-      2
-    )
-  );
-  setFile(
-    ctx.files,
-    'apps/web/tsconfig.json',
-    JSON.stringify(
-      {
-        extends: '@repo/typescript-config/base.json',
-        compilerOptions: {
-          lib: ['ES2022', 'DOM', 'DOM.Iterable'],
-          types: ['vite/client', '@tanstack/react-start'],
-          jsx: 'react-jsx',
-          noEmit: true,
-          paths: { '@/*': ['./src/*'] },
-        },
-        include: ['src', 'vite.config.ts'],
-      },
-      null,
-      2
-    )
-  );
-  setFile(ctx.files, 'apps/web/vite.config.ts', startViteConfig());
-  setFile(ctx.files, 'apps/web/src/styles.css', startStyles());
-  setFile(ctx.files, 'apps/web/src/router.tsx', startRouter());
-  setFile(
-    ctx.files,
-    'apps/web/src/components/providers.tsx',
-    options.providers
-  );
-  setFile(
-    ctx.files,
-    'apps/web/src/routes/__root.tsx',
-    startRootRoute(ctx.projectName)
-  );
-  setFile(
-    ctx.files,
-    'apps/web/src/routes/index.tsx',
-    startIndexRoute(ctx.projectName, options.notesLink)
   );
 }
 

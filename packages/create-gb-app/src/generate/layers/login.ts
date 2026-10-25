@@ -13,7 +13,9 @@ export function emitLogin(ctx: EmitCtx): void {
   const pagePath = isNext
     ? `${webRoot}app/login/page.tsx`
     : `${sourceRoot}routes/login.tsx`;
-  if (!(pagePath in ctx.files)) return;
+  // A separate server never renders pages, so the web app always owns login.
+  if (!(pagePath in ctx.files) && ctx.layout.backendRoot !== 'apps/server')
+    return;
 
   if (ctx.layout.structure === 'single') {
     ctx.pkg.dependencies['lucide-react'] = DEPENDENCY_VERSIONS['lucide-react'];

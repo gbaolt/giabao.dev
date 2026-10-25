@@ -329,7 +329,7 @@ export class NotesController {
 function startOrpcRoute(ctx: EmitCtx): string {
   const form = notesForm(ctx.stack);
   const inline = form.inline;
-  return `${inline ? 'import { noteInputSchema } from "@repo/validation";\nimport { useState } from "react";\n' : ''}import { Link, createFileRoute } from "@tanstack/react-router";
+  return `${inline ? 'import { noteInputSchema } from "@repo/validation";\nimport { useState } from "react";\n' : ''}import { ${ctx.stack.auth === 'better-auth' ? 'Link, ' : ''}createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { orpc } from "@/lib/orpc";
 ${inline ? 'import { Button } from "@repo/ui/button";\n' : ''}import { Card } from "@repo/ui/card";${inline ? '\nimport { Input } from "@repo/ui/input";' : form.importLine('"')}
@@ -365,10 +365,7 @@ function NotesPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Notes</h1>
-        <Link className="text-sm underline" to="/login">
-          Login
-        </Link>
+        <h1 className="text-2xl font-semibold">Notes</h1>${loginLink(ctx, 'to')}
       </div>
       ${
         inline
@@ -601,17 +598,13 @@ export function NotesClient() {
   setFile(
     ctx.files,
     'apps/web/app/notes/page.tsx',
-    `import Link from "next/link";
-import { NotesClient } from "./notes-client";
+    `${ctx.stack.auth === 'better-auth' ? 'import Link from "next/link";\n' : ''}import { NotesClient } from "./notes-client";
 
 export default function NotesPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Notes</h1>
-        <Link className="text-sm underline" href="/login">
-          Login
-        </Link>
+        <h1 className="text-2xl font-semibold">Notes</h1>${loginLink(ctx, 'href')}
       </div>
       <NotesClient />
     </main>
@@ -619,4 +612,13 @@ export default function NotesPage() {
 }
 `
   );
+}
+
+// Only Better Auth has a login page; Clerk and public Notes need no link.
+function loginLink(ctx: EmitCtx, attribute: 'href' | 'to'): string {
+  if (ctx.stack.auth !== 'better-auth') return '';
+  return `
+        <Link className="text-sm underline" ${attribute}="/login">
+          Login
+        </Link>`;
 }

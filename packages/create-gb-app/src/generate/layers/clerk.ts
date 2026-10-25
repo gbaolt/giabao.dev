@@ -1,6 +1,6 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
-import { setFile } from '../files';
+import { addDependencies, setFile } from '../files';
 
 export function emitClerk(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex') {
@@ -13,8 +13,15 @@ export function emitClerk(ctx: EmitCtx): void {
     return;
   }
 
-  if (ctx.stack.backend === 'nest') {
-    emitNestClerk(ctx);
+  if (ctx.layout.backendRoot === 'apps/server') {
+    const sdk =
+      ctx.stack.frontend === 'next'
+        ? '@clerk/nextjs'
+        : '@clerk/tanstack-react-start';
+    addDependencies(ctx.files, ctx.layout.frontendManifest, {
+      [sdk]: DEPENDENCY_VERSIONS[sdk],
+    });
+    if (ctx.stack.backend === 'nest') emitNestClerk(ctx);
     return;
   }
 

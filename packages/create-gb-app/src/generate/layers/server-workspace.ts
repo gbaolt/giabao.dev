@@ -1,6 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
-import { setFile } from '../files';
+import { setFile, sortRecord } from '../files';
+import { joinPath } from '../layout';
 import { workspaceProtocol } from '../workspace-protocol';
 import { emitBiome } from './biome';
 import { emitDatabase } from './database';
@@ -36,11 +37,10 @@ export function emitServerWorkspace(
   ctx.pkg.devDependencies.typescript = DEPENDENCY_VERSIONS['typescript'];
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
 
-  if (ctx.stack.backend === 'hono' || ctx.stack.frontend === 'tanstack-start')
-    setFile(
-      ctx.files,
-      '.gitignore',
-      `node_modules
+  setFile(
+    ctx.files,
+    '.gitignore',
+    `node_modules
 .next
 .output
 .vinxi
@@ -48,7 +48,7 @@ dist
 .env
 *.log
 `
-    );
+  );
   emitTypescriptConfig(ctx);
   emitDatabase(ctx);
   setFile(
@@ -68,6 +68,201 @@ dist
   emitUiPackage(ctx, dep);
   adapter.emit(ctx, dep);
   emitLinter(ctx);
+}
+
+/**
+ * Renders the web app beside the server: the frontend emit module writes it
+ * into apps/web with its own manifest, then the API client is wired to the
+ * server.
+ */
+export function emitServerWebApp(
+  ctx: EmitCtx,
+  emitFrontend: (webCtx: EmitCtx) => void
+): void {
+  const dep = workspaceProtocol(ctx.packageManager);
+  const pkg = {
+    name: 'web',
+    version: '0.0.0',
+    private: true as const,
+    type: 'module' as const,
+    scripts: {},
+    dependencies: { '@repo/ui': dep },
+    devDependencies: { '@repo/typescript-config': dep },
+  };
+  const webCtx = { ...ctx, pkg };
+  emitFrontend(webCtx);
+  emitServerClient(webCtx, dep);
+  setFile(
+    ctx.files,
+    ctx.layout.frontendManifest,
+    JSON.stringify(
+      {
+        ...pkg,
+        dependencies: sortRecord(pkg.dependencies),
+        devDependencies: sortRecord(pkg.devDependencies),
+      },
+      null,
+      2
+    )
+  );
+}
+
+function emitServerClient(ctx: EmitCtx, dep: string): void {
+  const { stack, layout } = ctx;
+  if (stack.backend === 'convex') return;
+  const next = stack.frontend === 'next';
+  const env = next
+    ? 'process.env.NEXT_PUBLIC_SERVER_URL'
+    : 'import.meta.env.VITE_SERVER_URL';
+  const deps = ctx.pkg.dependencies;
+  const lib = (name: string) => joinPath(layout.libDir, name);
+  const orpc = stack.api === 'orpc' && stack.database !== 'none';
+
+  if (orpc) {
+    deps['@orpc/client'] = DEPENDENCY_VERSIONS['@orpc/client'];
+    deps['@orpc/contract'] = DEPENDENCY_VERSIONS['@orpc/contract'];
+    deps['@orpc/openapi'] = DEPENDENCY_VERSIONS['@orpc/openapi'];
+    deps['@orpc/tanstack-query'] = DEPENDENCY_VERSIONS['@orpc/tanstack-query'];
+    deps['@repo/contract'] = dep;
+    deps['@tanstack/react-query'] =
+      DEPENDENCY_VERSIONS['@tanstack/react-query'];
+    if (next) {
+      deps['@tanstack/react-query-next-experimental'] =
+        DEPENDENCY_VERSIONS['@tanstack/react-query-next-experimental'];
+      deps['server-only'] = DEPENDENCY_VERSIONS['server-only'];
+    }
+    // Hono mounts the oRPC handler under /api; Nest serves it at the root.
+    const url =
+      stack.backend === 'hono'
+        ? `(${env} ?? "${SERVER_URL}") + "/api"`
+        : `${env} ?? "${SERVER_URL}"`;
+    setFile(
+      ctx.files,
+      lib('orpc-link.ts'),
+      `import { OpenAPILink } from "@orpc/openapi/fetch";
+import { contract } from "@repo/contract";
+
+export function createOrpcLink(getHeaders?: () => Promise<Record<string, string>>) {
+  return new OpenAPILink(contract, {
+    url: ${url},
+    fetch: (url, init) =>
+      globalThis.fetch(url, {
+        ...init,
+        credentials: "include",
+      }),
+    ...(getHeaders ? { headers: getHeaders } : {}),
+  });
+}
+`
+    );
+    setFile(
+      ctx.files,
+      lib('orpc.ts'),
+      `${next ? '"use client";\n\n' : ''}import { createORPCClient } from "@orpc/client";
+import type { RouterContractClient } from "@orpc/contract";
+import { createTanstackQueryUtils } from "@orpc/tanstack-query";
+import type { contract } from "@repo/contract";
+import { createOrpcLink } from "./orpc-link";
+
+export const client: RouterContractClient<typeof contract> = createORPCClient(
+  createOrpcLink(),
+);
+
+export const orpc = createTanstackQueryUtils(client);
+`
+    );
+    if (next)
+      setFile(
+        ctx.files,
+        lib('orpc.server.ts'),
+        `import "server-only";
+
+import { createORPCClient } from "@orpc/client";
+import type { RouterContractClient } from "@orpc/contract";
+import { createTanstackQueryUtils } from "@orpc/tanstack-query";
+import type { contract } from "@repo/contract";
+import { headers } from "next/headers";
+import { createOrpcLink } from "./orpc-link";
+
+export const client: RouterContractClient<typeof contract> = createORPCClient(
+  createOrpcLink(async () => {
+    const incoming = await headers();
+    const cookie = incoming.get("cookie");
+    return cookie ? { cookie } : {};
+  }),
+);
+
+export const orpc = createTanstackQueryUtils(client);
+`
+      );
+    setFile(
+      ctx.files,
+      lib('query-client.ts'),
+      `import { QueryClient } from "@tanstack/react-query";
+
+export function getQueryClient() {
+  return new QueryClient();
+}
+`
+    );
+  }
+
+  if (stack.api === 'trpc' && stack.database !== 'none') {
+    deps['@repo/contract'] = dep;
+    deps['@tanstack/react-query'] =
+      DEPENDENCY_VERSIONS['@tanstack/react-query'];
+    deps['@trpc/client'] = DEPENDENCY_VERSIONS['@trpc/client'];
+    deps['@trpc/react-query'] = DEPENDENCY_VERSIONS['@trpc/react-query'];
+    if (next)
+      setFile(
+        ctx.files,
+        lib('trpc.ts'),
+        `import { createTRPCReact } from "@trpc/react-query";
+import type { AppRouter } from "@repo/contract";
+
+export const trpc = createTRPCReact<AppRouter>();
+`
+      );
+  }
+
+  // Clerk's Next components need its provider; Start reads the session server-side.
+  const clerk = stack.auth === 'clerk' && next;
+  if (orpc || clerk)
+    setFile(
+      ctx.files,
+      layout.providersFile,
+      serverProviders(next, orpc, clerk)
+    );
+}
+
+function serverProviders(next: boolean, query: boolean, clerk: boolean) {
+  const wrappers = [
+    ...(clerk ? [['<ClerkProvider>', '</ClerkProvider>']] : []),
+    ...(query
+      ? [
+          [
+            '<QueryClientProvider client={queryClient}>',
+            '</QueryClientProvider>',
+          ],
+        ]
+      : []),
+  ];
+  const indent = (depth: number) => '  '.repeat(depth + 2);
+  const tree = [
+    ...wrappers.map(([open], depth) => indent(depth) + open),
+    indent(wrappers.length) + '{props.children}',
+    ...wrappers.map(([, close], depth) => indent(depth) + close).reverse(),
+  ]
+    .join('\n')
+    .trimStart();
+  return `${next ? '"use client";\n\n' : ''}${clerk ? 'import { ClerkProvider } from "@clerk/nextjs";\n' : ''}${query ? 'import { QueryClientProvider } from "@tanstack/react-query";\n' : ''}import type { ReactNode } from "react";
+${query ? 'import { getQueryClient } from "@/lib/query-client";\n' : ''}
+export function Providers(props: { children: ReactNode }) {
+${query ? '  const queryClient = getQueryClient();\n' : ''}  return (
+    ${tree}
+  );
+}
+`;
 }
 
 export function writeServerManifest(

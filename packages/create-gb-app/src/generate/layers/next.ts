@@ -1,28 +1,10 @@
 import type { EmitCtx } from '../../types/generate';
 import nextSource from '../assets/next/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
-import { setFile } from '../files';
+import { setFile, setFileIfAbsent } from '../files';
+import { joinPath } from '../layout';
 
-export function emitNext(ctx: EmitCtx): void {
-  ctx.pkg.scripts.dev = 'next dev';
-  ctx.pkg.scripts.build = 'next build';
-  ctx.pkg.scripts.start = 'next start';
-  ctx.pkg.dependencies.next = DEPENDENCY_VERSIONS['next'];
-  ctx.pkg.dependencies.react = DEPENDENCY_VERSIONS['react'];
-  ctx.pkg.dependencies['react-dom'] = DEPENDENCY_VERSIONS['react-dom'];
-  ctx.pkg.devDependencies['@types/node'] = DEPENDENCY_VERSIONS['@types/node'];
-  ctx.pkg.devDependencies['@types/react'] = DEPENDENCY_VERSIONS['@types/react'];
-  ctx.pkg.devDependencies['@types/react-dom'] =
-    DEPENDENCY_VERSIONS['@types/react-dom'];
-  ctx.pkg.devDependencies.typescript = DEPENDENCY_VERSIONS['typescript'];
-  ctx.pkg.devDependencies['@tailwindcss/postcss'] =
-    DEPENDENCY_VERSIONS['@tailwindcss/postcss'];
-  ctx.pkg.devDependencies.tailwindcss = DEPENDENCY_VERSIONS['tailwindcss'];
-
-  setFile(
-    ctx.files,
-    'tsconfig.json',
-    `{
+const TSCONFIG = `{
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -49,21 +31,57 @@ export function emitNext(ctx: EmitCtx): void {
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
 }
-`
-  );
+`;
 
-  setFile(ctx.files, 'next.config.ts', nextSource['next.config.ts']);
-
-  setFile(ctx.files, 'postcss.config.mjs', nextSource['postcss.config.mjs']);
-
-  setFile(ctx.files, 'next-env.d.ts', nextSource['next-env.d.ts']);
-  setFile(ctx.files, 'global.d.ts', nextSource['global.d.ts']);
-
-  setFile(ctx.files, 'app/globals.css', nextSource['app/globals.css']);
+export function emitNext(ctx: EmitCtx): void {
+  const { layout } = ctx;
+  const web = (path: string) => joinPath(layout.frontendRoot, path);
+  ctx.pkg.scripts.dev = 'next dev';
+  ctx.pkg.scripts.build = 'next build';
+  ctx.pkg.scripts.start = 'next start';
+  ctx.pkg.dependencies.next = DEPENDENCY_VERSIONS['next'];
+  ctx.pkg.dependencies.react = DEPENDENCY_VERSIONS['react'];
+  ctx.pkg.dependencies['react-dom'] = DEPENDENCY_VERSIONS['react-dom'];
+  ctx.pkg.devDependencies['@types/node'] = DEPENDENCY_VERSIONS['@types/node'];
+  ctx.pkg.devDependencies['@types/react'] = DEPENDENCY_VERSIONS['@types/react'];
+  ctx.pkg.devDependencies['@types/react-dom'] =
+    DEPENDENCY_VERSIONS['@types/react-dom'];
+  ctx.pkg.devDependencies.typescript = DEPENDENCY_VERSIONS['typescript'];
+  ctx.pkg.devDependencies['@tailwindcss/postcss'] =
+    DEPENDENCY_VERSIONS['@tailwindcss/postcss'];
+  ctx.pkg.devDependencies.tailwindcss = DEPENDENCY_VERSIONS['tailwindcss'];
 
   setFile(
     ctx.files,
-    'app/layout.tsx',
+    web('tsconfig.json'),
+    layout.structure === 'single'
+      ? TSCONFIG
+      : JSON.stringify(
+          {
+            extends: '@repo/typescript-config/base.json',
+            ...JSON.parse(TSCONFIG),
+          },
+          null,
+          2
+        )
+  );
+
+  setFile(ctx.files, web('next.config.ts'), nextSource['next.config.ts']);
+
+  setFile(
+    ctx.files,
+    web('postcss.config.mjs'),
+    nextSource['postcss.config.mjs']
+  );
+
+  setFile(ctx.files, web('next-env.d.ts'), nextSource['next-env.d.ts']);
+  setFile(ctx.files, web('global.d.ts'), nextSource['global.d.ts']);
+
+  setFile(ctx.files, layout.stylesFile, nextSource['app/globals.css']);
+
+  setFile(
+    ctx.files,
+    layout.rootLayout,
     `import type { Metadata } from 'next';
 import { Providers } from './providers';
 import './globals.css';
@@ -91,7 +109,7 @@ export default function RootLayout({
 
   setFile(
     ctx.files,
-    'app/page.tsx',
+    layout.route(''),
     `import Link from 'next/link';
 
 export default function HomePage() {
@@ -113,7 +131,8 @@ export default function HomePage() {
 `
   );
 
-  setFile(
+  // A server workspace writes the root ignore lines first.
+  setFileIfAbsent(
     ctx.files,
     '.gitignore',
     `node_modules

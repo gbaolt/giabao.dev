@@ -17,6 +17,19 @@ export function setFileIfAbsent(
   setFile(files, path, content);
 }
 
+/** Adds dependencies to an already written workspace manifest. */
+export function addDependencies(
+  files: Record<string, string>,
+  manifestPath: string,
+  dependencies: Record<string, string>
+): void {
+  const manifest = JSON.parse(files[manifestPath]!) as {
+    dependencies: Record<string, string>;
+  };
+  Object.assign(manifest.dependencies, dependencies);
+  setFile(files, manifestPath, JSON.stringify(manifest, null, 2));
+}
+
 export function sortRecord(
   record: Record<string, string>
 ): Record<string, string> {

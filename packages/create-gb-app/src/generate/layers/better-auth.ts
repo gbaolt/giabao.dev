@@ -1,9 +1,36 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
-import { setFile } from '../files';
+import { addDependencies, setFile } from '../files';
+import { joinPath } from '../layout';
+import { SERVER_URL } from './server-workspace';
 import { emitStartOrpcAuth } from './start-orpc-auth';
 
+// The web app signs in against the separate server's Better Auth handler.
+function emitServerAuthClient(ctx: EmitCtx): void {
+  const env =
+    ctx.stack.frontend === 'next'
+      ? 'process.env.NEXT_PUBLIC_SERVER_URL'
+      : 'import.meta.env.VITE_SERVER_URL';
+  addDependencies(ctx.files, ctx.layout.frontendManifest, {
+    'better-auth': DEPENDENCY_VERSIONS['better-auth'],
+  });
+  setFile(
+    ctx.files,
+    joinPath(ctx.layout.libDir, 'auth-client.ts'),
+    `import { createAuthClient } from "better-auth/react";
+
+export const authClient = createAuthClient({
+  baseURL: ${env} ?? "${SERVER_URL}",
+});
+`
+  );
+}
+
 export function emitBetterAuth(ctx: EmitCtx): void {
+  if (ctx.layout.backendRoot === 'apps/server') {
+    emitServerAuthClient(ctx);
+    return;
+  }
   ctx.pkg.dependencies['better-auth'] = DEPENDENCY_VERSIONS['better-auth'];
 
   if (ctx.stack.backend === 'convex') {
