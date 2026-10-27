@@ -6,8 +6,9 @@ import {
   withSelection,
 } from './stack/configuration';
 import { ParseError } from './stack/parse-error';
-import { YES_DEFAULTS } from './stack/resolve';
-import { FLAG_GROUPS, type FlagGroup } from './stack/vocab';
+import { defaultStructureForBackend, YES_DEFAULTS } from './stack/resolve';
+import { repairConfiguration } from './stack/rules';
+import { FLAG_GROUPS, type FlagGroup, queryKey } from './stack/vocab';
 import type { PresetFields, RawFlags } from './types/stack';
 
 export {
@@ -20,10 +21,23 @@ export {
   withSelection,
 } from './stack/configuration';
 export {
-  databaseSetupRule,
+  CompatError,
+  RULE_IDS,
+  RULE_MESSAGES,
+  type RuleId,
+} from './stack/errors';
+export {
+  configurationDefaults,
   defaultStructureForBackend,
+  resolveStack,
   YES_DEFAULTS,
 } from './stack/resolve';
+export {
+  applyChange,
+  type OptionState,
+  optionState,
+  repairConfiguration,
+} from './stack/rules';
 export * from './stack/vocab';
 export type * from './types/stack';
 export type { PresetFields as CreateFlags } from './types/stack';
@@ -162,20 +176,12 @@ export function overlayRawFlags(base: RawFlags, explicit: RawFlags): RawFlags {
     addons: { ...inherited.addons, ...addonOverrides },
   };
 }
-const QUERY_KEYS = { dbSetup: 'db-setup', taskRunner: 'task-runner' };
 export function configurationQuery(
   fields: PresetFields
 ): Record<string, string> {
   return Object.fromEntries([
     ['schema', '2'],
-    ...FLAG_GROUPS.map((key) => [
-      key === 'dbSetup'
-        ? QUERY_KEYS.dbSetup
-        : key === 'taskRunner'
-          ? QUERY_KEYS.taskRunner
-          : key,
-      selectionValue(fields, key),
-    ]),
+    ...FLAG_GROUPS.map((key) => [queryKey(key), selectionValue(fields, key)]),
   ]);
 }
 export function configurationFromQuery(
@@ -190,13 +196,8 @@ export function configurationFromQuery(
     ? decodePreset('gb0')
     : { ...YES_DEFAULTS, addons: { ...YES_DEFAULTS.addons } };
   for (const key of FLAG_GROUPS) {
-    const name =
-      key === 'dbSetup'
-        ? 'db-setup'
-        : key === 'taskRunner'
-          ? 'task-runner'
-          : key;
-    const value = query[name] ?? (key === 'linting' ? query.linter : undefined);
+    const value =
+      query[queryKey(key)] ?? (key === 'linting' ? query.linter : undefined);
     if (!value) continue;
     if (key === 'structure' && value === 'turborepo') {
       next = {
@@ -225,13 +226,18 @@ export function configurationFromQuery(
   }
   if (
     !query.structure &&
-    (next.backend === 'nest' || next.backend === 'hono')
+    defaultStructureForBackend(next.backend) === 'monorepo'
   ) {
     next = {
       ...next,
       structure: 'monorepo',
-      addons: { ...next.addons, ...(legacy && !query['task-runner'] ? { taskRunner: 'turborepo' as const } : {}) },
+      addons: {
+        ...next.addons,
+        ...(legacy && !query['task-runner']
+          ? { taskRunner: 'turborepo' as const }
+          : {}),
+      },
     };
   }
-  return next;
+  return repairConfiguration(next);
 }

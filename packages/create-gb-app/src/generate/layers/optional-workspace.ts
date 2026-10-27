@@ -2,11 +2,15 @@ import type { EmitCtx, FileMap, GenerateContext } from '../../types/generate';
 import type { Stack } from '../../types/stack';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { addReadmeSection, type Manifest } from '../project-model';
 import { workspaceProtocol } from '../workspace-protocol';
 
 export function emitOptionalWorkspace(
   ctx: EmitCtx,
-  generateSingle: (stack: Stack, context: GenerateContext) => FileMap
+  generateSingle: (
+    stack: Stack,
+    context: GenerateContext
+  ) => { files: FileMap; manifest: Manifest }
 ): void {
   if (ctx.stack.backend !== 'self' && ctx.stack.backend !== 'convex') {
     throw new Error(
@@ -14,51 +18,43 @@ export function emitOptionalWorkspace(
     );
   }
   const singleStack = { ...ctx.stack, structure: 'single' as const };
-  const single = generateSingle(singleStack, ctx);
-  const web = JSON.parse(single['package.json']);
+  const { files: single, manifest: web } = generateSingle(singleStack, ctx);
   web.name = 'web';
   web.version = '0.0.0';
   const protocol = workspaceProtocol(ctx.packageManager);
-  web.dependencies['@repo/ui'] = protocol;
-  web.dependencies['@repo/validation'] = protocol;
-  web.devDependencies['@repo/typescript-config'] = protocol;
+  Object.assign((web.dependencies ??= {}), {
+    '@repo/ui': protocol,
+    '@repo/validation': protocol,
+  });
+  (web.devDependencies ??= {})['@repo/typescript-config'] = protocol;
 
   for (const [path, contents] of Object.entries(single)) {
-    if (path === 'package.json' || path === 'README.md') continue;
-    if (path === '.gitignore') {
+    // ESLint finds its config by walking up, so the shared packages need it at the root.
+    if (path === 'eslint.config.mjs') {
       setFile(ctx.files, path, contents);
       continue;
     }
-    const source = contents.replace(
-      /(["'])(?:@\/|(?:\.\.\/)+)components\/ui\/([^"']+)\1/g,
-      '"@repo/ui/$2"'
+    setFile(
+      ctx.files,
+      `${ctx.layout.frontendRoot}/${path}`,
+      toWorkspaceSource(path, contents)
     );
-    setFile(ctx.files, `apps/web/${path}`, source);
   }
-  setFile(ctx.files, 'apps/web/package.json', JSON.stringify(web, null, 2));
-  const tsconfig = JSON.parse(ctx.files['apps/web/tsconfig.json']);
-  tsconfig.extends = '@repo/typescript-config/base.json';
-  setFile(
-    ctx.files,
-    'apps/web/tsconfig.json',
-    JSON.stringify(tsconfig, null, 2)
-  );
+  if (single['eslint.config.mjs'])
+    for (const [name, version] of Object.entries(web.devDependencies ?? {}))
+      if (name.includes('eslint')) {
+        ctx.pkg.devDependencies[name] = version;
+        delete web.devDependencies![name];
+      }
+  ctx.project.manifests[ctx.layout.frontendManifest] = web;
 
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];
-  setFile(
-    ctx.files,
-    'packages/typescript-config/package.json',
-    JSON.stringify(
-      {
-        name: '@repo/typescript-config',
-        version: '0.0.0',
-        private: true,
-        files: ['base.json'],
-      },
-      null,
-      2
-    )
-  );
+  ctx.project.manifests['packages/typescript-config/package.json'] = {
+    name: '@repo/typescript-config',
+    version: '0.0.0',
+    private: true,
+    files: ['base.json'],
+  };
   setFile(
     ctx.files,
     'packages/typescript-config/base.json',
@@ -75,51 +71,50 @@ export function emitOptionalWorkspace(
       2
     )
   );
+  ctx.project.manifests['packages/ui/package.json'] = {
+    name: '@repo/ui',
+    version: '0.0.0',
+    private: true,
+    type: 'module',
+    exports: {},
+    dependencies: { react: DEPENDENCY_VERSIONS.react },
+    devDependencies: {
+      '@types/react': DEPENDENCY_VERSIONS['@types/react'],
+      '@repo/typescript-config': protocol,
+    },
+  };
   setFile(
     ctx.files,
-    'packages/ui/package.json',
-    JSON.stringify(
-      {
-        name: '@repo/ui',
-        version: '0.0.0',
-        private: true,
-        type: 'module',
-        exports: {},
-        dependencies: { react: DEPENDENCY_VERSIONS.react },
-        devDependencies: {
-          '@types/react': DEPENDENCY_VERSIONS['@types/react'],
-          '@repo/typescript-config': protocol,
-        },
-      },
-      null,
-      2
-    )
-  );
-  const sourceRoot =
-    ctx.stack.frontend === 'next' ? 'apps/web' : 'apps/web/src';
-  setFile(
-    ctx.files,
-    `${sourceRoot}/lib/note-validation.ts`,
+    `${ctx.layout.libDir}/note-validation.ts`,
     'export { noteInputSchema, type NoteInput } from "@repo/validation";\n'
   );
-  if (ctx.stack.backend === 'convex') {
-    const notes = ctx.files['apps/web/convex/notes.ts'];
-    setFile(
-      ctx.files,
-      'apps/web/convex/notes.ts',
-      notes.replace(
+  const convexSetup =
+    ctx.stack.backend === 'convex'
+      ? '\n\nRun the root convex:dev task first to configure a deployment, generate apps/web/convex/_generated, and write apps/web/.env.local. Set NEXT_PUBLIC_CONVEX_URL for Next.js or VITE_CONVEX_URL for Start to the deployment URL. Keep convex:dev running alongside the root dev task. Run convex:codegen after function changes when needed. The app cannot typecheck before codegen. If Clerk is selected, configure its convex JWT template and set CLERK_JWT_ISSUER_DOMAIN in the Convex deployment environment. Live deployment setup requires your own Convex account.'
+      : '';
+  addReadmeSection(
+    ctx.project,
+    'configuration-notes',
+    `The fullstack web application lives in apps/web. Shared UI, domain validation, and TypeScript configuration live in packages. Run the root dev task to start the app; shared validation builds first. Database tasks delegate to the web application and use its local environment and schema.${convexSetup}`
+  );
+}
+
+/** Rewrites one file of the inner single app for its place in apps/web. */
+function toWorkspaceSource(path: string, contents: string): string {
+  if (path === 'tsconfig.json')
+    return JSON.stringify(
+      { ...JSON.parse(contents), extends: '@repo/typescript-config/base.json' },
+      null,
+      2
+    );
+  const source = contents.replace(
+    /(["'])(?:@\/|(?:\.\.\/)+)components\/ui\/([^"']+)\1/g,
+    '"@repo/ui/$2"'
+  );
+  return path === 'convex/notes.ts'
+    ? source.replace(
         /from "\.\.\/(?:src\/)?lib\/note-validation"/,
         'from "@repo/validation"'
       )
-    );
-  }
-  const convexSetup =
-    ctx.stack.backend === 'convex'
-      ? '\nRun the root convex:dev task first to configure a deployment, generate apps/web/convex/_generated, and write apps/web/.env.local. Set NEXT_PUBLIC_CONVEX_URL for Next.js or VITE_CONVEX_URL for Start to the deployment URL. Keep convex:dev running alongside the root dev task. Run convex:codegen after function changes when needed. The app cannot typecheck before codegen. If Clerk is selected, configure its convex JWT template and set CLERK_JWT_ISSUER_DOMAIN in the Convex deployment environment. Live deployment setup requires your own Convex account.\n'
-      : '';
-  setFile(
-    ctx.files,
-    'README.md',
-    `# ${ctx.projectName}\n\nThe fullstack web application lives in apps/web. Shared UI, domain validation, and TypeScript configuration live in packages. Run the root dev task to start the app; shared validation builds first. Database tasks delegate to the web application and use its local environment and schema.\n${convexSetup}`
-  );
+    : source;
 }

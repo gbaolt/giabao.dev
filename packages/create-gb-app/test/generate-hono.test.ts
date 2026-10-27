@@ -15,7 +15,7 @@ test('hono next FileMap includes apps/server and @hono/node-server', () => {
   expect(files['apps/server/src/index.ts']).toContain('serve(');
   expect(files['apps/server/src/main.ts']).toBeUndefined();
   expect(files['apps/web/package.json']).toContain('"next"');
-  expect(files['packages/contract/src/contract.ts']).toContain('openapi(');
+  expect(files['packages/contract/src/index.ts']).toContain('openapi(');
   expect(files['README.md']).toContain(
     'https://hono.dev/docs/getting-started/nodejs'
   );

@@ -2,7 +2,57 @@ import { lstat, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
 const PACKAGE_ROOT = resolve(import.meta.dir, '..');
-const FAMILIES = ['shadcn', 'forms', 'login', 'next'];
+
+type TemplateDirectory = {
+  // Grouped files are keyed by filename under the directory name instead of by family-relative path.
+  group?: boolean;
+  stripExtension?: boolean;
+};
+
+type TemplateFamily = {
+  asset: string;
+  extensions: readonly string[];
+  directories: Readonly<Record<string, TemplateDirectory>>;
+  rename?: Readonly<Record<string, string>>;
+};
+
+const FAMILIES: Readonly<Record<string, TemplateFamily>> = {
+  shadcn: {
+    asset: 'shadcn/formatted-source.json',
+    extensions: ['.css', '.json', '.ts', '.tsx'],
+    directories: {
+      '': {},
+      app: {},
+      lib: {},
+      components: {},
+      'components/ui': {},
+    },
+  },
+  forms: {
+    asset: 'forms/formatted-source.json',
+    extensions: ['.tsx'],
+    directories: {
+      rhf: { group: true },
+      tanstack: { group: true },
+      notes: { group: true, stripExtension: true },
+    },
+  },
+  login: {
+    asset: 'login/source.json',
+    extensions: ['.tsx'],
+    directories: {
+      forms: { group: true, stripExtension: true },
+      pages: { group: true, stripExtension: true },
+    },
+  },
+  next: {
+    asset: 'next/source.json',
+    extensions: ['.json', '.mjs', '.ts', '.tsx'],
+    directories: { '': {}, app: {} },
+    // The authored name avoids the repository's ignore rule for Next's generated declaration file.
+    rename: { 'next-env.template.d.ts': 'next-env.d.ts' },
+  },
+};
 
 async function readSources(root: string, prefix = '') {
   const sources: Record<string, string> = {};
@@ -13,11 +63,7 @@ async function readSources(root: string, prefix = '') {
     if (entry.isSymbolicLink())
       throw new Error(`Symlink in templates: ${path}`);
     if (entry.isDirectory()) {
-      if (
-        !/^(?:shadcn(?:\/(?:app|lib|components(?:\/ui)?))?|forms(?:\/(?:rhf|tanstack|notes))?|login(?:\/(?:forms|pages))?|next(?:\/app)?)$/.test(
-          path
-        )
-      ) {
+      if (!isTemplateDirectory(path)) {
         throw new Error(`Unexpected template directory: ${path}`);
       }
       Object.assign(sources, await readSources(root, path));
@@ -33,6 +79,50 @@ async function readSources(root: string, prefix = '') {
   return sources;
 }
 
+function splitFamily(path: string): [string, string] {
+  const slash = path.indexOf('/');
+  return slash === -1
+    ? [path, '']
+    : [path.slice(0, slash), path.slice(slash + 1)];
+}
+
+function isTemplateDirectory(path: string): boolean {
+  const [name, directory] = splitFamily(path);
+  const family = FAMILIES[name];
+  if (!family || !directory) return Boolean(family);
+  // A nested directory is valid when it is declared or is an ancestor of a declared one.
+  return Object.keys(family.directories).some(
+    (declared) => declared === directory || declared.startsWith(`${directory}/`)
+  );
+}
+
+function assetEntry(path: string): {
+  family: TemplateFamily;
+  group?: string;
+  key: string;
+} {
+  const [name, relative] = splitFamily(path);
+  const family = FAMILIES[name];
+  const slash = relative.lastIndexOf('/');
+  const directory = slash === -1 ? '' : relative.slice(0, slash);
+  const filename = relative.slice(slash + 1);
+  const options =
+    family && Object.hasOwn(family.directories, directory)
+      ? family.directories[directory]
+      : undefined;
+  const extension = family?.extensions.find((candidate) =>
+    filename.endsWith(candidate)
+  );
+  if (!family || !options || !extension || filename === extension) {
+    throw new Error(`Unexpected template path: ${path}`);
+  }
+  const base = options.stripExtension
+    ? filename.slice(0, -extension.length)
+    : filename;
+  if (options.group) return { family, group: directory, key: base };
+  return { family, key: family.rename?.[relative] ?? relative };
+}
+
 async function templateAssets(root: string) {
   const templateRoot = join(root, 'templates');
   if ((await lstat(templateRoot)).isSymbolicLink()) {
@@ -41,62 +131,37 @@ async function templateAssets(root: string) {
   const entries = await readdir(templateRoot, { withFileTypes: true });
   for (const entry of entries) {
     if (entry.name === 'README.md' && entry.isFile()) continue;
-    if (!FAMILIES.includes(entry.name) || !entry.isDirectory()) {
+    if (!Object.hasOwn(FAMILIES, entry.name) || !entry.isDirectory()) {
       throw new Error(`Unexpected template entry: ${entry.name}`);
     }
   }
-  for (const family of FAMILIES) {
+  for (const family of Object.keys(FAMILIES)) {
     if (!entries.some((entry) => entry.name === family)) {
       throw new Error(`Missing template family: ${family}`);
     }
   }
   const sources = await readSources(templateRoot);
-  const shadcn: Record<string, string> = {};
-  const forms: Record<'rhf' | 'tanstack' | 'notes', Record<string, string>> = {
-    rhf: {},
-    tanstack: {},
-    notes: {},
-  };
-  const login: Record<'forms' | 'pages', Record<string, string>> = {
-    forms: {},
-    pages: {},
-  };
-  const next: Record<string, string> = {};
+  const assets = new Map<TemplateFamily, Record<string, unknown>>();
+  for (const family of Object.values(FAMILIES)) {
+    const asset: Record<string, unknown> = {};
+    for (const [directory, options] of Object.entries(family.directories)) {
+      if (options.group) asset[directory] = {};
+    }
+    assets.set(family, asset);
+  }
   for (const path of Object.keys(sources).sort()) {
     if (path === 'README.md') continue;
-    const source = sources[path];
-    if (/^shadcn\/.+\.(?:ts|tsx|css|json)$/.test(path)) {
-      shadcn[path.slice('shadcn/'.length)] = source;
-    } else if (/^forms\/(rhf|tanstack)\/[^/]+\.tsx$/.test(path)) {
-      const [, group, name] = path.split('/');
-      if (group === 'rhf' || group === 'tanstack') forms[group][name] = source;
-    } else if (
-      /^forms\/notes\/(react-hook-form|tanstack-form)\.tsx$/.test(path)
-    ) {
-      forms.notes[path.slice('forms/notes/'.length, -'.tsx'.length)] = source;
-    } else if (
-      /^login\/forms\/(none|react-hook-form|tanstack-form)\.tsx$/.test(path)
-    ) {
-      login.forms[path.slice('login/forms/'.length, -'.tsx'.length)] = source;
-    } else if (/^login\/pages\/(next|tanstack-start)\.tsx$/.test(path)) {
-      login.pages[path.slice('login/pages/'.length, -'.tsx'.length)] = source;
-    } else if (/^next\/(?:[^/]+\.(?:ts|mjs)|app\/[^/]+\.css)$/.test(path)) {
-      const name = path.slice('next/'.length);
-      const output = name === 'next-env.template.d.ts' ? 'next-env.d.ts' : name;
-      if (Object.hasOwn(next, output)) {
-        throw new Error(`Duplicate template output: next/${output}`);
-      }
-      next[output] = source;
-    } else {
-      throw new Error(`Unexpected template path: ${path}`);
+    const { family, group, key } = assetEntry(path);
+    const asset = assets.get(family)!;
+    const target = (group ? asset[group] : asset) as Record<string, string>;
+    if (Object.hasOwn(target, key)) {
+      throw new Error(`Duplicate template output: ${path}`);
     }
+    target[key] = sources[path];
   }
-  return {
-    'shadcn/formatted-source.json': shadcn,
-    'forms/formatted-source.json': forms,
-    'login/source.json': login,
-    'next/source.json': next,
-  };
+  return Object.fromEntries(
+    [...assets].map(([family, asset]) => [family.asset, asset])
+  );
 }
 
 export async function syncTemplates({

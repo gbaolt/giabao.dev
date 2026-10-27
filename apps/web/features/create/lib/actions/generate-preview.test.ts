@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
+import { YES_DEFAULTS } from 'create-gb-app/preset';
 
-import { YES_DEFAULTS } from '../compat';
 import { generatePreview } from './generate-preview';
 test('generatePreview rejects invalid flags', async () => {
   const result = await generatePreview(

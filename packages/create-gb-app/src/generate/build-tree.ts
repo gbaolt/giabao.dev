@@ -1,32 +1,31 @@
 import type { Stack } from '#/types/stack';
 
 import type {
+  EmitCtx,
   FileMap,
   GenerateContext,
   PackageJsonShape,
 } from '../types/generate';
 import { emitTurborepo } from './addons/turborepo';
 import { GenerateError } from './errors';
-import { setFile, setFileIfAbsent, sortRecord } from './files';
+import { setFile, writeOnceFiles } from './files';
 import { emitBetterAuth } from './layers/better-auth';
 import { emitClerk } from './layers/clerk';
 import { emitConvex } from './layers/convex';
-import { emitDbSetup, finalizeDatabaseSetup } from './layers/db-setup';
-import { emitDrizzle } from './layers/drizzle';
+import { emitDatabase } from './layers/database';
+import { finalizeDatabaseSetup } from './layers/db-setup';
 import { emitEslint } from './layers/eslint';
 import { emitForms } from './layers/forms';
 import { emitHono } from './layers/hono';
 import { emitLogin } from './layers/login';
 import { emitNest } from './layers/nest';
 import { emitNext } from './layers/next';
-import { emitNotes } from './layers/notes';
 import { emitOptionalWorkspace } from './layers/optional-workspace';
 import { emitOrpc } from './layers/orpc';
 import { emitOxlint } from './layers/oxlint';
 import { emitPolar } from './layers/polar';
-import { emitPostgres } from './layers/postgres';
-import { emitPrisma } from './layers/prisma';
 import { emitSelf } from './layers/self';
+import { emitServerWebApp } from './layers/server-workspace';
 import { emitShadcn } from './layers/shadcn';
 import { emitStart } from './layers/start';
 import { emitStartOrpc, validateStartOrpc } from './layers/start-orpc';
@@ -34,47 +33,17 @@ import { emitStripe } from './layers/stripe';
 import { emitTrpc } from './layers/trpc';
 import { emitValidation } from './layers/validation';
 import { projectLayout } from './layout';
+import { emitNotes } from './notes';
+import {
+  appCollections,
+  createProjectModel,
+  manifestAt,
+  type ProjectModel,
+  renderAppFiles,
+  renderProject,
+} from './project-model';
 import { generateReadme } from './readme';
 import { emitPlainWorkspace, prepareWorkspaceTasks } from './workspace-tasks';
-import { finalizeWorkspaces } from './workspaces';
-
-function emitDatabase(
-  stack: Extract<Stack, { backend: 'self' | 'nest' }>,
-  ctx: Parameters<typeof emitNext>[0]
-) {
-  if (stack.database === 'none') {
-    return;
-  }
-
-  switch (stack.database) {
-    case 'sqlite':
-    case 'mysql':
-    case 'postgres':
-      emitPostgres(ctx);
-      break;
-    default: {
-      const _exhaustive: never = stack.database;
-      throw new Error(`unhandled database: ${_exhaustive}`);
-    }
-  }
-
-  switch (stack.orm) {
-    case 'prisma':
-      emitPrisma(ctx);
-      break;
-    case 'drizzle':
-      emitDrizzle(ctx);
-      break;
-    case 'none':
-      throw new Error('orm none requires database none');
-    default: {
-      const _exhaustive: never = stack.orm;
-      throw new Error(`unhandled orm: ${_exhaustive}`);
-    }
-  }
-
-  emitDbSetup(ctx);
-}
 
 function emitAuth(stack: Stack, ctx: Parameters<typeof emitNext>[0]) {
   switch (stack.auth) {
@@ -170,7 +139,9 @@ function emitApi(
 function buildProject(
   stack: Stack,
   ctx: GenerateContext,
-  foundations: boolean
+  foundations: boolean,
+  project: ProjectModel,
+  arrange: ArrangeFeatures
 ): FileMap {
   const files: FileMap = {};
   const pkg: PackageJsonShape = {
@@ -182,7 +153,15 @@ function buildProject(
     devDependencies: {},
   };
   const layout = projectLayout(stack);
-  const emitCtx = { ...ctx, files, pkg, stack, layout };
+  project.manifests['package.json'] = pkg;
+  const emitCtx: EmitCtx = {
+    ...ctx,
+    files: writeOnceFiles(files),
+    pkg,
+    stack,
+    layout,
+    project,
+  };
 
   if (stack.structure === 'single') {
     switch (stack.backend) {
@@ -193,7 +172,7 @@ function buildProject(
           if (stack.api !== 'none') {
             emitApi(stack, emitCtx);
           }
-          emitDatabase(stack, emitCtx);
+          emitDatabase(emitCtx);
         }
         break;
       }
@@ -209,16 +188,32 @@ function buildProject(
   } else {
     switch (stack.backend) {
       case 'nest':
-        emitNest(emitCtx);
-        break;
       case 'hono':
-        emitHono(emitCtx);
+        if (stack.backend === 'nest') emitNest(emitCtx);
+        else emitHono(emitCtx);
+        emitServerWebApp(emitCtx, (webCtx) => emitFrontend(stack, webCtx));
         break;
       case 'self':
       case 'convex':
-        emitOptionalWorkspace(emitCtx, (singleStack, context) =>
-          buildProject(singleStack, context, false)
-        );
+        emitOptionalWorkspace(emitCtx, (singleStack, context) => {
+          // The monorepo writes its own README notes over the inner app's,
+          // and the inner app's manifest becomes the web workspace's.
+          const inner = { ...project, ...appCollections() };
+          const innerFiles = buildProject(
+            singleStack,
+            context,
+            false,
+            inner,
+            arrange
+          );
+          // Its providers and root document render with the web app's wrappers.
+          project.providers = inner.providers;
+          project.rootDocument = inner.rootDocument;
+          return {
+            files: innerFiles,
+            manifest: manifestAt(inner, 'package.json'),
+          };
+        });
         break;
       default:
         throw new Error(
@@ -227,61 +222,76 @@ function buildProject(
     }
   }
 
-  if (stack.structure === 'single') {
-    emitAuth(stack, emitCtx);
-    emitPayments(stack, emitCtx);
-    emitLinter(stack, emitCtx);
-    if (stack.backend === 'convex' || stack.database !== 'none') {
-      emitNotes(emitCtx);
-    }
-    const providerPath =
-      stack.frontend === 'next'
-        ? 'app/providers.tsx'
-        : 'src/components/providers.tsx';
-    setFileIfAbsent(
-      files,
-      providerPath,
-      `import type { ReactNode } from "react";
-
-export function Providers({ children }: { children: ReactNode }) {
-  return children;
-}
-`
+  const features: EmitModule[] = [];
+  // Self and Convex monorepos ran these inside their single-app build.
+  if (stack.structure === 'single' || layout.backendRoot === 'apps/server') {
+    features.push(
+      (feature) => emitAuth(stack, feature),
+      (feature) => emitPayments(stack, feature)
     );
-  } else if (stack.backend === 'nest') {
-    if (stack.auth === 'clerk') {
-      emitClerk(emitCtx);
-    }
-    emitPayments(stack, emitCtx);
+    // The server workspace already chose the linter for every server backend.
+    if (stack.structure === 'single')
+      features.push((feature) => emitLinter(stack, feature));
+    features.push(emitNotes);
   }
-
-  if (foundations) {
-    emitUi(stack, emitCtx);
-    emitValidation(emitCtx);
-    emitForms(emitCtx);
-    emitLogin(emitCtx);
-    finalizeDatabaseSetup(emitCtx);
-  }
+  if (foundations)
+    features.push(
+      (feature) => emitUi(stack, feature),
+      emitValidation,
+      emitForms,
+      emitLogin,
+      finalizeDatabaseSetup
+    );
+  for (const emit of arrange(features)) emit(emitCtx);
 
   if (stack.structure === 'monorepo') {
-    const workspaces = prepareWorkspaceTasks(emitCtx);
+    // Workspace tasks read the whole tree, so they run once every module wrote.
+    const treeCtx = { ...emitCtx, files };
+    const workspaces = prepareWorkspaceTasks(treeCtx);
     if (stack.addons.taskRunner === 'turborepo')
-      emitTurborepo(emitCtx, workspaces);
-    else emitPlainWorkspace(emitCtx, workspaces);
+      emitTurborepo(treeCtx, workspaces);
+    else emitPlainWorkspace(treeCtx, workspaces);
   }
 
-  pkg.dependencies = sortRecord(pkg.dependencies);
-  pkg.devDependencies = sortRecord(pkg.devDependencies);
-  pkg.scripts = sortRecord(pkg.scripts);
-  setFile(files, 'package.json', JSON.stringify(pkg, null, 2));
-  finalizeWorkspaces(files, ctx.packageManager);
-  if (foundations) {
-    setFile(files, 'README.md', generateReadme(stack, ctx, files, pkg));
+  if (!foundations) {
+    Object.assign(files, renderAppFiles(project));
+    return files;
   }
+  Object.assign(
+    files,
+    renderProject(project, {
+      layout,
+      packageManager: ctx.packageManager,
+    })
+  );
+  setFile(
+    files,
+    'README.md',
+    generateReadme(
+      stack,
+      ctx,
+      files,
+      JSON.parse(files['package.json']!) as PackageJsonShape,
+      project.readmeSections
+    )
+  );
   return files;
 }
 
+type EmitModule = (ctx: EmitCtx) => void;
+
+/** Orders the feature emit modules; tests shuffle them to prove order does not matter. */
+export type ArrangeFeatures = (modules: EmitModule[]) => EmitModule[];
+
 export function buildTree(stack: Stack, ctx: GenerateContext): FileMap {
+  return buildTreeArranged(stack, ctx, (modules) => modules);
+}
+
+export function buildTreeArranged(
+  stack: Stack,
+  ctx: GenerateContext,
+  arrange: ArrangeFeatures
+): FileMap {
   validateStartOrpc(stack);
-  return buildProject(stack, ctx, true);
+  return buildProject(stack, ctx, true, createProjectModel(), arrange);
 }

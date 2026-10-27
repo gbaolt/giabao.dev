@@ -1,6 +1,6 @@
 'use client';
 import type { ComponentProps } from 'react';
-import { Input } from '@/components/ui/input';
+import { Input } from '__UI_PREFIX__input';
 import { FormBase, type FormControlFn } from './form-base';
 
 export const FormInput: FormControlFn<

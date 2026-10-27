@@ -48,7 +48,19 @@ const eslintConfig = [
       '**/node_modules/**',
     ],
   },
-${isNext ? '' : "  { settings: { react: { version: 'detect' } } },\n"}];
+${
+  isNext
+    ? ''
+    : `  {
+    settings: { react: { version: 'detect' } },
+    rules: {
+      // TypeScript types the props, and a leading underscore marks a parameter the signature requires but the body ignores.
+      'react/prop-types': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+`
+}];
 
 export default eslintConfig;
 `

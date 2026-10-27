@@ -1,7 +1,6 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { isAppsLayout } from '../paths';
 
 export function emitOxlint(ctx: EmitCtx): void {
   ctx.pkg.scripts.lint = 'oxlint .';
@@ -9,7 +8,7 @@ export function emitOxlint(ctx: EmitCtx): void {
 
   const nextRoot =
     ctx.stack.frontend === 'next'
-      ? { next: { rootDir: isAppsLayout(ctx.stack) ? 'apps/web' : '.' } }
+      ? { next: { rootDir: ctx.layout.frontendRoot || '.' } }
       : {};
 
   setFile(

@@ -46,7 +46,7 @@ test('separate workspaces keep private environment values with their server', ()
   expect(files['apps/server/.env']).toContain('DATABASE_URL=');
   expect(files['apps/web/.env']).toContain('VITE_SERVER_URL=');
   expect(files['apps/web/.env']).not.toContain('DATABASE_URL');
-  expect(files['apps/server/src/index.ts']).toContain('import "./env.js"');
+  expect(files['apps/server/src/index.ts']).toContain('import "./env";');
   expect(files['.gitignore']).toContain('.env*');
   expect(files['.gitignore']).toContain('!.env.example');
 });

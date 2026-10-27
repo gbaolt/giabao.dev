@@ -2,8 +2,15 @@ import type { EmitCtx } from '../../types/generate';
 import nextSource from '../assets/next/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { joinPath } from '../layout';
+import { setRootDocument } from '../project-model';
+import { fillTemplate } from '../template-tokens';
+
+const TSCONFIG = nextSource['tsconfig.json'];
 
 export function emitNext(ctx: EmitCtx): void {
+  const { layout } = ctx;
+  const web = (path: string) => joinPath(layout.frontendRoot, path);
   ctx.pkg.scripts.dev = 'next dev';
   ctx.pkg.scripts.build = 'next build';
   ctx.pkg.scripts.start = 'next start';
@@ -21,77 +28,54 @@ export function emitNext(ctx: EmitCtx): void {
 
   setFile(
     ctx.files,
-    'tsconfig.json',
-    `{
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./*"]
-    }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
-}
-`
+    web('tsconfig.json'),
+    layout.structure === 'single'
+      ? TSCONFIG
+      : JSON.stringify(
+          {
+            extends: '@repo/typescript-config/base.json',
+            ...JSON.parse(TSCONFIG),
+          },
+          null,
+          2
+        )
   );
 
-  setFile(ctx.files, 'next.config.ts', nextSource['next.config.ts']);
-
-  setFile(ctx.files, 'postcss.config.mjs', nextSource['postcss.config.mjs']);
-
-  setFile(ctx.files, 'next-env.d.ts', nextSource['next-env.d.ts']);
-  setFile(ctx.files, 'global.d.ts', nextSource['global.d.ts']);
-
-  setFile(ctx.files, 'app/globals.css', nextSource['app/globals.css']);
+  setFile(ctx.files, web('next.config.ts'), nextSource['next.config.ts']);
 
   setFile(
     ctx.files,
-    'app/layout.tsx',
-    `import type { Metadata } from 'next';
-import { Providers } from './providers';
-import './globals.css';
-
-export const metadata: Metadata = {
-  title: '${ctx.projectName}',
-  description: 'Notes app',
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="en">
-      <body>
-        <Providers>{children}</Providers>
-      </body>
-    </html>
+    web('postcss.config.mjs'),
+    nextSource['postcss.config.mjs']
   );
-}
-`
-  );
+
+  setFile(ctx.files, web('next-env.d.ts'), nextSource['next-env.d.ts']);
+  setFile(ctx.files, web('global.d.ts'), nextSource['global.d.ts']);
+
+  const rootLayout = fillTemplate(nextSource['app/layout.tsx'], {
+    PROJECT_NAME: ctx.projectName,
+  });
+  setRootDocument(ctx.project, (wrappers) => {
+    if (wrappers.length === 0) return rootLayout;
+    const attributes = wrappers.flatMap((wrapper) => wrapper.htmlAttributes);
+    let source =
+      wrappers.map((wrapper) => wrapper.imports).join('') +
+      rootLayout.replace(
+        /<html([^>]*)>/,
+        `<html\n     $1\n${attributes.map((attribute) => `      ${attribute}\n`).join('')}    >`
+      );
+    // shortcut: indentation is exact for one wrapper only; fix it when a second wrapper exists.
+    for (const { component } of [...wrappers].reverse())
+      source = source
+        .replace(/<body([^>]*)>/, `<body$1>\n        <${component}>`)
+        .replace('        <Providers>', '          <Providers>')
+        .replace('</body>', `  </${component}>\n      </body>`);
+    return source;
+  });
 
   setFile(
     ctx.files,
-    'app/page.tsx',
+    layout.route(''),
     `import Link from 'next/link';
 
 export default function HomePage() {
@@ -113,14 +97,5 @@ export default function HomePage() {
 `
   );
 
-  setFile(
-    ctx.files,
-    '.gitignore',
-    `node_modules
-.next
-dist
-.env
-*.log
-`
-  );
+  ctx.project.ignoreLines.push('node_modules', '.next', 'dist', '.env', '*.log');
 }

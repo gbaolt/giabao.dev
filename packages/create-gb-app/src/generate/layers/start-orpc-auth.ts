@@ -29,11 +29,6 @@ export async function resetSession(queryClient: QueryClient, destination: "/logi
 }
 `
   );
-  setFile(
-    ctx.files,
-    'src/routes/login.tsx',
-    startOrpcLoginRoute(JSON.stringify(ctx.projectName))
-  );
 }
 
 export function startOrpcLoginRoute(projectNameLiteral: string): string {

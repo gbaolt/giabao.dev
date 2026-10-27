@@ -109,20 +109,14 @@ test('flags after --yes override linter', () => {
   expect(stack.auth).toBe('none');
   expect(stack.addons.linting).toBe('oxlint');
 });
-test('buildTree rejects Nest plus tRPC', () => {
+test('resolveStack rejects Nest plus tRPC', () => {
   expect(() =>
-    buildTree(
-      resolveStack({
-        backend: 'nest',
-        api: 'trpc',
-        addons: {
-          linting: 'biome',
-        },
-      }),
-      {
-        projectName: 'nest-trpc',
-        packageManager: 'npm',
-      }
-    )
-  ).toThrow('nest trpc generate is not implemented yet');
+    resolveStack({
+      backend: 'nest',
+      api: 'trpc',
+      addons: {
+        linting: 'biome',
+      },
+    })
+  ).toThrow('(nest-trpc)');
 });

@@ -1,25 +1,49 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { isStart } from '../paths';
+import { addDependencies, addEnv, setProviders } from '../project-model';
+
+// Clerk validates the key format at build time; this decodes to a placeholder host.
+export const CLERK_PLACEHOLDER_PUBLISHABLE_KEY =
+  'pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk';
 
 export function emitClerk(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex') {
-    const dependency = isStart(ctx.stack)
-      ? '@clerk/clerk-react'
-      : '@clerk/nextjs';
+    const dependency =
+      ctx.stack.frontend === 'tanstack-start'
+        ? '@clerk/clerk-react'
+        : '@clerk/nextjs';
     ctx.pkg.dependencies[dependency] = DEPENDENCY_VERSIONS[dependency];
     ctx.pkg.dependencies.convex = DEPENDENCY_VERSIONS.convex;
     emitStartClerkConvexProviders(ctx);
     return;
   }
 
-  if (ctx.stack.backend === 'nest') {
-    emitNestClerk(ctx);
+  // With a database, the database module writes these beside its URL.
+  if (ctx.stack.database === 'none')
+    addEnv(ctx.project, {
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: CLERK_PLACEHOLDER_PUBLISHABLE_KEY,
+      CLERK_SECRET_KEY: 'sk_test_replace_me',
+    });
+
+  if (ctx.layout.backendRoot === 'apps/server') {
+    // The server adapters mount the middleware these SDKs provide.
+    const serverSdk =
+      ctx.stack.backend === 'nest' ? '@clerk/express' : '@hono/clerk-auth';
+    const webSdk =
+      ctx.stack.frontend === 'next'
+        ? '@clerk/nextjs'
+        : '@clerk/tanstack-react-start';
+    addDependencies(ctx.project, ctx.layout.backendManifest!, {
+      [serverSdk]: DEPENDENCY_VERSIONS[serverSdk],
+    });
+    addDependencies(ctx.project, ctx.layout.frontendManifest, {
+      [webSdk]: DEPENDENCY_VERSIONS[webSdk],
+    });
     return;
   }
 
-  if (isStart(ctx.stack) && ctx.stack.backend === 'self') {
+  if (ctx.stack.frontend === 'tanstack-start' && ctx.stack.backend === 'self') {
     ctx.pkg.dependencies['@clerk/tanstack-react-start'] =
       DEPENDENCY_VERSIONS['@clerk/tanstack-react-start'];
     return;
@@ -40,194 +64,10 @@ export const config = {
   );
 }
 
-function emitNestClerk(ctx: EmitCtx): void {
-  ctx.pkg.dependencies['@clerk/express'] =
-    DEPENDENCY_VERSIONS['@clerk/express'];
-  const serverPkgPath = 'apps/server/package.json';
-  const serverPkgRaw = ctx.files[serverPkgPath];
-  if (serverPkgRaw) {
-    const serverPkg = JSON.parse(serverPkgRaw) as {
-      dependencies: Record<string, string>;
-    };
-    serverPkg.dependencies['@clerk/express'] =
-      DEPENDENCY_VERSIONS['@clerk/express'];
-    delete serverPkg.dependencies['@thallesp/nestjs-better-auth'];
-    delete serverPkg.dependencies['better-auth'];
-    setFile(
-      ctx.files,
-      serverPkgPath,
-      `${JSON.stringify(serverPkg, null, 2)}\n`
-    );
-  }
-
-  setFile(
-    ctx.files,
-    'apps/server/src/clerk.ts',
-    `import { clerkMiddleware, getAuth } from "@clerk/express";
-import type { Request } from "express";
-
-export { clerkMiddleware, getAuth };
-
-export function clerkUserId(request: Request) {
-  return getAuth(request).userId;
-}
-`
-  );
-
-  setFile(
-    ctx.files,
-    'apps/server/src/main.ts',
-    `import "reflect-metadata";
-import { NestFactory } from "@nestjs/core";
-import { clerkMiddleware } from "@clerk/express";
-import { AppModule } from "./app.module";
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  app.use(clerkMiddleware());
-  app.enableCors({
-    origin: ["http://localhost:3000"],
-    credentials: true,
-  });
-
-  await app.listen(3333);
-}
-
-void bootstrap();
-`
-  );
-
-  if (ctx.stack.backend === 'nest' && ctx.stack.api !== 'orpc') {
-    return;
-  }
-
-  setFile(
-    ctx.files,
-    'apps/server/src/app.module.ts',
-    `import { type ExecutionContext, Module } from "@nestjs/common";
-import { ORPCModule } from "@orpc/nest";
-import type { Request } from "express";
-import { NotesController } from "./notes.controller";
-
-@Module({
-  imports: [
-    ORPCModule.forRoot({
-      context: (ctx: object) => ({
-        request: (ctx as ExecutionContext).switchToHttp().getRequest<Request>(),
-      }),
-    }),
-  ],
-  controllers: [NotesController],
-})
-export class AppModule {}
-`
-  );
-
-  setFile(
-    ctx.files,
-    'apps/server/src/notes.controller.ts',
-    `import { Controller } from "@nestjs/common";
-import { Implement } from "@orpc/nest";
-import { ORPCError, implement } from "@orpc/server";
-import { contract } from "@repo/contract";
-import type { Request } from "express";
-import { getAuth } from "@clerk/express";
-import { prisma } from "./db";
-
-function requireUserId(request: Request) {
-  const userId = getAuth(request).userId;
-  if (!userId) {
-    throw new ORPCError("UNAUTHORIZED");
-  }
-  return userId;
-}
-
-@Controller()
-export class NotesController {
-  @Implement(contract.me)
-  me() {
-    return implement(contract.me)
-      .$context<{ request: Request }>()
-      .handler(async ({ context }) => {
-        return { id: requireUserId(context.request) };
-      });
-  }
-
-  @Implement(contract.notes.list)
-  list() {
-    return implement(contract.notes.list)
-      .$context<{ request: Request }>()
-      .handler(async ({ context }) => {
-        const userId = requireUserId(context.request);
-        return prisma.note.findMany({
-          where: { userId },
-          orderBy: { createdAt: "desc" },
-        });
-      });
-  }
-
-  @Implement(contract.notes.create)
-  create() {
-    return implement(contract.notes.create)
-      .$context<{ request: Request }>()
-      .handler(async ({ input, context }) => {
-        const userId = requireUserId(context.request);
-        return prisma.note.create({
-          data: {
-            title: input.title,
-            body: input.body,
-            userId,
-          },
-        });
-      });
-  }
-
-  @Implement(contract.notes.update)
-  update() {
-    return implement(contract.notes.update)
-      .$context<{ request: Request }>()
-      .handler(async ({ input, context }) => {
-        const userId = requireUserId(context.request);
-        const note = await prisma.note.findFirst({
-          where: { id: input.id, userId },
-        });
-        if (!note) {
-          throw new ORPCError("NOT_FOUND");
-        }
-        return prisma.note.update({
-          where: { id: note.id },
-          data: { title: input.title, body: input.body },
-        });
-      });
-  }
-
-  @Implement(contract.notes.delete)
-  remove() {
-    return implement(contract.notes.delete)
-      .$context<{ request: Request }>()
-      .handler(async ({ input, context }) => {
-        const userId = requireUserId(context.request);
-        const note = await prisma.note.findFirst({
-          where: { id: input.id, userId },
-        });
-        if (!note) {
-          throw new ORPCError("NOT_FOUND");
-        }
-        await prisma.note.delete({ where: { id: note.id } });
-        return { ok: true as const };
-      });
-  }
-}
-`
-  );
-}
-
 function emitStartClerkConvexProviders(ctx: EmitCtx): void {
-  const start = isStart(ctx.stack);
-  setFile(
-    ctx.files,
-    start ? 'src/components/providers.tsx' : 'app/providers.tsx',
+  const start = ctx.stack.frontend === 'tanstack-start';
+  setProviders(
+    ctx.project,
     `"use client";
 
 import { ClerkProvider, useAuth } from "${start ? '@clerk/clerk-react' : '@clerk/nextjs'}";
@@ -235,11 +75,11 @@ import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import type { ReactNode } from "react";
 
-const convex = new ConvexReactClient(${start ? 'import.meta.env.VITE_CONVEX_URL as string' : 'process.env.NEXT_PUBLIC_CONVEX_URL!'});
+const convex = new ConvexReactClient(${start ? 'import.meta.env.VITE_CONVEX_URL as string' : 'process.env.NEXT_PUBLIC_CONVEX_URL as string'});
 
 export function Providers(props: { children: ReactNode }) {
   return (
-    <ClerkProvider publishableKey={${start ? 'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string' : 'process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!'}}>
+    <ClerkProvider publishableKey={${start ? 'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string' : 'process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY as string'}}>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         {props.children}
       </ConvexProviderWithClerk>

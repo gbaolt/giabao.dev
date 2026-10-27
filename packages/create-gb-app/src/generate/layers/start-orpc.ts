@@ -13,7 +13,6 @@ export function validateStartOrpc(stack: Stack): void {
     return;
   if (
     stack.database !== 'postgres' ||
-    stack.orm !== 'prisma' ||
     stack.dbSetup !== 'none' ||
     stack.payments !== 'none' ||
     (stack.auth !== 'none' && stack.auth !== 'better-auth') ||
@@ -21,7 +20,7 @@ export function validateStartOrpc(stack: Stack): void {
   ) {
     throw new GenerateError(
       'start-orpc',
-      'Start with the built-in oRPC backend supports PostgreSQL, Prisma, auth disabled or Better Auth, and no payments or database setup. Workspaces currently require the plain form. Choose that configuration or another API/backend.'
+      'Start with the built-in oRPC backend supports PostgreSQL, auth disabled or Better Auth, and no payments or database setup. Workspaces currently require the plain form. Choose that configuration or another API/backend.'
     );
   }
 }

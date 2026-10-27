@@ -72,6 +72,9 @@ test('Polar plus Better Auth writes plugin', () => {
   expect(files['lib/auth.ts'].indexOf('polar(')).toBeLessThan(
     files['lib/auth.ts'].indexOf('nextCookies()')
   );
+  expect(files['lib/auth.ts']).toContain(
+    "import { checkout, polar } from '@polar-sh/better-auth';"
+  );
 });
 test('Polar plus Clerk still errors and dest stays empty', async () => {
   expect(() => resolveStack({ auth: 'clerk', payments: 'polar' })).toThrow(
@@ -104,7 +107,8 @@ test('Clerk on Nest writes @clerk/express', () => {
     { projectName: 'nest-clerk', packageManager: 'pnpm' }
   );
   expect(files['apps/server/package.json']).toContain('@clerk/express');
-  expect(files['apps/server/src/clerk.ts']).toContain('getAuth');
+  expect(files['apps/server/src/notes.controller.ts']).toContain('getAuth');
+  expect(files['apps/server/package.json']).not.toContain('better-auth');
   expect(files['apps/server/src/main.ts']).toContain('clerkMiddleware');
   expect(files['apps/server/src/app.module.ts']).not.toContain('AuthModule');
 });
@@ -121,7 +125,8 @@ test('Better Auth on Convex writes @convex-dev/better-auth', () => {
     { projectName: 'convex-ba', packageManager: 'bun' }
   );
   expect(files['package.json']).toContain('@convex-dev/better-auth');
-  expect(files['convex/betterAuth.ts']).toContain('convex()');
+  expect(files['convex/betterAuth.ts']).toContain('convex({ authConfig })');
+  expect(files['convex/auth.config.ts']).toContain('getAuthConfigProvider()');
 });
 test('Better Auth plugin last on Start', () => {
   const files = buildTree(
@@ -143,3 +148,22 @@ test('Better Auth plugin last on Start', () => {
     auth.slice(pluginsIdx, closeIdx + 1).endsWith('tanstackStartCookies()]')
   ).toBe(true);
 });
+
+for (const backend of ['self', 'nest', 'hono'] as const) {
+  test(`Clerk without a database still writes its env keys for ${backend}`, () => {
+    const files = buildTree(
+      resolveStack({ backend, database: 'none', api: 'none', auth: 'clerk' }),
+      { projectName: 'clerk-app', packageManager: 'bun' }
+    );
+    const [serverEnv, webEnv] =
+      backend === 'self'
+        ? ['.env', '.env']
+        : ['apps/server/.env', 'apps/web/.env'];
+
+    expect(files[serverEnv]).toContain('CLERK_SECRET_KEY=');
+    expect(files[webEnv]).toContain('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=');
+    expect(files[serverEnv.replace('.env', '.env.example')]).toBe(
+      files[serverEnv]!
+    );
+  });
+}

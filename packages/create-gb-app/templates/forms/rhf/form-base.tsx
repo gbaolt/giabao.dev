@@ -12,7 +12,7 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
-} from '@/components/ui/field';
+} from '__UI_PREFIX__field';
 
 export type FormControlProps<
   TValues extends FieldValues,
@@ -82,19 +82,19 @@ export function FormBase<
             'aria-invalid': fieldState.invalid,
             'aria-describedby':
               [
-                description ? id + '-description' : null,
-                fieldState.invalid ? id + '-error' : null,
+                description ? `${id}-description` : null,
+                fieldState.invalid ? `${id}-error` : null,
               ]
                 .filter(Boolean)
                 .join(' ') || undefined,
           })}
           {description ? (
-            <FieldDescription id={id + '-description'}>
+            <FieldDescription id={`${id}-description`}>
               {description}
             </FieldDescription>
           ) : null}
           {fieldState.invalid ? (
-            <FieldError id={id + '-error'} errors={[fieldState.error]} />
+            <FieldError id={`${id}-error`} errors={[fieldState.error]} />
           ) : null}
         </Field>
       )}
