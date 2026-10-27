@@ -158,7 +158,7 @@ test('Nest Notes accepts JSON requests and builds a Node-runnable server', () =>
     emitDecoratorMetadata: true,
     outDir: 'dist',
   });
-  expect(files['apps/server/src/main.ts']).toContain('"./app.module.js"');
+  expect(files['apps/server/src/main.ts']).toContain('"./app.module";');
 });
 
 test('Convex Notes form waits for saving and exposes failure feedback', () => {

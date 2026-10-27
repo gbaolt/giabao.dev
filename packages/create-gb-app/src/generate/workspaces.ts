@@ -11,6 +11,20 @@ const DEPENDENCY_SECTIONS = [
   'peerDependencies',
 ] as const;
 const WORKSPACE_PATTERNS = ['apps/*', 'packages/*'];
+// pnpm 10 builds only `onlyBuiltDependencies`; pnpm 11 fails the install unless
+// `allowBuilds` decides every dependency that has a build script.
+const BUILT_DEPENDENCIES = [
+  '@prisma/engines',
+  '@tailwindcss/oxide',
+  'better-sqlite3',
+  'esbuild',
+  'prisma',
+  'sharp',
+  'unrs-resolver',
+];
+// The client's postinstall reruns `prisma generate`, which `db:generate` already does
+// and which fails under pnpm on Windows.
+const PNPM_BUILD_APPROVALS = `allowBuilds:\n  "@prisma/client": false\n${BUILT_DEPENDENCIES.map((name) => `  ${JSON.stringify(name)}: true`).join('\n')}\nonlyBuiltDependencies:\n${BUILT_DEPENDENCIES.map((name) => `  - ${JSON.stringify(name)}`).join('\n')}\n`;
 
 /**
  * Folds workspace links and the shared catalog into the manifests, in place,
@@ -26,7 +40,11 @@ export function finalizeWorkspaces(
     manifest,
   }));
   const root = byPath['package.json'];
-  if (!root?.workspaces) return files;
+  if (!root?.workspaces) {
+    if (packageManager === 'pnpm')
+      files['pnpm-workspace.yaml'] = PNPM_BUILD_APPROVALS;
+    return files;
+  }
 
   const internal = new Map(
     manifests
@@ -113,7 +131,7 @@ export function finalizeWorkspaces(
     .join('\n');
   if (packageManager === 'pnpm')
     files['pnpm-workspace.yaml'] =
-      `packages:\n  - "apps/*"\n  - "packages/*"\n\ncatalog:\n${yamlCatalog}\n`;
+      `packages:\n  - "apps/*"\n  - "packages/*"\n\ncatalog:\n${yamlCatalog}\n\n${PNPM_BUILD_APPROVALS}`;
   if (packageManager === 'yarn')
     files['.yarnrc.yml'] =
       `nodeLinker: node-modules\n\ncatalog:\n${yamlCatalog}\n`;

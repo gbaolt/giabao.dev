@@ -7,7 +7,7 @@ type Quote = '"' | "'";
 // Both adapters expose the same call heads, so transports write one Notes
 // implementation and the ORM choice only changes the names they call.
 export type NotesRepository = {
-  importFrom(quote: Quote, dir: string, extension?: string): string;
+  importFrom(quote: Quote, dir: string): string;
   list: string;
   find: string;
   create: string;
@@ -49,10 +49,10 @@ export function notesRepository(stack: Stack): NotesRepository {
   const drizzle = usesDrizzle(stack);
   return {
     ...(drizzle ? DRIZZLE_CALLS : PRISMA_CALLS),
-    importFrom: (quote, dir, extension = '') =>
+    importFrom: (quote, dir) =>
       drizzle
-        ? `import { notesStore } from ${quote}${dir}notes-store${extension}${quote};`
-        : `import { prisma } from ${quote}${dir}db${extension}${quote};`,
+        ? `import { notesStore } from ${quote}${dir}notes-store${quote};`
+        : `import { prisma } from ${quote}${dir}db${quote};`,
   };
 }
 
@@ -60,7 +60,6 @@ export function notesRepository(stack: Stack): NotesRepository {
 export function emitNotesStore(ctx: EmitCtx): void {
   const { stack } = ctx;
   if (!usesDrizzle(stack)) return;
-  const extension = stack.backend === 'nest' ? '.js' : '';
   // Only Start with the built-in oRPC backend reports affected rows.
   const counted =
     stack.backend === 'self' &&
@@ -70,8 +69,8 @@ export function emitNotesStore(ctx: EmitCtx): void {
     ctx.files,
     `${ctx.layout.serverSourceRoot}/notes-store.ts`,
     `import { and, desc, eq } from "drizzle-orm";
-import { db } from "./db${extension}";
-import { notes } from "./schema${extension}";
+import { db } from "./db";
+import { notes } from "./schema";
 
 type Filter = { id?: string; userId?: string };
 type Input = { title: string; body: string; userId?: string };

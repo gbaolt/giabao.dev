@@ -74,7 +74,7 @@ function emitServer(ctx: EmitCtx, stack: HonoStack, dep: string): void {
   setFile(
     ctx.files,
     'apps/server/src/index.ts',
-    'import "./env.js";\n' + serverEntry(stack)
+    'import "./env";\n' + serverEntry(stack)
   );
 }
 

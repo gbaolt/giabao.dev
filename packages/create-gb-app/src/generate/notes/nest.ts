@@ -26,11 +26,12 @@ export function emitNestNotes(ctx: EmitCtx): void {
 
 function emitRestController(ctx: EmitCtx): void {
   const repo = notesRepository(ctx.stack);
-  const authed = ctx.stack.auth === 'better-auth';
-  const sessionLookup = authed
-    ? `import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "./auth.js";
-${repo.importFrom('"', './', '.js')}
+  const authed = ctx.stack.auth !== 'none';
+  const sessionLookup =
+    ctx.stack.auth === 'better-auth'
+      ? `import { fromNodeHeaders } from "better-auth/node";
+import { auth } from "./auth";
+${repo.importFrom('"', './')}
 
 async function requireUserId(request: Request) {
   const session = await auth.api.getSession({
@@ -42,7 +43,19 @@ async function requireUserId(request: Request) {
   return session.user.id;
 }
 `
-    : `${repo.importFrom('"', './', '.js')}
+      : ctx.stack.auth === 'clerk'
+        ? `import { getAuth } from "@clerk/express";
+${repo.importFrom('"', './')}
+
+async function requireUserId(request: Request) {
+  const { userId } = getAuth(request);
+  if (!userId) {
+    throw new UnauthorizedException();
+  }
+  return userId;
+}
+`
+        : `${repo.importFrom('"', './')}
 `;
 
   setFile(
@@ -131,7 +144,7 @@ import { Implement } from "@orpc/nest";
 import { ORPCError, implement } from "@orpc/server";
 import { contract } from "@repo/contract";
 ${authed ? 'import { fromNodeHeaders } from "better-auth/node";\n' : ''}import type { Request } from "express";
-${authed ? 'import { auth } from "./auth.js";\n' : ''}${repo.importFrom('"', './', '.js')}
+${authed ? 'import { auth } from "./auth";\n' : ''}${repo.importFrom('"', './')}
 
 @Controller()
 export class NotesController {

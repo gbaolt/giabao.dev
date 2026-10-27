@@ -28,12 +28,24 @@ export function emitOptionalWorkspace(
   });
   (web.devDependencies ??= {})['@repo/typescript-config'] = protocol;
 
-  for (const [path, contents] of Object.entries(single))
+  for (const [path, contents] of Object.entries(single)) {
+    // ESLint finds its config by walking up, so the shared packages need it at the root.
+    if (path === 'eslint.config.mjs') {
+      setFile(ctx.files, path, contents);
+      continue;
+    }
     setFile(
       ctx.files,
       `${ctx.layout.frontendRoot}/${path}`,
       toWorkspaceSource(path, contents)
     );
+  }
+  if (single['eslint.config.mjs'])
+    for (const [name, version] of Object.entries(web.devDependencies ?? {}))
+      if (name.includes('eslint')) {
+        ctx.pkg.devDependencies[name] = version;
+        delete web.devDependencies![name];
+      }
   ctx.project.manifests[ctx.layout.frontendManifest] = web;
 
   ctx.pkg.workspaces = ['apps/*', 'packages/*'];

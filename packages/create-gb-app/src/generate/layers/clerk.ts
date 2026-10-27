@@ -3,6 +3,10 @@ import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
 import { addDependencies, addEnv, setProviders } from '../project-model';
 
+// Clerk validates the key format at build time; this decodes to a placeholder host.
+export const CLERK_PLACEHOLDER_PUBLISHABLE_KEY =
+  'pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk';
+
 export function emitClerk(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex') {
     const dependency =
@@ -18,7 +22,7 @@ export function emitClerk(ctx: EmitCtx): void {
   // With a database, the database module writes these beside its URL.
   if (ctx.stack.database === 'none')
     addEnv(ctx.project, {
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_replace_me',
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: CLERK_PLACEHOLDER_PUBLISHABLE_KEY,
       CLERK_SECRET_KEY: 'sk_test_replace_me',
     });
 
@@ -71,11 +75,11 @@ import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import type { ReactNode } from "react";
 
-const convex = new ConvexReactClient(${start ? 'import.meta.env.VITE_CONVEX_URL as string' : 'process.env.NEXT_PUBLIC_CONVEX_URL!'});
+const convex = new ConvexReactClient(${start ? 'import.meta.env.VITE_CONVEX_URL as string' : 'process.env.NEXT_PUBLIC_CONVEX_URL as string'});
 
 export function Providers(props: { children: ReactNode }) {
   return (
-    <ClerkProvider publishableKey={${start ? 'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string' : 'process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!'}}>
+    <ClerkProvider publishableKey={${start ? 'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string' : 'process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY as string'}}>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         {props.children}
       </ConvexProviderWithClerk>

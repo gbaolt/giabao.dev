@@ -36,7 +36,6 @@ import { projectLayout } from './layout';
 import { emitNotes } from './notes';
 import {
   appCollections,
-  applyServerModuleFormat,
   createProjectModel,
   manifestAt,
   type ProjectModel,
@@ -265,7 +264,6 @@ function buildProject(
       packageManager: ctx.packageManager,
     })
   );
-  applyServerModuleFormat(files, stack, layout);
   setFile(
     files,
     'README.md',

@@ -18,10 +18,11 @@ export function emitForms(ctx: EmitCtx): void {
     ctx.stack.addons.form === 'react-hook-form'
       ? rhfFormAssets
       : tanstackFormAssets;
+  // NotesForm reads its field types from the shared zod schema.
   const deps =
     ctx.stack.addons.form === 'react-hook-form'
-      ? ['react-hook-form', '@hookform/resolvers']
-      : ['@tanstack/react-form'];
+      ? ['react-hook-form', '@hookform/resolvers', 'zod']
+      : ['@tanstack/react-form', 'zod'];
   addDependencies(
     ctx.project,
     ctx.layout.frontendManifest,

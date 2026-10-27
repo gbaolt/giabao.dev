@@ -1,5 +1,6 @@
 import type { EmitCtx } from '../../types/generate';
 import { addEnv } from '../project-model';
+import { CLERK_PLACEHOLDER_PUBLISHABLE_KEY } from './clerk';
 import { hostedDatabaseEnv } from './db-setup';
 
 export function emitPostgres(ctx: EmitCtx): void {
@@ -26,7 +27,7 @@ export function emitPostgres(ctx: EmitCtx): void {
     });
   else if (ctx.stack.auth === 'clerk')
     addEnv(ctx.project, {
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_replace_me',
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: CLERK_PLACEHOLDER_PUBLISHABLE_KEY,
       CLERK_SECRET_KEY: 'sk_test_replace_me',
     });
   if (ctx.layout.structure === 'monorepo') {

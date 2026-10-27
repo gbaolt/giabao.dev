@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { buildTree, buildTreeArranged } from '#/generate/build-tree';
-import { setFile } from '#/generate/files';
+import { buildTree } from '#/generate/build-tree';
 import { emitHono } from '#/generate/layers/hono';
 import { emitNest } from '#/generate/layers/nest';
 import { projectLayout } from '#/generate/layout';
@@ -23,32 +22,17 @@ function loginPage(files: Record<string, string>, frontend: string) {
 }
 
 describe('server module format', () => {
-  const extra = (source: string) => (emitCtx: EmitCtx) =>
-    setFile(emitCtx.files, 'apps/server/src/extra.ts', source);
-
   test.each([
     ['nest', 'postgres'],
     ['hono', 'sqlite'],
     ['nest', 'none'],
     ['hono', 'none'],
   ] as const)(
-    '%s with database %s gives every relative specifier a .js extension',
+    '%s with database %s compiles as CommonJS so imports need no extension',
     (backend, database) => {
-      const stack = resolveStack({ backend, database, api: 'none', auth: 'none' });
-      const files = buildTreeArranged(stack, ctx, (modules) => [
-        ...modules,
-        extra(
-          'import { AppModule } from "./app.module";\nimport { env } from "./env.js";\nimport data from "./data.json";\n'
-        ),
-      ]);
-
-      expect(files['apps/server/src/extra.ts']).toBe(
-        'import { AppModule } from "./app.module.js";\nimport { env } from "./env.js";\nimport data from "./data.json";\n'
-      );
-      for (const [path, source] of Object.entries(files))
-        if (path.startsWith('apps/server/src/'))
-          for (const [, specifier] of source.matchAll(/from ["'](\.[^"']+)["']/g))
-            expect([path, specifier]).toEqual([path, expect.stringMatching(/\.js(on)?$/)]);
+      const files = build({ backend, database, api: 'none', auth: 'none' });
+      expect(JSON.parse(files['apps/server/package.json']).type).toBeUndefined();
+      expect(files['apps/server/src/env.ts']).toBeDefined();
     }
   );
 });
@@ -62,7 +46,7 @@ describe('server backend regressions', () => {
         files['apps/server/src/notes.controller.ts'] ??
         files['apps/server/src/orpc.ts'];
 
-      expect(files['packages/contract/src/contract.ts']).toContain(
+      expect(files['packages/contract/src/index.ts']).toContain(
         'const UserSchema = z.object({\n  id: z.string(),\n  email: z.string(),\n  name: z.string(),\n});'
       );
       expect(server).toContain('email: "user@example.com", name: "User" }');
@@ -256,7 +240,7 @@ describe('server adapters', () => {
     expect(files['apps/server/src/app.module.ts'].includes('ORPCModule')).toBe(
       api === 'orpc'
     );
-    expect(Boolean(files['packages/contract/src/contract.ts'])).toBe(
+    expect(Boolean(files['packages/contract/src/index.ts'])).toBe(
       api === 'orpc'
     );
   });
@@ -279,7 +263,7 @@ describe('server adapters', () => {
     for (const path of [
       '.gitignore',
       'packages/typescript-config/base.json',
-      'packages/contract/src/contract.ts',
+      'packages/contract/src/index.ts',
       'packages/ui/package.json',
     ])
       expect(nest[path]).toBe(hono[path]);

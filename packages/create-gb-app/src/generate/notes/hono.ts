@@ -35,7 +35,7 @@ function emitServerNotes(ctx: EmitCtx, stack: HonoStack): void {
       'apps/server/src/notes.ts',
       `import { noteInputSchema } from "@repo/validation";
 import { notesStore } from "./notes-store";
-function scope(userId: string | null) {
+function scope(${authed ? 'userId' : '_userId'}: string | null) {
   ${authed ? 'if (!userId) throw new Error("UNAUTHORIZED"); return { userId };' : 'return {};'}
 }
 export async function listNotes(userId: string | null) {
@@ -63,6 +63,8 @@ export async function removeNote(userId: string | null, id: string): Promise<{ o
   }
 
   const repo = notesRepository(stack);
+  // Public Notes ignore the caller, which the shared signature still passes.
+  const owner = authed ? 'userId' : '_userId';
   const scope = authed ? 'where: { userId: userId ?? "" }' : '';
   setFile(
     ctx.files,
@@ -70,7 +72,7 @@ export async function removeNote(userId: string | null, id: string): Promise<{ o
     `import { noteInputSchema } from "@repo/validation";
 ${repo.importFrom('"', './')}
 
-export async function listNotes(userId: string | null) {
+export async function listNotes(${owner}: string | null) {
   ${authed ? 'if (!userId) {\n    return [];\n  }\n  ' : ''}return ${repo.list}({
     ${scope ? `${scope},` : ''}
     orderBy: { createdAt: "desc" },
@@ -78,7 +80,7 @@ export async function listNotes(userId: string | null) {
 }
 
 export async function createNote(
-  userId: string | null,
+  ${owner}: string | null,
   input: { title: string; body: string },
 ) {
   const note = noteInputSchema.parse(input);
@@ -92,7 +94,7 @@ export async function createNote(
 }
 
 export async function updateNote(
-  userId: string | null,
+  ${owner}: string | null,
   input: { id: string; title: string; body: string },
 ) {
   const parsed = noteInputSchema.parse(input);
@@ -102,7 +104,7 @@ export async function updateNote(
   });
 }
 
-export async function removeNote(userId: string | null, id: string) {
+export async function removeNote(${owner}: string | null, id: string) {
   ${authed ? `const note = await ${repo.find}({ where: { id, userId: userId ?? "" } });\n  if (!note) {\n    throw new Error("NOT_FOUND");\n  }\n  await ${repo.remove}({ where: { id: note.id } });` : `await ${repo.remove}({ where: { id } });`}
   return { ok: true as const };
 }
@@ -137,14 +139,14 @@ function emitOrpcRouter(ctx: EmitCtx, stack: HonoStack): void {
   setFile(
     ctx.files,
     'apps/server/src/orpc.ts',
-    `import { ORPCError, implement } from "@orpc/server";
+    `import { ${authed ? 'ORPCError, ' : ''}implement } from "@orpc/server";
 import { contract } from "@repo/contract";
 ${authImport}import { createNote, listNotes, removeNote, updateNote } from "./notes";
 
 const base = implement(contract).$context<{ headers: Headers; userId: string | null }>();
 
 export const router = base.router({
-  me: base.me.handler(async ({ context }) => {
+  me: base.me.handler(async (${authed ? '{ context }' : ''}) => {
     ${meBody}
   }),
   notes: {

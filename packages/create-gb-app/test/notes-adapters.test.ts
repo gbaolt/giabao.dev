@@ -32,9 +32,7 @@ test('Prisma repository calls the Prisma client', () => {
   const repo = notesRepository(resolveStack({ orm: 'prisma' }));
   expect(repo.list).toBe('prisma.note.findMany');
   expect(repo.remove).toBe('prisma.note.delete');
-  expect(repo.importFrom('"', './', '.js')).toBe(
-    'import { prisma } from "./db.js";'
-  );
+  expect(repo.importFrom('"', './')).toBe('import { prisma } from "./db";');
 });
 
 test('Drizzle repository calls the notes store', () => {
@@ -58,7 +56,7 @@ test('notes store is only written for Drizzle', () => {
 
 for (const [backend, path, db] of [
   ['self', 'lib/notes-store.ts', '"./db"'],
-  ['nest', 'apps/server/src/notes-store.ts', '"./db.js"'],
+  ['nest', 'apps/server/src/notes-store.ts', '"./db"'],
   ['hono', 'apps/server/src/notes-store.ts', '"./db"'],
 ] as const) {
   test(`${backend} notes store sits next to its db client`, () => {

@@ -118,11 +118,6 @@ function emitServerClient(ctx: EmitCtx, dep: string): void {
         DEPENDENCY_VERSIONS['@tanstack/react-query-next-experimental'];
       deps['server-only'] = DEPENDENCY_VERSIONS['server-only'];
     }
-    // Hono mounts the oRPC handler under /api; Nest serves it at the root.
-    const url =
-      stack.backend === 'hono'
-        ? `(${env} ?? "${SERVER_URL}") + "/api"`
-        : `${env} ?? "${SERVER_URL}"`;
     setFile(
       ctx.files,
       lib('orpc-link.ts'),
@@ -131,7 +126,10 @@ import { contract } from "@repo/contract";
 
 export function createOrpcLink(getHeaders?: () => Promise<Record<string, string>>) {
   return new OpenAPILink(contract, {
-    url: ${url},
+    origin: ${env} ?? "${SERVER_URL}",${
+      // Hono mounts the oRPC handler under /api; Nest serves it at the root.
+      stack.backend === 'hono' ? '\n    url: "/api",' : ''
+    }
     fetch: (url, init) =>
       globalThis.fetch(url, {
         ...init,
@@ -172,7 +170,7 @@ import { headers } from "next/headers";
 import { createOrpcLink } from "./orpc-link";
 
 export const client: RouterContractClient<typeof contract> = createORPCClient(
-  createOrpcLink(async () => {
+  createOrpcLink(async (): Promise<Record<string, string>> => {
     const incoming = await headers();
     const cookie = incoming.get("cookie");
     return cookie ? { cookie } : {};
@@ -215,10 +213,7 @@ export const trpc = createTRPCReact<AppRouter>();
   // Clerk's Next components need its provider; Start reads the session server-side.
   const clerk = stack.auth === 'clerk' && next;
   if (orpc || clerk)
-    setProviders(
-      ctx.project,
-      serverProviders(next, orpc, clerk)
-    );
+    setProviders(ctx.project, serverProviders(next, orpc, clerk));
 }
 
 function serverProviders(next: boolean, query: boolean, clerk: boolean) {
@@ -259,7 +254,7 @@ export function writeServerManifest(
     name: 'server',
     version: '0.0.0',
     private: true,
-    type: 'module',
+    // CommonJS lets NodeNext resolve relative imports without file extensions.
     ...manifest,
     dependencies: {
       ...manifest.dependencies,
@@ -374,12 +369,6 @@ function emitOrpcContract(ctx: EmitCtx, dep: string, compiled: boolean): void {
   setFile(
     ctx.files,
     'packages/contract/src/index.ts',
-    `export { contract } from "./contract${compiled ? '.js' : ''}";
-`
-  );
-  setFile(
-    ctx.files,
-    'packages/contract/src/contract.ts',
     `import { oc } from "@orpc/contract";
 import { openapi } from "@orpc/openapi";
 import { noteInputSchema } from "@repo/validation";

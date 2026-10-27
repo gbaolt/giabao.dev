@@ -75,13 +75,25 @@ export function emitBetterAuth(ctx: EmitCtx): void {
   if (ctx.stack.backend === 'convex') {
     ctx.pkg.dependencies['@convex-dev/better-auth'] =
       DEPENDENCY_VERSIONS['@convex-dev/better-auth'];
+    setFile(
+      ctx.files,
+      'convex/auth.config.ts',
+      `import { getAuthConfigProvider } from "@convex-dev/better-auth/auth-config";
+import type { AuthConfig } from "convex/server";
+
+export default {
+  providers: [getAuthConfigProvider()],
+} satisfies AuthConfig;
+`
+    );
     setAuthConfig(ctx.project, {
       path: 'convex/betterAuth.ts',
       render: (plugins) => `import { betterAuth } from 'better-auth';
 import { convex } from '@convex-dev/better-auth/plugins';
-${authPluginImports(plugins, "'")}
+${authPluginImports(plugins, "'")}import authConfig from './auth.config';
+
 export const auth = betterAuth({
-  plugins: [${plugins.map((plugin) => `\n    ${plugin.call}, `).join('')}convex()],
+  plugins: [${plugins.map((plugin) => `\n    ${plugin.call}, `).join('')}convex({ authConfig })],
 });
 `,
     });

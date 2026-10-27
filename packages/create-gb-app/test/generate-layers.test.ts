@@ -125,7 +125,8 @@ test('Better Auth on Convex writes @convex-dev/better-auth', () => {
     { projectName: 'convex-ba', packageManager: 'bun' }
   );
   expect(files['package.json']).toContain('@convex-dev/better-auth');
-  expect(files['convex/betterAuth.ts']).toContain('convex()');
+  expect(files['convex/betterAuth.ts']).toContain('convex({ authConfig })');
+  expect(files['convex/auth.config.ts']).toContain('getAuthConfigProvider()');
 });
 test('Better Auth plugin last on Start', () => {
   const files = buildTree(

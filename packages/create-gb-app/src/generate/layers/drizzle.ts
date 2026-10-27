@@ -24,11 +24,7 @@ export function emitDrizzle(ctx: EmitCtx): void {
   pkg.devDependencies.dotenv = DEPENDENCY_VERSIONS.dotenv;
   if (turso) pkg.scripts['db:migrate'] = 'drizzle-kit migrate';
 
-  const {
-    envOwner,
-    schemaFile: schemaPath,
-    dbFile: clientPath,
-  } = ctx.layout;
+  const { envOwner, schemaFile: schemaPath, dbFile: clientPath } = ctx.layout;
   const driver =
     ctx.stack.backend === 'convex'
       ? 'postgresql'
@@ -39,11 +35,9 @@ export function emitDrizzle(ctx: EmitCtx): void {
         : 'postgres';
 
   if (turso) {
-    pkg.dependencies['@libsql/client'] =
-      DEPENDENCY_VERSIONS['@libsql/client'];
+    pkg.dependencies['@libsql/client'] = DEPENDENCY_VERSIONS['@libsql/client'];
   } else if (driver === 'sqlite') {
-    pkg.dependencies['better-sqlite3'] =
-      DEPENDENCY_VERSIONS['better-sqlite3'];
+    pkg.dependencies['better-sqlite3'] = DEPENDENCY_VERSIONS['better-sqlite3'];
   } else if (driver === 'mysql') {
     pkg.dependencies.mysql2 = DEPENDENCY_VERSIONS['mysql2'];
   } else {
@@ -97,7 +91,7 @@ export const verification = ${table}("verification", {
   setFile(
     ctx.files,
     schemaPath,
-    `import { ${table}, text, ${driver === 'sqlite' ? 'integer' : driver === 'mysql' ? 'varchar, timestamp, boolean' : 'timestamp, boolean'} } from "drizzle-orm/${driver === 'sqlite' ? 'sqlite-core' : driver === 'mysql' ? 'mysql-core' : 'pg-core'}";
+    `import { ${table}, text, ${driver === 'sqlite' ? 'integer' : driver === 'mysql' ? `varchar, timestamp${auth ? ', boolean' : ''}` : `timestamp${auth ? ', boolean' : ''}`} } from "drizzle-orm/${driver === 'sqlite' ? 'sqlite-core' : driver === 'mysql' ? 'mysql-core' : 'pg-core'}";
 ${authSchema}
 export const notes = ${table}("notes", {
   id: ${key('id')}.primaryKey(), title: text("title").notNull(), body: text("body").notNull(),
@@ -111,9 +105,9 @@ export const notes = ${table}("notes", {
     ctx.files,
     clientPath,
     `import { drizzle } from "drizzle-orm/${turso ? 'libsql' : driver === 'sqlite' ? 'better-sqlite3' : driver === 'mysql' ? 'mysql2' : 'node-postgres'}";
-${turso ? 'import { createClient } from "@libsql/client";\n' : planetscaleMysql ? 'import { createPool } from "mysql2/promise";\n' : ''}import * as schema from "./schema${ctx.stack.backend === 'nest' ? '.js' : ''}";
+${turso ? 'import { createClient } from "@libsql/client";\n' : planetscaleMysql ? 'import { createPool } from "mysql2/promise";\n' : ''}import * as schema from "./schema";
 
-${turso ? 'const client = createClient({ url: process.env.TURSO_DATABASE_URL!, authToken: process.env.TURSO_AUTH_TOKEN! });\n\nexport const db = drizzle(client, { schema });' : planetscaleMysql ? 'const pool = createPool({ uri: process.env.DATABASE_URL!, ssl: { rejectUnauthorized: true } });\n\nexport const db = drizzle(pool, { schema, mode: "default" });' : 'export const db = drizzle(process.env.DATABASE_URL as string, { schema });'}
+${turso ? 'const client = createClient({ url: process.env.TURSO_DATABASE_URL as string, authToken: process.env.TURSO_AUTH_TOKEN as string });\n\nexport const db = drizzle(client, { schema });' : planetscaleMysql ? 'const pool = createPool({ uri: process.env.DATABASE_URL as string, ssl: { rejectUnauthorized: true } });\n\nexport const db = drizzle(pool, { schema, mode: "default" });' : `export const db = drizzle(process.env.DATABASE_URL as string, { schema${driver === 'mysql' ? ', mode: "default"' : ''} });`}
 `
   );
 
@@ -125,12 +119,12 @@ import { defineConfig } from "drizzle-kit";
 
 config({ path: ".env" });
 
-${planetscaleMysql ? 'const connection = new URL(process.env.DATABASE_URL!);\n' : ''}
+${planetscaleMysql ? 'const connection = new URL(process.env.DATABASE_URL as string);\n' : ''}
 export default defineConfig({
   schema: "./${envOwner ? schemaPath.slice(envOwner.length + 1) : schemaPath}",
   out: "./drizzle",
   dialect: "${turso ? 'turso' : driver === 'sqlite' ? 'sqlite' : driver === 'mysql' ? 'mysql' : 'postgresql'}",
-  dbCredentials: ${turso ? '{ url: process.env.TURSO_DATABASE_URL!, authToken: process.env.TURSO_AUTH_TOKEN! }' : planetscaleMysql ? '{ host: connection.hostname, port: Number(connection.port || 3306), user: decodeURIComponent(connection.username), password: decodeURIComponent(connection.password), database: connection.pathname.slice(1), ssl: { rejectUnauthorized: true } }' : `{ url: process.env.${direct ? 'DIRECT_URL' : 'DATABASE_URL'} as string }`},
+  dbCredentials: ${turso ? '{ url: process.env.TURSO_DATABASE_URL as string, authToken: process.env.TURSO_AUTH_TOKEN as string }' : planetscaleMysql ? '{ host: connection.hostname, port: Number(connection.port || 3306), user: decodeURIComponent(connection.username), password: decodeURIComponent(connection.password), database: connection.pathname.slice(1), ssl: { rejectUnauthorized: true } }' : `{ url: process.env.${direct ? 'DIRECT_URL' : 'DATABASE_URL'} as string }`},
 });
 `
   );

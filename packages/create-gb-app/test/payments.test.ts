@@ -69,7 +69,9 @@ for (const [structure, path] of [
     })[path];
 
     expect(auth).toContain("from '@polar-sh/better-auth';");
-    expect(auth).toMatch(/plugins: \[\s*polar\(\{[\s\S]*\}\),\s*convex\(\)\]/);
+    expect(auth).toMatch(
+      /plugins: \[\s*polar\(\{[\s\S]*\}\),\s*convex\(\{ authConfig \}\)\]/
+    );
   });
 }
 

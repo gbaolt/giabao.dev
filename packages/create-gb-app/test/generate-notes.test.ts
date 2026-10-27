@@ -125,10 +125,10 @@ test('Nest Clerk server imports resolve under NodeNext', () => {
       auth: 'clerk',
       database,
     });
-    expect(files['apps/server/src/main.ts']).toContain('"./app.module.js"');
+    expect(files['apps/server/src/main.ts']).toContain('"./app.module";');
     if (database !== 'none')
       expect(files['apps/server/src/app.module.ts']).toContain(
-        '"./notes.controller.js"'
+        '"./notes.controller";'
       );
   }
 });

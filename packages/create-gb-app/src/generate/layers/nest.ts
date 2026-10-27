@@ -84,10 +84,10 @@ function emitServer(ctx: EmitCtx, stack: NestStack, dep: string): void {
   setFile(
     ctx.files,
     'apps/server/src/main.ts',
-    `import "./env.js";
+    `import "./env";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
-${clerk ? 'import { clerkMiddleware } from "@clerk/express";\n' : ''}import { AppModule } from "./app.module.js";
+${clerk ? 'import { clerkMiddleware } from "@clerk/express";\n' : ''}import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule${ownBodyParser ? ', { bodyParser: false }' : ''});
@@ -121,10 +121,8 @@ function appModule(orpc: boolean, betterAuth: boolean, notes: boolean) {
       ? ['import { AuthModule } from "@thallesp/nestjs-better-auth";']
       : []),
     ...(orpc ? ['import type { Request } from "express";'] : []),
-    ...(betterAuth ? ['import { auth } from "./auth.js";'] : []),
-    ...(notes
-      ? ['import { NotesController } from "./notes.controller.js";']
-      : []),
+    ...(betterAuth ? ['import { auth } from "./auth";'] : []),
+    ...(notes ? ['import { NotesController } from "./notes.controller";'] : []),
   ];
   const modules = [
     ...(betterAuth

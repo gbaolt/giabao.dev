@@ -209,27 +209,6 @@ function withNewline(source: string): string {
   return source.endsWith('\n') ? source : `${source}\n`;
 }
 
-/** NodeNext server workspaces need explicit `.js` relative specifiers. */
-export function applyServerModuleFormat(
-  files: FileMap,
-  stack: Stack,
-  layout: ProjectLayout
-): void {
-  if (stack.backend !== 'nest' && stack.backend !== 'hono') return;
-  for (const [path, source] of Object.entries(files)) {
-    if (!path.startsWith(`${layout.serverSourceRoot}/`) || !path.endsWith('.ts'))
-      continue;
-    files[path] = source.replace(
-      /from (["'])(\.[^"']+)\1/g,
-      (match, quote: string, specifier: string) =>
-        // `./app.module` names a module, not a `.module` file extension.
-        /\.(?:js|ts|mjs|cjs|json)$/.test(specifier)
-          ? match
-          : `from ${quote}${specifier}.js${quote}`
-    );
-  }
-}
-
 function renderManifests(
   source: ProjectModel['manifests'],
   packageManager: PackageManager,

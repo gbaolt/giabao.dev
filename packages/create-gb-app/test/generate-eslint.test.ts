@@ -3,29 +3,30 @@ import { expect, test } from 'bun:test';
 import { buildTree, resolveStack } from '#/generate/public';
 
 for (const structure of ['single', 'turborepo'] as const) {
-  test(`${structure} ESLint owns the plugins loaded relative to the app`, () => {
+  test(`${structure} ESLint config and plugins sit at the project root`, () => {
     const files = buildTree(resolveStack({ structure }), {
       projectName: 'lint-fixture',
       packageManager: 'bun',
     });
-    const prefix = structure === 'turborepo' ? 'apps/web/' : '';
-    const pkg = JSON.parse(files[prefix + 'package.json']!);
+    const workspace = structure === 'turborepo';
+    const pkg = JSON.parse(
+      files[workspace ? 'apps/web/package.json' : 'package.json']!
+    );
     const root = JSON.parse(files['package.json']!);
     for (const [name, version] of [
       ['eslint-plugin-react-hooks', '^5.0.0'],
       ['@next/eslint-plugin-next', '^15.5.4'],
     ]) {
-      expect(pkg.devDependencies[name]).toBe(
-        structure === 'single' ? version : 'catalog:'
-      );
-      if (structure === 'turborepo') {
+      expect(root.devDependencies[name]).toBe(workspace ? 'catalog:' : version);
+      if (workspace) {
         expect(root.workspaces.catalog[name]).toBe(version);
+        expect(pkg.devDependencies[name]).toBeUndefined();
       }
     }
-    expect(files[prefix + 'eslint.config.mjs']).toContain(
-      'next/core-web-vitals'
-    );
-    expect(files[prefix + 'eslint.config.mjs']).toContain('next-env.d.ts');
+    // The shared packages lint with this config by walking up from their folder.
+    expect(files['eslint.config.mjs']).toContain('next/core-web-vitals');
+    expect(files['eslint.config.mjs']).toContain('next-env.d.ts');
+    expect(files['apps/web/eslint.config.mjs']).toBeUndefined();
     expect(files['prettier.config.mjs']).toBeUndefined();
     expect(pkg.devDependencies.prettier).toBeUndefined();
     expect(pkg.devDependencies['eslint-config-prettier']).toBeUndefined();

@@ -193,7 +193,7 @@ test('PlanetScale Drizzle enables certificate verification in runtime and schema
   expect(files['.env.example']).not.toContain('sslaccept');
 });
 
-test('Nest Drizzle emits Node ESM imports for its database and Notes repository', () => {
+test('Nest Drizzle wires its database and Notes repository with extensionless imports', () => {
   const files = buildTree(
     resolveStack({
       backend: 'nest',
@@ -205,12 +205,12 @@ test('Nest Drizzle emits Node ESM imports for its database and Notes repository'
     }),
     { projectName: 'hosted', packageManager: 'bun' }
   );
-  expect(files['apps/server/src/db.ts']).toContain('from "./schema.js"');
-  expect(files['apps/server/src/notes-store.ts']).toContain('from "./db.js"');
+  expect(files['apps/server/src/db.ts']).toContain('from "./schema";');
+  expect(files['apps/server/src/notes-store.ts']).toContain('from "./db";');
   expect(files['apps/server/src/notes-store.ts']).toContain(
-    'from "./schema.js"'
+    'from "./schema";'
   );
   expect(files['apps/server/src/notes.controller.ts']).toContain(
-    'notes-store.js'
+    'from "./notes-store";'
   );
 });

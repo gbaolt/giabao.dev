@@ -49,12 +49,11 @@ function emitNextQueryNotes(ctx: EmitCtx, transport: 'orpc' | 'trpc'): void {
   const form = notesForm(ctx.stack);
   const inline = form.inline;
   if (transport === 'orpc') {
-    setFile(
-      ctx.files,
-      'router.ts',
-      `import { ORPCError, os } from '@orpc/server';
-import { z } from 'zod';
-import { auth } from '@/lib/auth';
+    const { auth } = ctx.stack;
+    const owned = auth !== 'none';
+    const guard =
+      auth === 'better-auth'
+        ? `import { auth } from '@/lib/auth';
 ${repo.importFrom("'", '@/lib/')}
 import { noteInputSchema } from '@/lib/note-validation';
 
@@ -66,25 +65,46 @@ const authed = base.use(async ({ context, next }) => {
     throw new ORPCError('UNAUTHORIZED');
   }
   return next({ context: { user: session.user } });
-});
+});`
+        : auth === 'clerk'
+          ? `import { auth } from '@clerk/nextjs/server';
+${repo.importFrom("'", '@/lib/')}
+import { noteInputSchema } from '@/lib/note-validation';
+
+const base = os.$context<{ headers: Headers }>();
+
+const authed = base.use(async ({ next }) => {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new ORPCError('UNAUTHORIZED');
+  }
+  return next({ context: { user: { id: userId } } });
+});`
+          : `${repo.importFrom("'", '@/lib/')}
+import { noteInputSchema } from '@/lib/note-validation';
+
+const authed = os.$context<{ headers: Headers }>();`;
+    setFile(
+      ctx.files,
+      'router.ts',
+      `import { ORPCError, os } from '@orpc/server';
+import { z } from 'zod';
+${guard}
 
 export const router = {
-  me: authed.handler(async ({ context }) => context.user),
-  notes: {
-    list: authed.handler(async ({ context }) => {
+  ${owned ? 'me: authed.handler(async ({ context }) => context.user),\n  ' : ''}notes: {
+    list: authed.handler(async (${owned ? '{ context }' : ''}) => {
       return ${repo.list}({
-        where: { userId: context.user.id },
-        orderBy: { createdAt: 'desc' },
+        ${owned ? 'where: { userId: context.user.id },\n        ' : ''}orderBy: { createdAt: 'desc' },
       });
     }),
     create: authed
       .input(noteInputSchema)
-      .handler(async ({ input, context }) => {
+      .handler(async ({ input${owned ? ', context' : ''} }) => {
         return ${repo.create}({
           data: {
             title: input.title,
-            body: input.body,
-            userId: context.user.id,
+            body: input.body,${owned ? '\n            userId: context.user.id,' : ''}
           },
         });
       }),
@@ -95,9 +115,9 @@ export const router = {
           ...noteInputSchema.shape,
         })
       )
-      .handler(async ({ input, context }) => {
+      .handler(async ({ input${owned ? ', context' : ''} }) => {
         const note = await ${repo.find}({
-          where: { id: input.id, userId: context.user.id },
+          where: { id: input.id${owned ? ', userId: context.user.id' : ''} },
         });
         if (!note) {
           throw new ORPCError('NOT_FOUND');
@@ -109,9 +129,9 @@ export const router = {
       }),
     delete: authed
       .input(z.object({ id: z.string() }))
-      .handler(async ({ input, context }) => {
+      .handler(async ({ input${owned ? ', context' : ''} }) => {
         const note = await ${repo.find}({
-          where: { id: input.id, userId: context.user.id },
+          where: { id: input.id${owned ? ', userId: context.user.id' : ''} },
         });
         if (!note) {
           throw new ORPCError('NOT_FOUND');
