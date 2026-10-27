@@ -1,6 +1,7 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { setProviders } from '../project-model';
 
 export function emitOrpc(ctx: EmitCtx): void {
   ctx.pkg.dependencies['@orpc/server'] = DEPENDENCY_VERSIONS['@orpc/server'];
@@ -93,9 +94,8 @@ export function getQueryClient() {
 `
   );
 
-  setFile(
-    ctx.files,
-    'app/providers.tsx',
+  setProviders(
+    ctx.project,
     `'use client';
 
 import { QueryClientProvider } from '@tanstack/react-query';

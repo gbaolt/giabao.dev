@@ -3,45 +3,17 @@ import { WORKSPACE_DRIVER } from './assets/workspace-driver';
 import { DEPENDENCY_VERSIONS } from './dependency-versions';
 import { setFile } from './files';
 
-type WorkspaceManifest = {
-  name: string;
-  scripts?: Record<string, string>;
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-};
+const byName = (left: string, right: string) => left.localeCompare(right);
+
 export function prepareWorkspaceTasks(ctx: EmitCtx) {
   ctx.pkg.engines = { node: '>=22.12.0' };
-  if (!ctx.files['.gitignore'])
-    setFile(
-      ctx.files,
-      '.gitignore',
-      'node_modules\ndist\n.next\n.output\n.env*\n!.env.example\n*.log\n'
-    );
-  setFile(
-    ctx.files,
-    '.gitignore',
-    ctx.files['.gitignore'].trimEnd() + '\n.env*\n!.env.example\n.tanstack\n'
-  );
-  const workspaces = Object.entries(ctx.files)
+  ctx.project.ignoreLines.push('.env*', '!.env.example', '.tanstack');
+  const workspaces = Object.entries(ctx.project.manifests)
     .filter(([path]) => /^(apps|packages)\/[^/]+\/package.json$/.test(path))
-    .map(([path, source]) => {
-      const manifest: WorkspaceManifest = JSON.parse(source);
+    .map(([path, manifest]) => {
       const dir = path.slice(0, -'/package.json'.length);
       manifest.scripts ??= {};
       manifest.devDependencies ??= {};
-      if (dir === 'apps/server') {
-        manifest.dependencies ??= {};
-        manifest.dependencies.dotenv = DEPENDENCY_VERSIONS.dotenv;
-        setFile(
-          ctx.files,
-          dir + '/src/env.ts',
-          "import { config } from 'dotenv';\n\nconfig({ path: ['.env.local', '.env'] });\n"
-        );
-        const entry =
-          dir +
-          (ctx.stack.backend === 'nest' ? '/src/main.ts' : '/src/index.ts');
-        setFile(ctx.files, entry, 'import "./env.js";\n' + ctx.files[entry]);
-      }
       const typed = ctx.files[dir + '/tsconfig.json'] !== undefined;
       const hasSource = Object.keys(ctx.files).some(
         (file) => file.startsWith(dir + '/') && /\.[jt]sx?$/.test(file)
@@ -58,15 +30,15 @@ export function prepareWorkspaceTasks(ctx: EmitCtx) {
         manifest.devDependencies[dependency] ??=
           DEPENDENCY_VERSIONS[dependency];
       }
-      setFile(ctx.files, path, JSON.stringify(manifest, null, 2));
       return {
         name: manifest.name,
         dir,
-        tasks: Object.keys(manifest.scripts),
-        dependencies: Object.keys({
-          ...manifest.dependencies,
-          ...manifest.devDependencies,
-        }),
+        // Sorted like the rendered manifests, so emit order cannot leak in.
+        tasks: Object.keys(manifest.scripts).sort(byName),
+        dependencies: [
+          ...Object.keys(manifest.dependencies ?? {}).sort(byName),
+          ...Object.keys(manifest.devDependencies).sort(byName),
+        ].filter((name, index, all) => all.indexOf(name) === index),
         ...(ctx.files[dir + '/src/router.tsx']
           ? { routeTree: 'src/routeTree.gen.ts' }
           : {}),

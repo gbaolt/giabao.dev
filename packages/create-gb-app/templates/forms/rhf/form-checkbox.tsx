@@ -1,5 +1,5 @@
 'use client';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from '__UI_PREFIX__checkbox';
 import { FormBase, type FormControlFn } from './form-base';
 
 export const FormCheckbox: FormControlFn = (props) => (

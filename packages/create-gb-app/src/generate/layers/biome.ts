@@ -14,7 +14,22 @@ export function emitBiome(ctx: EmitCtx): void {
     'biome.json',
     JSON.stringify(
       {
-        $schema: 'https://biomejs.dev/schemas/2.2.4/schema.json',
+        $schema: './node_modules/@biomejs/biome/configuration_schema.json',
+        // Build output and framework-generated files are not source.
+        files: {
+          includes: [
+            '**',
+            '!**/node_modules',
+            '!**/dist',
+            '!**/.next',
+            '!**/.output',
+            '!**/.vinxi',
+            '!**/.turbo',
+            '!**/routeTree.gen.ts',
+            '!**/next-env.d.ts',
+            '!**/convex/_generated',
+          ],
+        },
         linter: { enabled: true },
         formatter: { enabled: false },
         javascript: {
@@ -22,6 +37,23 @@ export function emitBiome(ctx: EmitCtx): void {
             ? { unsafeParameterDecoratorsEnabled: true }
             : {},
         },
+        css: { parser: { tailwindDirectives: true } },
+        // The shared UI components are vendored from shadcn unchanged.
+        overrides: [
+          {
+            includes: ['packages/ui/src/**'],
+            linter: {
+              rules: {
+                a11y: {
+                  noLabelWithoutControl: 'off',
+                  useSemanticElements: 'off',
+                },
+                style: { useImportType: 'off' },
+                suspicious: { noArrayIndexKey: 'off', noDoubleEquals: 'off' },
+              },
+            },
+          },
+        ],
       },
       null,
       2

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { noteInputSchema, type NoteInput } from '@/lib/note-validation';
-import { Button } from '@/components/ui/button';
-import { FieldGroup } from '@/components/ui/field';
+import { noteInputSchema, type NoteInput } from '__NOTE_VALIDATION__';
+import { Button } from '__UI_PREFIX__button';
+import { FieldGroup } from '__UI_PREFIX__field';
 type NotesFormProps = {
   onSubmit: (input: NoteInput) => Promise<void>;
   persistent?: boolean;

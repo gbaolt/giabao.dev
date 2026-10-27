@@ -1,7 +1,8 @@
 import type { EmitCtx } from '../../types/generate';
 import shadcnSource from '../assets/shadcn/formatted-source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
-import { setFile, setFileIfAbsent } from '../files';
+import { setFile } from '../files';
+import { type DocumentWrapper, manifestSections } from '../project-model';
 
 export function emitShadcn(ctx: EmitCtx): void {
   if (ctx.layout.structure === 'monorepo') {
@@ -21,12 +22,8 @@ export function emitShadcn(ctx: EmitCtx): void {
     ctx.pkg.dependencies[dependency] = DEPENDENCY_VERSIONS[dependency];
   }
 
-  const webRoot = ctx.layout.frontendRoot ? `${ctx.layout.frontendRoot}/` : '';
-  const root = `${webRoot}${ctx.stack.frontend === 'tanstack-start' ? 'src/' : ''}`;
-  const css =
-    ctx.stack.frontend === 'tanstack-start'
-      ? `${webRoot}src/styles.css`
-      : `${webRoot}app/globals.css`;
+  const root = ctx.layout.sourceRoot ? `${ctx.layout.sourceRoot}/` : '';
+  const css = ctx.layout.stylesFile;
 
   setFile(ctx.files, `${root}lib/utils.ts`, shadcnSource['lib/utils.ts']);
 
@@ -38,7 +35,7 @@ export function emitShadcn(ctx: EmitCtx): void {
   config.tailwind.css = css;
   setFile(ctx.files, 'components.json', JSON.stringify(config, null, 2));
 
-  setFile(ctx.files, css, shadcnSource['app/globals.css']);
+  setFile(ctx.files, css, appStyles(ctx, shadcnSource['app/globals.css']));
 
   setFile(
     ctx.files,
@@ -70,46 +67,31 @@ export function emitShadcn(ctx: EmitCtx): void {
     setFile(ctx.files, `${root}${path}`, shadcnSource[path]);
   }
 
-  if (ctx.stack.frontend === 'next') {
-    setFile(
-      ctx.files,
-      `${root}components/theme-provider.tsx`,
-      shadcnSource['components/theme-provider.tsx']
-    );
-    const layoutPath = `${root}app/layout.tsx`;
-    const layout = ctx.files[layoutPath];
-    if (layout === undefined) {
-      throw new Error(`missing generated Next layout: ${layoutPath}`);
-    }
-    setFile(ctx.files, layoutPath, withNextTheme(layout, '@/lib/utils'));
-  } else {
-    emitStartTheme(ctx, root, ctx.pkg.dependencies);
-  }
+  setFile(
+    ctx.files,
+    `${root}components/theme-provider.tsx`,
+    shadcnSource['components/theme-provider.tsx']
+  );
+  if (ctx.stack.frontend === 'next')
+    ctx.project.documentWrappers.push(nextThemeWrapper('@/lib/utils'));
+  else emitStartTheme(ctx, ctx.pkg.dependencies);
 }
 
 function emitSharedShadcn(ctx: EmitCtx): void {
   const webRoot = `${ctx.layout.frontendRoot}/`;
   const isNext = ctx.stack.frontend === 'next';
-  const webSourceRoot = `${webRoot}${isNext ? '' : 'src/'}`;
-  const webCss = `${webSourceRoot}${isNext ? 'app/globals.css' : 'styles.css'}`;
+  const webSourceRoot = `${ctx.layout.sourceRoot}/`;
+  const webCss = ctx.layout.stylesFile;
   const sharedCss = 'packages/ui/src/styles/globals.css';
 
-  const uiManifest = ctx.files['packages/ui/package.json'];
-  const webManifest = ctx.files[ctx.layout.frontendManifest];
-  if (uiManifest === undefined || webManifest === undefined) {
-    throw new Error('missing generated workspace manifests for shadcn');
-  }
-  const uiPackage = JSON.parse(uiManifest) as {
+  const uiPackage = manifestSections(
+    ctx.project,
+    'packages/ui/package.json'
+  ) as ReturnType<typeof manifestSections> & {
     exports: Record<string, string>;
-    dependencies: Record<string, string>;
-    devDependencies: Record<string, string>;
   };
-  const webPackage = JSON.parse(webManifest) as {
-    dependencies: Record<string, string>;
-  };
+  const webPackage = manifestSections(ctx.project, ctx.layout.frontendManifest);
 
-  delete uiPackage.dependencies.clsx;
-  delete uiPackage.dependencies['tailwind-merge'];
   for (const dependency of [
     '@base-ui/react',
     'class-variance-authority',
@@ -161,7 +143,7 @@ function emitSharedShadcn(ctx: EmitCtx): void {
     '@custom-variant dark (&:is(.dark *));\n@source "../../../../apps/**/*.{ts,tsx}";\n@source "../**/*.{ts,tsx}";'
   );
   setFile(ctx.files, sharedCss, css);
-  setFile(ctx.files, webCss, '@import "@repo/ui/globals.css";\n');
+  setFile(ctx.files, webCss, appStyles(ctx, '@import "@repo/ui/globals.css";\n'));
 
   const appConfig = JSON.parse(shadcnSource['components.json']) as {
     rsc: boolean;
@@ -229,140 +211,60 @@ function emitSharedShadcn(ctx: EmitCtx): void {
   );
   setFile(
     ctx.files,
-    'packages/ui/package.json',
-    JSON.stringify(uiPackage, null, 2)
-  );
-  setFile(
-    ctx.files,
-    ctx.layout.frontendManifest,
-    JSON.stringify(webPackage, null, 2)
-  );
-
-  setFile(
-    ctx.files,
     `${webSourceRoot}components/theme-provider.tsx`,
     shadcnSource['components/theme-provider.tsx']
   );
   if (isNext) {
-    setFileIfAbsent(
-      ctx.files,
-      `${webRoot}tsconfig.json`,
-      JSON.stringify(
-        {
-          compilerOptions: {
-            target: 'ES2017',
-            lib: ['DOM', 'DOM.Iterable', 'ESNext'],
-            allowJs: true,
-            skipLibCheck: true,
-            strict: true,
-            noEmit: true,
-            esModuleInterop: true,
-            module: 'ESNext',
-            moduleResolution: 'Bundler',
-            resolveJsonModule: true,
-            isolatedModules: true,
-            jsx: 'preserve',
-            incremental: true,
-            plugins: [{ name: 'next' }],
-            paths: { '@/*': ['./*'] },
-          },
-          include: [
-            'next-env.d.ts',
-            '**/*.ts',
-            '**/*.tsx',
-            '.next/types/**/*.ts',
-          ],
-          exclude: ['node_modules'],
-        },
-        null,
-        2
-      )
-    );
-    const layoutPath = `${webRoot}app/layout.tsx`;
-    const layout = ctx.files[layoutPath];
-    if (layout === undefined) {
-      throw new Error(`missing generated Next layout: ${layoutPath}`);
-    }
-    setFile(ctx.files, layoutPath, withNextTheme(layout, '@repo/ui/utils'));
+    ctx.project.documentWrappers.push(nextThemeWrapper('@repo/ui/utils'));
   } else {
-    emitStartTheme(ctx, webSourceRoot, webPackage.dependencies);
-    setFile(
-      ctx.files,
-      ctx.layout.frontendManifest,
-      JSON.stringify(webPackage, null, 2)
-    );
+    emitStartTheme(ctx, webPackage.dependencies);
   }
 }
 
 function emitStartTheme(
   ctx: EmitCtx,
-  root: string,
   dependencies: Record<string, string>
 ): void {
   dependencies['@fontsource-variable/geist'] =
     DEPENDENCY_VERSIONS['@fontsource-variable/geist'];
   dependencies['@fontsource-variable/geist-mono'] =
     DEPENDENCY_VERSIONS['@fontsource-variable/geist-mono'];
-  setFile(
-    ctx.files,
-    `${root}components/theme-provider.tsx`,
-    shadcnSource['components/theme-provider.tsx']
-  );
-  const routePath = `${root}routes/__root.tsx`;
-  const route = ctx.files[routePath];
-  if (route === undefined) {
-    throw new Error(`missing generated Start root route: ${routePath}`);
-  }
-  setFile(
-    ctx.files,
-    routePath,
-    'import { ThemeProvider } from "../components/theme-provider";\n' +
-      route
-        .replace(
-          '<html lang="en">',
-          '<html lang="en" className="font-sans antialiased" suppressHydrationWarning>'
-        )
-        .replace('<body>', '<body>\n        <ThemeProvider>')
-        .replace('</body>', '  </ThemeProvider>\n      </body>')
-  );
-  const cssPath = `${root}styles.css`;
-  setFile(
-    ctx.files,
-    cssPath,
+  ctx.project.documentWrappers.push({
+    imports: 'import { ThemeProvider } from "../components/theme-provider";\n',
+    component: 'ThemeProvider',
+    htmlAttributes: ['className="font-sans antialiased"', 'suppressHydrationWarning'],
+  });
+}
+
+/** The app stylesheet; Start loads the Geist fonts that Next gets from next/font. */
+function appStyles(ctx: EmitCtx, css: string): string {
+  if (ctx.stack.frontend === 'next') return css;
+  return (
     '@import "@fontsource-variable/geist";\n@import "@fontsource-variable/geist-mono";\n' +
-      ctx.files[cssPath] +
-      '\n@theme inline {\n  --font-sans: "Geist Variable", sans-serif;\n  --font-mono: "Geist Mono Variable", monospace;\n}\n'
+    (css.endsWith('\n') ? css : `${css}\n`) +
+    '\n@theme inline {\n  --font-sans: "Geist Variable", sans-serif;\n  --font-mono: "Geist Mono Variable", monospace;\n}\n'
   );
 }
 
-function withNextTheme(layout: string, utilsImport: string): string {
-  const imports = `import { Geist, Geist_Mono } from 'next/font/google';
+function nextThemeWrapper(utilsImport: string): DocumentWrapper {
+  return {
+    imports: `import { Geist, Geist_Mono } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { cn } from '${utilsImport}';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
-`;
-
-  return (
-    imports +
-    layout
-      .replace(
-        /<html([^>]*)>/,
-        `<html
-     $1
-      suppressHydrationWarning
-      className={cn(
+`,
+    component: 'ThemeProvider',
+    htmlAttributes: [
+      'suppressHydrationWarning',
+      `className={cn(
         'antialiased',
         'font-sans',
         geist.variable,
         geistMono.variable
-      )}
-    >`
-      )
-      .replace(/<body([^>]*)>/, '<body$1>\n        <ThemeProvider>')
-      .replace('        <Providers>', '          <Providers>')
-      .replace('</body>', '  </ThemeProvider>\n      </body>')
-  );
+      )}`,
+    ],
+  };
 }

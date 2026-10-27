@@ -1,28 +1,16 @@
 import {
+  applyChange,
   type CreateFlags,
   FLAG_GROUPS,
+  optionState,
   selectionValue,
   VOCAB_BY_GROUP,
-  withSelection,
   YES_DEFAULTS,
 } from 'create-gb-app/preset';
-
-import { applyFlagChange, isOptionEnabled, normalizeFlags } from './compat';
 
 function sameConfiguration(left: CreateFlags, right: CreateFlags): boolean {
   return FLAG_GROUPS.every(
     (group) => selectionValue(left, group) === selectionValue(right, group)
-  );
-}
-
-function canGenerate(flags: CreateFlags): boolean {
-  return (
-    flags.addons.linting !== 'biome' &&
-    !(
-      flags.frontend === 'tanstack-start' &&
-      flags.backend === 'self' &&
-      flags.api === 'orpc'
-    )
   );
 }
 
@@ -31,29 +19,26 @@ export function shuffleConfiguration(
   random: () => number = Math.random
 ): CreateFlags {
   for (let attempt = 0; attempt < 20; attempt++) {
-    let next: CreateFlags = { ...YES_DEFAULTS };
+    let next: CreateFlags = YES_DEFAULTS;
 
     for (const group of FLAG_GROUPS) {
-      const choices = VOCAB_BY_GROUP[group].filter((value) =>
-        isOptionEnabled(next, group, value)
+      const choices = VOCAB_BY_GROUP[group].filter(
+        (value) => optionState(next, group, value).enabled
       );
       const value = choices[Math.floor(random() * choices.length)];
       if (value !== undefined) {
-        next = applyFlagChange(next, group, value);
+        next = applyChange(next, group, value);
       }
     }
 
-    next = normalizeFlags(next);
-    if (canGenerate(next) && !sameConfiguration(current, next)) {
+    if (!sameConfiguration(current, next)) {
       return next;
     }
   }
 
-  return normalizeFlags(
-    withSelection(
-      current,
-      'linting',
-      current.addons.linting === 'eslint' ? 'oxlint' : 'eslint'
-    )
+  return applyChange(
+    current,
+    'linting',
+    current.addons.linting === 'eslint' ? 'oxlint' : 'eslint'
   );
 }

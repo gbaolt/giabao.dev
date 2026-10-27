@@ -1,9 +1,10 @@
 import type { EmitCtx } from '../../types/generate';
 import type { HonoStack } from '../../types/stack';
 import { setFile } from '../files';
+import { SERVER_URL } from '../layers/server-workspace';
 import { notesForm, restCreate } from './form';
-
-const SERVER_URL = 'http://localhost:3333';
+import { NEXT_SERVER_NOTES_PAGE } from './next-page';
+import { notesRepository } from './repository';
 
 export function emitHonoNotes(ctx: EmitCtx): void {
   const { stack } = ctx;
@@ -16,25 +17,7 @@ export function emitHonoNotes(ctx: EmitCtx): void {
       'apps/web/app/notes/notes-client.tsx',
       nextNotesClient(ctx, stack)
     );
-    setFile(
-      ctx.files,
-      'apps/web/app/notes/page.tsx',
-      `import Link from "next/link";
-import { NotesClient } from "./notes-client";
-
-export default function NotesPage() {
-  return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-8">
-      <h1 className="text-2xl font-semibold">Notes</h1>
-      <Link className="text-sm underline" href="/">
-        Home
-      </Link>
-      <NotesClient />
-    </main>
-  );
-}
-`
-    );
+    setFile(ctx.files, 'apps/web/app/notes/page.tsx', NEXT_SERVER_NOTES_PAGE);
   } else {
     setFile(
       ctx.files,
@@ -52,7 +35,7 @@ function emitServerNotes(ctx: EmitCtx, stack: HonoStack): void {
       'apps/server/src/notes.ts',
       `import { noteInputSchema } from "@repo/validation";
 import { notesStore } from "./notes-store";
-function scope(userId: string | null) {
+function scope(${authed ? 'userId' : '_userId'}: string | null) {
   ${authed ? 'if (!userId) throw new Error("UNAUTHORIZED"); return { userId };' : 'return {};'}
 }
 export async function listNotes(userId: string | null) {
@@ -79,26 +62,29 @@ export async function removeNote(userId: string | null, id: string): Promise<{ o
     return;
   }
 
+  const repo = notesRepository(stack);
+  // Public Notes ignore the caller, which the shared signature still passes.
+  const owner = authed ? 'userId' : '_userId';
   const scope = authed ? 'where: { userId: userId ?? "" }' : '';
   setFile(
     ctx.files,
     'apps/server/src/notes.ts',
     `import { noteInputSchema } from "@repo/validation";
-import { prisma } from "./db";
+${repo.importFrom('"', './')}
 
-export async function listNotes(userId: string | null) {
-  ${authed ? 'if (!userId) {\n    return [];\n  }\n  ' : ''}return prisma.note.findMany({
+export async function listNotes(${owner}: string | null) {
+  ${authed ? 'if (!userId) {\n    return [];\n  }\n  ' : ''}return ${repo.list}({
     ${scope ? `${scope},` : ''}
     orderBy: { createdAt: "desc" },
   });
 }
 
 export async function createNote(
-  userId: string | null,
+  ${owner}: string | null,
   input: { title: string; body: string },
 ) {
   const note = noteInputSchema.parse(input);
-  return prisma.note.create({
+  return ${repo.create}({
     data: {
       title: note.title,
       body: note.body,
@@ -108,18 +94,18 @@ export async function createNote(
 }
 
 export async function updateNote(
-  userId: string | null,
+  ${owner}: string | null,
   input: { id: string; title: string; body: string },
 ) {
   const parsed = noteInputSchema.parse(input);
-  ${authed ? 'const note = await prisma.note.findFirst({ where: { id: input.id, userId: userId ?? "" } });\n  if (!note) {\n    throw new Error("NOT_FOUND");\n  }\n  ' : ''}return prisma.note.update({
+  ${authed ? `const note = await ${repo.find}({ where: { id: input.id, userId: userId ?? "" } });\n  if (!note) {\n    throw new Error("NOT_FOUND");\n  }\n  ` : ''}return ${repo.update}({
     where: { id: ${authed ? 'note.id' : 'input.id'} },
     data: { title: parsed.title, body: parsed.body },
   });
 }
 
-export async function removeNote(userId: string | null, id: string) {
-  ${authed ? 'const note = await prisma.note.findFirst({ where: { id, userId: userId ?? "" } });\n  if (!note) {\n    throw new Error("NOT_FOUND");\n  }\n  await prisma.note.delete({ where: { id: note.id } });' : 'await prisma.note.delete({ where: { id } });'}
+export async function removeNote(${owner}: string | null, id: string) {
+  ${authed ? `const note = await ${repo.find}({ where: { id, userId: userId ?? "" } });\n  if (!note) {\n    throw new Error("NOT_FOUND");\n  }\n  await ${repo.remove}({ where: { id: note.id } });` : `await ${repo.remove}({ where: { id } });`}
   return { ok: true as const };
 }
 `
@@ -153,14 +139,14 @@ function emitOrpcRouter(ctx: EmitCtx, stack: HonoStack): void {
   setFile(
     ctx.files,
     'apps/server/src/orpc.ts',
-    `import { ORPCError, implement } from "@orpc/server";
+    `import { ${authed ? 'ORPCError, ' : ''}implement } from "@orpc/server";
 import { contract } from "@repo/contract";
 ${authImport}import { createNote, listNotes, removeNote, updateNote } from "./notes";
 
 const base = implement(contract).$context<{ headers: Headers; userId: string | null }>();
 
 export const router = base.router({
-  me: base.me.handler(async ({ context }) => {
+  me: base.me.handler(async (${authed ? '{ context }' : ''}) => {
     ${meBody}
   }),
   notes: {
@@ -311,8 +297,7 @@ function startNotesRoute(ctx: EmitCtx, stack: HonoStack): string {
   const submit = trpc
     ? ['await client.notes.create.mutate(input);']
     : restCreate(notesHttpPath(stack), false);
-  return `import { createFileRoute } from "@tanstack/react-router";
-${inline ? 'import { noteInputSchema } from "@repo/validation";\nimport { useState } from "react";\n' : ''}${trpc ? 'import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";\nimport type { AppRouter } from "@repo/contract";\n' : ''}${inline ? 'import { Button } from "@repo/ui/button";\nimport { Input } from "@repo/ui/input";' : form.importLine('"').slice(1)}
+  return `import { createFileRoute } from "@tanstack/react-router";${inline ? '\nimport { noteInputSchema } from "@repo/validation";\nimport { useState } from "react";' : ''}${trpc ? '\nimport { createTRPCProxyClient, httpBatchLink } from "@trpc/client";\nimport type { AppRouter } from "@repo/contract";' : ''}${inline ? '\nimport { Button } from "@repo/ui/button";\nimport { Input } from "@repo/ui/input";' : form.importLine('"')}
 
 ${trpc ? TRPC_CLIENT('import.meta.env.VITE_SERVER_URL') : `const serverUrl = import.meta.env.VITE_SERVER_URL ?? "${SERVER_URL}";`}
 

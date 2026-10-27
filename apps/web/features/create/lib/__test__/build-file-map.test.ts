@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test';
-import { YES_DEFAULTS } from 'create-gb-app/preset';
+import { repairConfiguration, YES_DEFAULTS } from 'create-gb-app/preset';
 
-import { normalizeFlags } from '../compat';
 import {
   buildCreateFileMap,
   flagsToRaw,
@@ -45,7 +44,7 @@ test('unverified Start oRPC combinations return the generation gap in preview', 
   );
   expect(result.ok).toBe(false);
   if (result.ok) return;
-  expect(result.code).toBe('start-orpc');
+  expect(result.code).toBe('start-orpc-limits');
   expect(result.message).toContain('PostgreSQL');
 });
 test('private Start oRPC preview includes its auth and login routes', () => {
@@ -121,13 +120,11 @@ test('Start oRPC workspace preview explains the remaining form-library gap', () 
   );
   expect(result.ok).toBe(false);
   if (result.ok) return;
-  expect(result.code).toBe('start-orpc');
-  expect(result.message).toContain(
-    'Workspaces currently require the plain form'
-  );
+  expect(result.code).toBe('start-orpc-limits');
+  expect(result.message).toContain('Workspaces require the plain form');
 });
 test('convex preview keeps relational none and is not convex-database-off', () => {
-  const flags = normalizeFlags({ ...YES_DEFAULTS, backend: 'convex' });
+  const flags = repairConfiguration({ ...YES_DEFAULTS, backend: 'convex' });
   expect(flagsToRaw(flags)).toEqual({
     frontend: 'next',
     backend: 'convex',
@@ -167,7 +164,7 @@ test.each([
 ] as const)(
   '%s preview includes the selected %s templates',
   (frontend, form, notesPath, dependency) => {
-    const flags = normalizeFlags({
+    const flags = repairConfiguration({
       ...YES_DEFAULTS,
       frontend,
       addons: { ...YES_DEFAULTS.addons, form },
@@ -187,7 +184,7 @@ test.each([
   }
 );
 test('database none is a shell without notes', () => {
-  const flags = normalizeFlags({
+  const flags = repairConfiguration({
     ...YES_DEFAULTS,
     database: 'none',
     api: 'none',
@@ -203,7 +200,7 @@ test('database none is a shell without notes', () => {
   expect(result.files['prisma/schema.prisma']).toBeUndefined();
 });
 test('api none emits notes without an RPC router', () => {
-  const flags = normalizeFlags({ ...YES_DEFAULTS, api: 'none' });
+  const flags = repairConfiguration({ ...YES_DEFAULTS, api: 'none' });
   const result = buildCreateFileMap(flags, 'actions-app');
   expect(result.ok).toBe(true);
   if (!result.ok) {
@@ -225,7 +222,7 @@ test('default generate includes package.json', () => {
   expect(result.files['apps/web/package.json']).toBeUndefined();
 });
 test('hono next preview lists apps/server and @hono/node-server', () => {
-  const flags = normalizeFlags({ ...YES_DEFAULTS, backend: 'hono' });
+  const flags = repairConfiguration({ ...YES_DEFAULTS, backend: 'hono' });
   const result = buildCreateFileMap(flags, 'hono-app');
   expect(result.ok).toBe(true);
   if (!result.ok) {
@@ -240,7 +237,7 @@ test('hono next preview lists apps/server and @hono/node-server', () => {
   );
 });
 test('hono start preview lists apps/server', () => {
-  const flags = normalizeFlags({
+  const flags = repairConfiguration({
     ...YES_DEFAULTS,
     backend: 'hono',
     frontend: 'tanstack-start',
@@ -257,7 +254,7 @@ test('hono start preview lists apps/server', () => {
   expect(result.files['vite.config.ts']).toBeUndefined();
 });
 test('hono api none preview has no packages/contract', () => {
-  const flags = normalizeFlags({
+  const flags = repairConfiguration({
     ...YES_DEFAULTS,
     backend: 'hono',
     api: 'none',
@@ -275,7 +272,7 @@ test('hono api none preview has no packages/contract', () => {
   expect(result.files['apps/server/src/index.ts']).toContain('"/notes"');
 });
 test('nest plus start returns a FileMap', () => {
-  const flags = normalizeFlags({
+  const flags = repairConfiguration({
     ...YES_DEFAULTS,
     backend: 'nest',
     frontend: 'tanstack-start',
@@ -297,7 +294,7 @@ test('nest plus start returns a FileMap', () => {
   expect(result.files['packages/contract/package.json']).toBeDefined();
 });
 test('nest plus start with api none omits the contract', () => {
-  const flags = normalizeFlags({
+  const flags = repairConfiguration({
     ...YES_DEFAULTS,
     backend: 'nest',
     frontend: 'tanstack-start',
@@ -319,7 +316,7 @@ test('nest plus start with api none omits the contract', () => {
   expect(result.files['apps/web/src/routes/notes.tsx']).toBeDefined();
 });
 test('nest plus start with trpc stays disabled', () => {
-  const flags = normalizeFlags({
+  const flags = repairConfiguration({
     ...YES_DEFAULTS,
     backend: 'nest',
     frontend: 'tanstack-start',
@@ -349,7 +346,7 @@ test('nest plus start with trpc stays disabled', () => {
 });
 test('nest plus eslint returns a FileMap', () => {
   const result = buildCreateFileMap(
-    normalizeFlags({ ...YES_DEFAULTS, backend: 'nest' }),
+    repairConfiguration({ ...YES_DEFAULTS, backend: 'nest' }),
     'nest-app'
   );
   expect(result.ok).toBe(true);

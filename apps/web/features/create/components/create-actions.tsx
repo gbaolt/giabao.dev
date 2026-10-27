@@ -1,5 +1,6 @@
 'use client';
 
+import { YES_DEFAULTS } from 'create-gb-app/preset';
 import { RotateCcwIcon, ShuffleIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -11,7 +12,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-import { YES_DEFAULTS } from '../lib/compat';
 import { shuffleConfiguration } from '../lib/shuffle-configuration';
 import { useCreate } from './create-provider';
 import { CreateSetupGuide } from './create-setup-guide';

@@ -1,0 +1,55 @@
+name: create-gb-app
+
+on:
+  pull_request:
+    paths:
+      - packages/create-gb-app/**
+      - package.json
+      - bun.lock
+      - .github/workflows/create-gb-app.yml
+  push:
+    branches: [main, staging]
+    paths:
+      - packages/create-gb-app/**
+      - package.json
+      - bun.lock
+      - .github/workflows/create-gb-app.yml
+
+concurrency:
+  group: create-gb-app-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: packages/create-gb-app
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install
+        working-directory: .
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun run test
+
+      # Compiles the CLI binary for the runner and smoke-tests `--help`; the
+      # regular install already provides the runner's native OpenTUI package.
+      - name: Build
+        run: bun script/build.ts --skip-install

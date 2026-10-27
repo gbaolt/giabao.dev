@@ -38,3 +38,16 @@ test('keeps the preset token and omits expanded defaults', () => {
     })
   ).toBe('create-gb-app my-gb-app --preset nest');
 });
+
+test('Convex omits the relational groups it implies', () => {
+  expect(
+    formatCommand({
+      projectName: 'my-gb-app',
+      backend: 'convex',
+      api: 'none',
+      database: 'none',
+      orm: 'none',
+      dbSetup: 'none',
+    })
+  ).toBe('create-gb-app my-gb-app --backend convex');
+});

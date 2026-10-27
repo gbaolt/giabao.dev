@@ -1,25 +1,19 @@
 import type { EmitCtx } from '../../types/generate';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
-import { isAppsLayout, isStart } from '../paths';
+import { joinPath } from '../layout';
+import { addEnv } from '../project-model';
+import { emitPortalPage } from './portal';
 
 export function emitStripe(ctx: EmitCtx): void {
   ctx.pkg.dependencies.stripe = DEPENDENCY_VERSIONS['stripe'];
-  const webhookPath = isAppsLayout(ctx.stack)
-    ? 'apps/server/src/stripe.webhook.ts'
-    : isStart(ctx.stack)
-      ? 'src/routes/api/stripe/webhook.ts'
-      : 'app/api/stripe/webhook/route.ts';
-  const portalPath = isAppsLayout(ctx.stack)
-    ? 'apps/web/app/portal/page.tsx'
-    : isStart(ctx.stack)
-      ? 'src/routes/portal.tsx'
-      : 'app/portal/page.tsx';
-  const checkoutPath = isAppsLayout(ctx.stack)
-    ? 'apps/server/src/stripe.checkout.ts'
-    : isStart(ctx.stack)
-      ? 'src/routes/api/stripe/checkout.ts'
-      : 'app/api/stripe/checkout/route.ts';
+  const { layout } = ctx;
+  const handler = (name: string) =>
+    layout.backendRoot === 'apps/server'
+      ? joinPath(layout.serverSourceRoot, `stripe.${name}.ts`)
+      : layout.apiRoute(`stripe/${name}`);
+  const webhookPath = handler('webhook');
+  const checkoutPath = handler('checkout');
 
   setFile(
     ctx.files,
@@ -36,20 +30,14 @@ export function emitStripe(ctx: EmitCtx): void {
 }
 `
   );
-  setFile(
-    ctx.files,
-    portalPath,
-    `export default function PortalPage() {
-  return (
-    <main>
+  emitPortalPage(
+    ctx,
+    `    <main>
       <h1>Customer portal</h1>
       <form action="/api/stripe/portal" method="post">
         <button type="submit">Open portal</button>
       </form>
-    </main>
-  );
-}
-`
+    </main>`
   );
   setFile(
     ctx.files,
@@ -67,15 +55,9 @@ export function emitStripe(ctx: EmitCtx): void {
 `
   );
 
-  const env = ctx.files['.env'] ?? '';
-  const extra = `STRIPE_SECRET_KEY="sk_test_replace_me"
-STRIPE_WEBHOOK_SECRET="whsec_replace_me"
-STRIPE_PRO_PRICE_ID="price_pro"
-`;
-  setFile(ctx.files, '.env', `${env}${extra}`);
-  setFile(
-    ctx.files,
-    '.env.example',
-    `${ctx.files['.env.example'] ?? env}${extra}`
-  );
+  addEnv(ctx.project, {
+    STRIPE_SECRET_KEY: 'sk_test_replace_me',
+    STRIPE_WEBHOOK_SECRET: 'whsec_replace_me',
+    STRIPE_PRO_PRICE_ID: 'price_pro',
+  });
 }

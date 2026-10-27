@@ -2,19 +2,7 @@ import type { FileMap, PackageManager } from '#/types/generate';
 
 import { DEPENDENCY_VERSIONS } from './dependency-versions';
 import { PACKAGE_MANAGER_METADATA } from './package-managers';
-
-type Manifest = {
-  name: string;
-  version?: string;
-  scripts?: Record<string, string>;
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-  optionalDependencies?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
-  workspaces?:
-    string[] | { packages: string[]; catalog: Record<string, string> };
-  packageManager?: string;
-};
+import type { Manifest } from './project-model';
 
 const DEPENDENCY_SECTIONS = [
   'dependencies',
@@ -23,21 +11,40 @@ const DEPENDENCY_SECTIONS = [
   'peerDependencies',
 ] as const;
 const WORKSPACE_PATTERNS = ['apps/*', 'packages/*'];
+// pnpm 10 builds only `onlyBuiltDependencies`; pnpm 11 fails the install unless
+// `allowBuilds` decides every dependency that has a build script.
+const BUILT_DEPENDENCIES = [
+  '@prisma/engines',
+  '@tailwindcss/oxide',
+  'better-sqlite3',
+  'esbuild',
+  'prisma',
+  'sharp',
+  'unrs-resolver',
+];
+// The client's postinstall reruns `prisma generate`, which `db:generate` already does
+// and which fails under pnpm on Windows.
+const PNPM_BUILD_APPROVALS = `allowBuilds:\n  "@prisma/client": false\n${BUILT_DEPENDENCIES.map((name) => `  ${JSON.stringify(name)}: true`).join('\n')}\nonlyBuiltDependencies:\n${BUILT_DEPENDENCIES.map((name) => `  - ${JSON.stringify(name)}`).join('\n')}\n`;
 
+/**
+ * Folds workspace links and the shared catalog into the manifests, in place,
+ * and returns the package manager's workspace files.
+ */
 export function finalizeWorkspaces(
-  files: FileMap,
+  byPath: Record<string, Manifest>,
   packageManager: PackageManager
-): void {
-  const manifests = Object.entries(files)
-    .filter(
-      ([path]) => path.endsWith('/package.json') || path === 'package.json'
-    )
-    .map(([path, contents]) => ({
-      path,
-      manifest: JSON.parse(contents) as Manifest,
-    }));
-  const root = manifests.find(({ path }) => path === 'package.json')?.manifest;
-  if (!root?.workspaces) return;
+): FileMap {
+  const files: FileMap = {};
+  const manifests = Object.entries(byPath).map(([path, manifest]) => ({
+    path,
+    manifest,
+  }));
+  const root = byPath['package.json'];
+  if (!root?.workspaces) {
+    if (packageManager === 'pnpm')
+      files['pnpm-workspace.yaml'] = PNPM_BUILD_APPROVALS;
+    return files;
+  }
 
   const internal = new Map(
     manifests
@@ -114,7 +121,6 @@ export function finalizeWorkspaces(
           ? { packages: WORKSPACE_PATTERNS, catalog }
           : WORKSPACE_PATTERNS;
     }
-    files[path] = JSON.stringify(manifest, null, 2);
   }
 
   const yamlCatalog = Object.entries(catalog)
@@ -125,11 +131,12 @@ export function finalizeWorkspaces(
     .join('\n');
   if (packageManager === 'pnpm')
     files['pnpm-workspace.yaml'] =
-      `packages:\n  - "apps/*"\n  - "packages/*"\n\ncatalog:\n${yamlCatalog}\n`;
+      `packages:\n  - "apps/*"\n  - "packages/*"\n\ncatalog:\n${yamlCatalog}\n\n${PNPM_BUILD_APPROVALS}`;
   if (packageManager === 'yarn')
     files['.yarnrc.yml'] =
       `nodeLinker: node-modules\n\ncatalog:\n${yamlCatalog}\n`;
   // Start's dev middleware needs Vite to have one module identity across plugins.
   if (packageManager === 'bun' && requirements.has('@tanstack/react-start'))
     files['bunfig.toml'] = '[install]\nlinker = "hoisted"\n';
+  return files;
 }

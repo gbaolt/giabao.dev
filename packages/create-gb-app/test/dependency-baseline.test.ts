@@ -34,7 +34,7 @@ test('generated oRPC applications use the same explicit release set', () => {
   }
 });
 
-test('Nest contracts expose built ESM for the Node server', () => {
+test('Nest contracts expose a built single-file package for the Node server', () => {
   const files = buildTree(
     resolveStack({ backend: 'nest', frontend: 'tanstack-start' }),
     {
@@ -46,5 +46,8 @@ test('Nest contracts expose built ESM for the Node server', () => {
   expect(contract.exports['.'].default).toBe('./dist/index.js');
   expect(contract.exports['.'].types).toBe('./dist/index.d.ts');
   expect(contract.scripts.build).toBe('tsc -p tsconfig.json');
-  expect(files['packages/contract/src/index.ts']).toContain('"./contract.js"');
+  expect(files['packages/contract/src/index.ts']).toContain(
+    'export const contract'
+  );
+  expect(files['packages/contract/src/contract.ts']).toBeUndefined();
 });

@@ -1,38 +1,16 @@
 import { canonicalRaw, overlayRawFlags, parsePresetToken } from '#/preset';
+import { isAddonGroup, parseChoice } from '#/stack/configuration';
 import { ParseError } from '#/stack/parse-error';
 import { defaultStructureForBackend } from '#/stack/resolve';
 import {
-  APIS,
-  AUTHS,
-  BACKENDS,
-  DATABASES,
-  DB_SETUPS,
-  FORMS,
-  FRONTENDS,
   LINTERS,
-  LINTING,
-  ORMS,
-  PAYMENTS,
   PROJECT_STRUCTURES,
-  TASK_RUNNERS,
-  TOOLCHAINS,
+  STACK_CLI_FLAGS,
+  VOCAB_BY_GROUP,
 } from '#/stack/vocab';
 import type { RawFlags } from '#/types/stack';
 
 export { ParseError };
-
-function oneOf<T extends string>(
-  name: string,
-  value: string,
-  allowed: readonly T[]
-): T {
-  if ((allowed as readonly string[]).includes(value)) {
-    return value as T;
-  }
-  throw new ParseError(
-    `invalid ${name} "${value}". expected ${allowed.join('|')}`
-  );
-}
 
 function takeValue(
   argv: string[],
@@ -102,112 +80,38 @@ export function parseArgs(argv: string[]): RawFlags {
     }
 
     const name = arg.includes('=') ? arg.slice(0, arg.indexOf('=')) : arg;
-    switch (name) {
-      case '--preset': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.preset = value;
-        i += consumed;
-        break;
-      }
-      case '--frontend': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.frontend = oneOf('frontend', value, FRONTENDS);
-        i += consumed;
-        break;
-      }
-      case '--backend': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.backend = oneOf('backend', value, BACKENDS);
-        i += consumed;
-        break;
-      }
-      case '--structure': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.structure = oneOf('structure', value, [
-          ...PROJECT_STRUCTURES,
-          'turborepo',
-        ] as const);
-        i += consumed;
-        break;
-      }
-      case '--api': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.api = oneOf('api', value, APIS);
-        i += consumed;
-        break;
-      }
-      case '--database': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.database = oneOf('database', value, DATABASES);
-        i += consumed;
-        break;
-      }
-      case '--orm': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.orm = oneOf('orm', value, ORMS);
-        i += consumed;
-        break;
-      }
-      case '--db-setup': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.dbSetup = oneOf('db-setup', value, DB_SETUPS);
-        i += consumed;
-        break;
-      }
-      case '--auth': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.auth = oneOf('auth', value, AUTHS);
-        i += consumed;
-        break;
-      }
-      case '--payments': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.payments = oneOf('payments', value, PAYMENTS);
-        i += consumed;
-        break;
-      }
-      case '--form': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.addons = { ...flags.addons, form: oneOf('form', value, FORMS) };
-        i += consumed;
-        break;
-      }
-      case '--toolchain': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.addons = {
-          ...flags.addons,
-          toolchain: oneOf('toolchain', value, TOOLCHAINS),
-        };
-        i += consumed;
-        break;
-      }
-      case '--task-runner': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.addons = {
-          ...flags.addons,
-          taskRunner: oneOf('task runner', value, TASK_RUNNERS),
-        };
-        i += consumed;
-        break;
-      }
-      case '--linting': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.addons = {
-          ...flags.addons,
-          linting: oneOf('linting', value, LINTING),
-        };
-        i += consumed;
-        break;
-      }
-      case '--linter': {
-        const { value, consumed } = takeValue(argv, i, name);
-        flags.linter = oneOf('linter', value, LINTERS);
-        i += consumed;
-        break;
-      }
-      default:
-        throw new ParseError(`unknown flag ${name}`);
-    }
+    const stackFlag = STACK_CLI_FLAGS.find(({ flag }) => flag === name);
+    if (name !== '--preset' && name !== '--linter' && !stackFlag)
+      throw new ParseError(`unknown flag ${name}`);
+    const { value, consumed } = takeValue(argv, i, name);
+    i += consumed;
+    if (name === '--preset') flags.preset = value;
+    else if (name === '--linter')
+      flags.linter = parseChoice('linter', value, LINTERS);
+    else if (stackFlag?.key === 'structure')
+      flags.structure = parseChoice('structure', value, [
+        ...PROJECT_STRUCTURES,
+        'turborepo',
+      ] as const);
+    else if (stackFlag && isAddonGroup(stackFlag.key))
+      flags.addons = Object.assign(
+        { ...flags.addons },
+        {
+          [stackFlag.key]: parseChoice(
+            name,
+            value,
+            VOCAB_BY_GROUP[stackFlag.key]
+          ),
+        }
+      );
+    else if (stackFlag)
+      Object.assign(flags, {
+        [stackFlag.key]: parseChoice(
+          name,
+          value,
+          VOCAB_BY_GROUP[stackFlag.key]
+        ),
+      });
   }
 
   if (positionals.length > 1) {

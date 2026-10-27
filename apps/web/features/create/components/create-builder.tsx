@@ -5,6 +5,7 @@ import {
   CORE_GROUPS,
   type CreateFlags,
   type FlagGroup,
+  optionState,
   parseChoice,
   selectionValue,
   type SelectionValues,
@@ -32,22 +33,16 @@ import {
   optionsFor,
   presentFlagOption,
 } from '../data/options';
-import { isSelectable } from '../lib/command';
-import { disabledReason, isGroupVisible } from '../lib/compat';
 import { useCreate } from './create-provider';
 
 export function CreateBuilder() {
-  const { flags } = useCreate();
-
   return (
     <Card className="rounded-none bg-transparent ring-0">
       <CardContent>
         <FieldGroup className="gap-6">
-          {CORE_GROUPS.map((group) =>
-            isGroupVisible(flags, group) ? (
-              <FlagRadioGroup key={group} group={group} />
-            ) : null
-          )}
+          {CORE_GROUPS.map((group) => (
+            <FlagRadioGroup key={group} group={group} />
+          ))}
           <FieldSet>
             <FieldLegend className="relative flex w-full items-center justify-center [&_svg]:size-4">
               <div className="bg-background flex items-center gap-2 rounded-sm border px-2 py-1">
@@ -87,8 +82,9 @@ function FlagRadioGroup({ group }: { group: FlagGroup }) {
         {optionsFor(group).map((rawOption) => {
           const option = presentFlagOption(rawOption, flags);
           const optionId = `${id}-${option.value}`;
-          const enabled = isSelectable(flags, group, option.value);
-          const reason = disabledReason(flags, group, option.value);
+          const state = optionState(flags, group, option.value);
+          const enabled = state.enabled;
+          const reason = state.enabled ? null : state.message;
 
           return (
             <FieldLabel
@@ -143,8 +139,9 @@ function assignFlag(
   if (typeof value !== 'string') {
     return;
   }
-  if (!isSelectable(flags, group, value)) {
+  const selection = parseChoice(group, value, VOCAB_BY_GROUP[group]);
+  if (!optionState(flags, group, selection).enabled) {
     return;
   }
-  setFlag(group, parseChoice(group, value, VOCAB_BY_GROUP[group]));
+  setFlag(group, selection);
 }

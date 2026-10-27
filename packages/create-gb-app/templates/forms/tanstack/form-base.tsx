@@ -6,7 +6,7 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
-} from '@/components/ui/field';
+} from '__UI_PREFIX__field';
 
 export type FormControlProps = {
   label?: ReactNode;
@@ -53,18 +53,18 @@ export function FormBase({
         'aria-invalid': invalid,
         'aria-describedby':
           [
-            description ? id + '-description' : null,
-            invalid ? id + '-error' : null,
+            description ? `${id}-description` : null,
+            invalid ? `${id}-error` : null,
           ]
             .filter(Boolean)
             .join(' ') || undefined,
       })}
       {description ? (
-        <FieldDescription id={id + '-description'}>
+        <FieldDescription id={`${id}-description`}>
           {description}
         </FieldDescription>
       ) : null}
-      {invalid ? <FieldError id={id + '-error'} errors={messages} /> : null}
+      {invalid ? <FieldError id={`${id}-error`} errors={messages} /> : null}
     </Field>
   );
 }

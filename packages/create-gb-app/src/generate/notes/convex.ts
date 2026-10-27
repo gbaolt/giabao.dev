@@ -68,7 +68,7 @@ export const create = mutation({
     isNext ? 'app/notes/notes-client.tsx' : 'src/routes/notes.tsx',
     `${isNext ? '"use client";\n' : 'import { createFileRoute } from "@tanstack/react-router";'}
 import { useMutation, useQuery } from "convex/react";
-${inline ? 'import { useState } from "react";\n' : ''}import { api } from "../../${isNext ? '' : '../'}convex/_generated/api";
+${inline ? 'import { useState } from "react";\n' : ''}import { api } from "../../convex/_generated/api";
 ${inline ? 'import { noteInputSchema } from "@/lib/note-validation";\nimport { Button } from "@/components/ui/button";\n' : ''}import { Card } from "@/components/ui/card";${inline ? '\nimport { Input } from "@/components/ui/input";' : form.importLine('"')}
 
 ${

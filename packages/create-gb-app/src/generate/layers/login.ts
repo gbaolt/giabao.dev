@@ -2,6 +2,8 @@ import type { EmitCtx } from '../../types/generate';
 import loginSource from '../assets/login/source.json';
 import { DEPENDENCY_VERSIONS } from '../dependency-versions';
 import { setFile } from '../files';
+import { addDependencies } from '../project-model';
+import { fillTemplate } from '../template-tokens';
 import { startOrpcLoginRoute } from './start-orpc-auth';
 
 export function emitLogin(ctx: EmitCtx): void {
@@ -13,26 +15,23 @@ export function emitLogin(ctx: EmitCtx): void {
   const pagePath = isNext
     ? `${webRoot}app/login/page.tsx`
     : `${sourceRoot}routes/login.tsx`;
-  if (!(pagePath in ctx.files)) return;
+  // A separate server never renders pages, so its web app always owns login;
+  // a Self Start app only signs in through its oRPC routes.
+  const ownsPage =
+    ctx.layout.backendRoot === 'apps/server' ||
+    (ctx.stack.backend === 'self' && (isNext || ctx.stack.api === 'orpc'));
+  if (!ownsPage) return;
 
-  if (ctx.layout.structure === 'single') {
-    ctx.pkg.dependencies['lucide-react'] = DEPENDENCY_VERSIONS['lucide-react'];
-  } else {
-    const manifest = JSON.parse(ctx.files[ctx.layout.frontendManifest]!);
-    manifest.dependencies['lucide-react'] = DEPENDENCY_VERSIONS['lucide-react'];
-    setFile(
-      ctx.files,
-      ctx.layout.frontendManifest,
-      JSON.stringify(manifest, null, 2)
-    );
-  }
+  addDependencies(ctx.project, ctx.layout.frontendManifest, {
+    'lucide-react': DEPENDENCY_VERSIONS['lucide-react'],
+  });
 
   const ui =
     ctx.layout.structure === 'single' ? '@/components/ui/' : '@repo/ui/';
   setFile(
     ctx.files,
     `${sourceRoot}components/login-form.tsx`,
-    loginSource.forms[ctx.stack.addons.form].replaceAll('__UI_PREFIX__', ui)
+    fillTemplate(loginSource.forms[ctx.stack.addons.form], { UI_PREFIX: ui })
   );
 
   const page = isNext
@@ -49,6 +48,6 @@ export function emitLogin(ctx: EmitCtx): void {
       ctx.stack.frontend === 'tanstack-start' &&
       ctx.stack.api === 'orpc'
       ? startOrpcLoginRoute(projectNameLiteral)
-      : page.replaceAll('__PROJECT_NAME__', projectNameLiteral)
+      : fillTemplate(page, { PROJECT_NAME: projectNameLiteral })
   );
 }
