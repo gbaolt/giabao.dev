@@ -93,5 +93,5 @@ export const USER: User = {
     'cheffolio',
   ],
   dateCreated: '2026-03-22',
-  dateModified: '2026-10-21',
+  dateModified: '2026-10-28',
 };
