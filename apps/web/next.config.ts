@@ -1,3 +1,4 @@
+import { withRedact } from '@tanstack/redact/next';
 import type { NextConfig } from 'next';
 
 import { RESUME_PDF_FILENAME } from './config/resume';
@@ -106,4 +107,18 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const redactConfig = withRedact(nextConfig);
+
+// shortcut: @tanstack/redact 0.2.2 rewrites `scheduler` without its default export which @react-three/fiber imports
+// drop once fixed upstream
+for (const rule of [redactConfig.turbopack?.rules?.['*.js'] ?? []].flat()) {
+  for (const loader of (rule as { loaders?: unknown[] }).loaders ?? []) {
+    const options = (
+      loader as { options?: { target?: string; defaultExport?: boolean } }
+    ).options;
+    if (options && /scheduler[\\/]index\.js$/.test(options.target ?? ''))
+      options.defaultExport = true;
+  }
+}
+
+export default redactConfig;
