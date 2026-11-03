@@ -121,7 +121,6 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: META_THEME_COLORS.light,
 };
 
 export default function RootLayout({
@@ -136,6 +135,12 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        {/* darkModeScript rewrites content before hydration */}
+        <meta
+          name="theme-color"
+          content={META_THEME_COLORS.light}
+          suppressHydrationWarning
+        />
         <script
           type="text/javascript"
           dangerouslySetInnerHTML={{ __html: darkModeScript }}
