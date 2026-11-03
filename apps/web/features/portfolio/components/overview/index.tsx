@@ -16,6 +16,8 @@ import { Panel, PanelContent } from '@/components/app/panel';
 import { DrawUnderline } from '@/components/ui/draw-underline';
 import { USER } from '@/features/portfolio/data/user';
 import type { User } from '@/features/portfolio/types/user';
+import { formatIncompletePhoneNumber } from '@/lib/libphonenumber';
+import { decodePhoneNumber } from '@/utils/string';
 import { urlToName } from '@/utils/url';
 
 import { EmailItem } from './email-item';
@@ -68,7 +70,12 @@ export function Overview() {
           </IntroItem>
 
           <LocalTimeItem timeZone={USER.timeZone} />
-          <PhoneItem phoneNumber={USER.phoneNumber} />
+          <PhoneItem
+            phoneNumber={USER.phoneNumber}
+            formattedPhoneNumber={btoa(
+              formatIncompletePhoneNumber(decodePhoneNumber(USER.phoneNumber))
+            )}
+          />
           <EmailItem email={USER.email} />
 
           <IntroItem>

@@ -6,7 +6,6 @@
 @import './typeset.css';
 @import './view-transitions.css';
 
-@plugin '@tailwindcss/typography';
 @plugin '@toolwind/corner-shape';
 
 @custom-variant dark (&:where(.dark, .dark *));

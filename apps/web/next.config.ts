@@ -107,7 +107,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-const redactConfig = withRedact(nextConfig);
+// redact 0.2.2 under `next dev` (Next 16.4) hands server-passed `render` elements to Base UI as lazies; keep it to production builds
+const redactConfig =
+  process.env.NODE_ENV === 'production' ? withRedact(nextConfig) : nextConfig;
 
 // shortcut: @tanstack/redact 0.2.2 rewrites `scheduler` without its default export which @react-three/fiber imports
 // drop once fixed upstream
