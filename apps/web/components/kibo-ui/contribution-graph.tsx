@@ -374,7 +374,7 @@ export const ContributionGraphCalendar = ({
   children,
   ...props
 }: ContributionGraphCalendarProps) => {
-  const { weeks, width, height, blockSize, blockMargin, labels } =
+  const { weeks, width, height, blockSize, blockMargin, fontSize, labels } =
     useContributionGraph();
   const [activeDate, setActiveDate] = useState<string | null>(null);
   const tabStopDate = weeks.some((week) =>
@@ -452,9 +452,9 @@ export const ContributionGraphCalendar = ({
           <g className="fill-current">
             {monthLabels.map(({ label, weekIndex }) => (
               <text
-                dominantBaseline="hanging"
                 key={weekIndex}
                 x={(blockSize + blockMargin) * weekIndex}
+                y={fontSize}
               >
                 {label}
               </text>
