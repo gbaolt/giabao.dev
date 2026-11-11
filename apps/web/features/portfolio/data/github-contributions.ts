@@ -40,6 +40,7 @@ const normalizeContributions = (value: unknown): Activity[] => {
 
 export const getGitHubContributions = async () => {
   'use cache';
+
   cacheLife({
     stale: 3600,
     revalidate: 24 * 3600,
