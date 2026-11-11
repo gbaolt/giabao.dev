@@ -1,7 +1,7 @@
 'use client';
 
 import { format } from 'date-fns';
-import { use, useState } from 'react';
+import { useState } from 'react';
 
 import type { Activity } from '@/components/kibo-ui/contribution-graph';
 import {
@@ -29,12 +29,9 @@ import { addQueryParams } from '@/utils/url';
 export function GitHubContributionGraph({
   contributions,
 }: {
-  contributions: Promise<Activity[]>;
+  contributions: Activity[];
 }) {
-  const resolvedContributions = use(contributions);
-  const data = Array.isArray(resolvedContributions)
-    ? resolvedContributions
-    : [];
+  const data = contributions;
   const { xs, sm, md, lg, xl } = useBreakpoints(['xs', 'sm', 'md', 'lg', 'xl']);
   const mounted = useMounted();
   const [tooltipHandle] = useState(() => createTooltipHandle<Activity>());
