@@ -1,4 +1,3 @@
-import { withRedact } from '@tanstack/redact/next';
 import type { NextConfig } from 'next';
 
 import { RESUME_PDF_FILENAME } from './config/resume';
@@ -107,20 +106,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// redact 0.2.2 under `next dev` (Next 16.4) hands server-passed `render` elements to Base UI as lazies; keep it to production builds
-const redactConfig =
-  process.env.NODE_ENV === 'production' ? withRedact(nextConfig) : nextConfig;
-
-// shortcut: @tanstack/redact 0.2.2 rewrites `scheduler` without its default export which @react-three/fiber imports
-// drop once fixed upstream
-for (const rule of [redactConfig.turbopack?.rules?.['*.js'] ?? []].flat()) {
-  for (const loader of (rule as { loaders?: unknown[] }).loaders ?? []) {
-    const options = (
-      loader as { options?: { target?: string; defaultExport?: boolean } }
-    ).options;
-    if (options && /scheduler[\\/]index\.js$/.test(options.target ?? ''))
-      options.defaultExport = true;
-  }
-}
-
-export default redactConfig;
+export default nextConfig;
