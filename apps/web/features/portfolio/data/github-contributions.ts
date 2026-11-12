@@ -7,6 +7,8 @@ type GitHubContributionsResponse = {
   contributions: Activity[];
 };
 
+const FETCH_TIMEOUT = 5000;
+
 const isActivity = (value: unknown): value is Activity => {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -20,69 +22,58 @@ const isActivity = (value: unknown): value is Activity => {
   );
 };
 
-const normalizeContributions = (value: unknown): Activity[] => {
+const normalizeContributions = (value: unknown): Activity[] | null => {
   if (Array.isArray(value)) {
     return value.filter(isActivity);
   }
 
-  if (typeof value !== 'object' || value === null) {
-    return [];
+  if (typeof value === 'object' && value !== null) {
+    const { contributions } = value as Record<string, unknown>;
+    if (Array.isArray(contributions)) {
+      return contributions.filter(isActivity);
+    }
   }
 
-  const record = value as Record<string, unknown>;
-
-  if (Array.isArray(record.contributions)) {
-    return record.contributions.filter(isActivity);
-  }
-
-  return [];
+  return null;
 };
 
-export const getGitHubContributions = async () => {
+const fetchGitHubContributions = async (): Promise<Activity[]> => {
   'use cache';
 
   cacheLife({
     stale: 3600,
     revalidate: 24 * 3600,
+    expire: 7 * 24 * 3600,
   });
 
-  if (!process.env.GITHUB_CONTRIBUTIONS_API) {
+  const api = process.env.GITHUB_CONTRIBUTIONS_API;
+  if (!api) {
     throw new Error('GITHUB_CONTRIBUTIONS_API is missing');
   }
 
+  const res = await fetch(`${api}/v4/${GITHUB_PROFILE}?y=last`, {
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+  });
+
+  if (!res.ok) {
+    throw new Error(`GitHub contributions API responded with ${res.status}`);
+  }
+
+  const data = (await res.json()) as GitHubContributionsResponse | Activity[];
+  const contributions = normalizeContributions(data);
+
+  if (contributions === null) {
+    throw new Error('GitHub contributions API returned an unexpected payload');
+  }
+
+  return contributions;
+};
+
+export const getGitHubContributions = async (): Promise<Activity[] | null> => {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    try {
-      const res = await fetch(
-        `${process.env.GITHUB_CONTRIBUTIONS_API}/v4/${GITHUB_PROFILE}?y=last`,
-        {
-          headers: {
-            'cache-control': 'no-cache',
-          },
-          signal: controller.signal,
-        }
-      );
-
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        return [];
-      }
-
-      const data = (await res.json()) as
-        GitHubContributionsResponse | Activity[];
-
-      return normalizeContributions(data);
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    return await fetchGitHubContributions();
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.warn('GitHub contributions fetch timed out after 5000ms');
-      return [];
-    }
-    return [];
+    console.warn('Failed to load GitHub contributions:', error);
+    return null;
   }
 };

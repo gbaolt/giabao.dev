@@ -1,5 +1,8 @@
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit",
@@ -16,8 +19,7 @@
   ],
   "tailwindCSS.experimental.configFile": {
   "apps/web/styles/globals.css": "apps/web/**"
-}
-,
+},
   "files.associations": {
     "*.css": "tailwindcss"
   },
