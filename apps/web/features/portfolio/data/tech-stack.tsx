@@ -315,9 +315,9 @@ export const TECH_STACK: TechStack[] = [
     categories: ['Workflow & AI'],
   },
   {
-    key: 'gpt',
-    title: 'GPT',
-    href: 'https://chatgpt.com',
+    key: 'codex',
+    title: 'Codex',
+    href: 'https://openai.com/codex',
     icon: <OpenAIIcon />,
     categories: ['Workflow & AI'],
   },
