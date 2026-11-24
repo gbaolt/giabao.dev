@@ -10,7 +10,7 @@ import { playSound } from '@/lib/soundcn/sound-engine';
 
 import styles from '../../styles/profile-mascot-background.module.css';
 
-const MASCOT_UPDATED_AT = 1795330230;
+const MASCOT_UPDATED_AT = 1795543636;
 const DIRECTIONS_URL = `https://assets.giabao.dev/mascots/gbaolt-directions-px.webp?t=${MASCOT_UPDATED_AT}`;
 
 function playReactionSound() {
